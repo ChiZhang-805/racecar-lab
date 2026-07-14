@@ -13,6 +13,7 @@ import { GRAND_PRIX_QUESTION_BANK } from './grandPrixQuestionBank'
 import { GRAND_PRIX_FORMULA_EXAMPLES } from './grandPrixFormulaExamples'
 import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngineeringSim'
 import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
+import { MUSIC_TRACKS } from './music'
 
 const sorted = (values: readonly string[]) => [...values].sort()
 const cjk = /[\u3400-\u9fff]/
@@ -366,5 +367,20 @@ describe('complete grand prix hybrid curriculum', () => {
       expect(grandPrix.engineering).toHaveLength(3)
       expect(grandPrix.faults).toHaveLength(2)
     }
+  })
+})
+
+describe('runtime media configuration', () => {
+  it('keeps the eight configured music tracks localized and mapped to MP3 paths', () => {
+    expect(MUSIC_TRACKS).toHaveLength(8)
+    const ids = new Set<string>()
+    MUSIC_TRACKS.forEach((track) => {
+      expect(ids.has(track.id)).toBe(false)
+      ids.add(track.id)
+      expect(track.title.zh.trim()).not.toBe('')
+      expect(track.title.en.trim()).not.toBe('')
+      expect(track.title.en).not.toMatch(cjk)
+      expect(track.file).toMatch(/^\/audio\/.+\.mp3$/)
+    })
   })
 })

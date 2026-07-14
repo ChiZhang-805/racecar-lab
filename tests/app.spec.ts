@@ -1,5 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { MUSIC_TRACKS } from '../src/music'
 
 const PART_IDS = ['front-wing', 'rear-wing', 'floor', 'nose', 'monocoque', 'halo', 'tires', 'brakes', 'front-suspension', 'rear-suspension', 'steering', 'battery', 'inverter', 'motor', 'differential', 'cooling', 'ecu', 'sensors'] as const
 
@@ -63,6 +64,17 @@ test('full-screen layout, language isolation and dialog focus work at all target
     await assertPageFits(page)
   }
   expect(errors).toEqual([])
+})
+
+test('all configured music files are served as playable MP3 assets', async ({ request }) => {
+  expect(MUSIC_TRACKS).toHaveLength(8)
+  for (const track of MUSIC_TRACKS) {
+    const response = await request.get(track.file)
+    expect(response.ok()).toBe(true)
+    const contentType = response.headers()['content-type']?.toLowerCase() ?? ''
+    expect(contentType.startsWith('audio/') || contentType === 'application/octet-stream').toBe(true)
+    expect(Number(response.headers()['content-length'] ?? 0)).toBeGreaterThan(1024)
+  }
 })
 
 test('all 18 detailed 3D component models assemble, explode, select and calculate', async ({ page }, testInfo: TestInfo) => {

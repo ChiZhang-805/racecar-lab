@@ -383,13 +383,20 @@ function Brakes() {
 function FrontSuspension() {
   return (
     <PartGroup id="front-suspension" category="dynamics" explodeVector={[1.55, 0.15, 0.5]}>
-      {[-1, 1].flatMap((side) => [
-        <Rod key={`${side}-u1`} start={[side * 0.52, 0.92, 1.68]} end={[side * 1.38, 0.78, 2.15]} />,
-        <Rod key={`${side}-u2`} start={[side * 0.52, 0.92, 2.03]} end={[side * 1.38, 0.78, 2.15]} />,
-        <Rod key={`${side}-l1`} start={[side * 0.54, 0.46, 1.66]} end={[side * 1.38, 0.42, 2.15]} />,
-        <Rod key={`${side}-l2`} start={[side * 0.54, 0.46, 2.04]} end={[side * 1.38, 0.42, 2.15]} />,
-        <Rod key={`${side}-push`} start={[side * 1.36, 0.66, 2.15]} end={[side * 0.32, 1.22, 1.78]} radius={0.032} color="#d94f3d" />,
-      ])}
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <Rod start={[side * 0.52, 0.92, 1.68]} end={[side * 1.38, 0.78, 2.15]} />
+          <Rod start={[side * 0.52, 0.92, 2.03]} end={[side * 1.38, 0.78, 2.15]} />
+          <Rod start={[side * 0.54, 0.46, 1.66]} end={[side * 1.38, 0.42, 2.15]} />
+          <Rod start={[side * 0.54, 0.46, 2.04]} end={[side * 1.38, 0.42, 2.15]} />
+          <Rod start={[side * 1.36, 0.66, 2.15]} end={[side * 0.32, 1.22, 1.78]} radius={0.032} color="#d94f3d" />
+          <mesh position={[side * 0.22, 1.18, 1.68]} rotation={[0, 0, side * 0.35]}>
+            <boxGeometry args={[0.36, 0.07, 0.13]} />
+            <meshStandardMaterial color="#879198" roughness={0.32} metalness={0.8} />
+          </mesh>
+          <Rod start={[side * 0.28, 1.15, 1.66]} end={[side * 0.03, 1.02, 1.28]} radius={0.03} color="#63d8ee" />
+        </group>
+      ))}
     </PartGroup>
   )
 }
@@ -397,13 +404,20 @@ function FrontSuspension() {
 function RearSuspension() {
   return (
     <PartGroup id="rear-suspension" category="dynamics" explodeVector={[1.55, 0.15, -0.5]}>
-      {[-1, 1].flatMap((side) => [
-        <Rod key={`${side}-u1`} start={[side * 0.55, 0.95, -1.9]} end={[side * 1.38, 0.78, -2.35]} />,
-        <Rod key={`${side}-u2`} start={[side * 0.55, 0.95, -2.35]} end={[side * 1.38, 0.78, -2.35]} />,
-        <Rod key={`${side}-l1`} start={[side * 0.56, 0.46, -1.9]} end={[side * 1.38, 0.42, -2.35]} />,
-        <Rod key={`${side}-l2`} start={[side * 0.56, 0.46, -2.38]} end={[side * 1.38, 0.42, -2.35]} />,
-        <Rod key={`${side}-push`} start={[side * 1.36, 0.66, -2.35]} end={[side * 0.36, 1.18, -2.03]} radius={0.032} color="#d94f3d" />,
-      ])}
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <Rod start={[side * 0.55, 0.95, -1.9]} end={[side * 1.38, 0.78, -2.35]} />
+          <Rod start={[side * 0.55, 0.95, -2.35]} end={[side * 1.38, 0.78, -2.35]} />
+          <Rod start={[side * 0.56, 0.46, -1.9]} end={[side * 1.38, 0.42, -2.35]} />
+          <Rod start={[side * 0.56, 0.46, -2.38]} end={[side * 1.38, 0.42, -2.35]} />
+          <Rod start={[side * 1.36, 0.66, -2.35]} end={[side * 0.36, 1.18, -2.03]} radius={0.032} color="#d94f3d" />
+          <mesh position={[side * 0.24, 1.14, -1.98]} rotation={[0, 0, side * -0.35]}>
+            <boxGeometry args={[0.34, 0.07, 0.13]} />
+            <meshStandardMaterial color="#879198" roughness={0.32} metalness={0.8} />
+          </mesh>
+          <Rod start={[side * 0.3, 1.12, -1.98]} end={[side * 0.05, 1.0, -1.62]} radius={0.03} color="#63d8ee" />
+        </group>
+      ))}
     </PartGroup>
   )
 }
@@ -726,11 +740,19 @@ function GrandPrixWheel({ x, z, rear = false }: { x: number; z: number; rear?: b
     wheel.current.rotation.x -= delta * speed
   })
   const width = rear ? 0.42 : 0.34
+  const rimFaceX = x > 0 ? width * 0.58 : -width * 0.58
   return <group ref={wheel} position={[x, GRAND_PRIX_WHEEL_CENTER_Y, z]}>
     <mesh rotation={[0, Math.PI / 2, 0]} castShadow><torusGeometry args={[.48, .19, 20, 52]} /><meshStandardMaterial color="#070809" roughness={.9} /></mesh>
     <mesh rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[.31, .31, width, 36]} /><meshStandardMaterial color="#171d21" roughness={.24} metalness={.82} /></mesh>
     <mesh rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[.11, .11, width + .035, 24]} /><meshStandardMaterial color="#65dcf7" emissive="#0a4552" emissiveIntensity={.42} metalness={.82} /></mesh>
-    <mesh position={[x > 0 ? -.18 : .18, 0, 0]} rotation={[0, 0, Math.PI / 2]}><torusGeometry args={[.325, .013, 8, 32]} /><meshStandardMaterial color="#eef1e7" roughness={.6} /></mesh>
+    {Array.from({ length: 6 }, (_, spoke) => {
+      const angle = (spoke / 6) * Math.PI * 2
+      return <Rod key={spoke} start={[rimFaceX, 0, 0]} end={[rimFaceX, Math.cos(angle) * .28, Math.sin(angle) * .28]} radius={.012} color="#aeb8bc" />
+    })}
+    <mesh position={[rimFaceX, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+      <cylinderGeometry args={[.105, .105, .06, 6]} />
+      <meshStandardMaterial color="#d7dee1" roughness={.24} metalness={.9} />
+    </mesh>
   </group>
 }
 
@@ -797,17 +819,66 @@ function GPTires() {
 }
 
 function GPBrakes() {
-  return <PartGroup id="brakes" category="dynamics" explodeVector={[0, .58, 0]}>{([[-1.68,2.93],[1.68,2.93],[-1.68,-3.25],[1.68,-3.25]] as [number,number][]).map(([x,z],i) => <group key={i} scale={1.12}><BrakeDisc x={x/1.12} z={z/1.12} centerY={GRAND_PRIX_WHEEL_CENTER_Y / 1.12} /></group>)}
-    {[-.42,.42].map(x => <mesh key={x} position={[x,.58,1.52]}><boxGeometry args={[.18,.28,.4]} /><meshStandardMaterial color="#a8b1b6" metalness={.8} roughness={.25} /></mesh>)}
-  </PartGroup>
+  const corners: [number, number][] = [[-1.68, 2.93], [1.68, 2.93], [-1.68, -3.25], [1.68, -3.25]]
+  return (
+    <PartGroup id="brakes" category="dynamics" explodeVector={[0, .58, 0]}>
+      {corners.map(([x, z], index) => (
+        <group key={index} scale={1.12}>
+          <BrakeDisc x={x / 1.12} z={z / 1.12} centerY={GRAND_PRIX_WHEEL_CENTER_Y / 1.12} />
+        </group>
+      ))}
+      {corners.map(([x, z], index) => (
+        <group key={`duct-${index}`} position={[x * .82, .76, z + (z > 0 ? -.32 : .32)]}>
+          <mesh rotation={[0, x > 0 ? -.22 : .22, 0]}>
+            <boxGeometry args={[.18, .22, .42]} />
+            <meshStandardMaterial color="#151f25" roughness={.35} metalness={.6} />
+          </mesh>
+          <Rod start={[x > 0 ? -.12 : .12, .03, z > 0 ? .16 : -.16]} end={[0, -.08, z > 0 ? -.18 : .18]} radius={.018} color="#6bd7ec" />
+        </group>
+      ))}
+      {[-.42, .42].map(x => <mesh key={x} position={[x, .58, 1.52]}><boxGeometry args={[.18, .28, .4]} /><meshStandardMaterial color="#a8b1b6" metalness={.8} roughness={.25} /></mesh>)}
+    </PartGroup>
+  )
 }
 
 function GPFrontSuspension() {
-  return <PartGroup id="front-suspension" category="dynamics" explodeVector={[0, .72, .75]}>{[-1,1].flatMap(side => [<Rod key={`${side}a`} start={[side*.48,.7,2.25]} end={[side*1.58,.6,2.83]} radius={.035}/>,<Rod key={`${side}b`} start={[side*.48,.7,2.25]} end={[side*1.58,.6,3.04]} radius={.035}/>,<Rod key={`${side}c`} start={[side*.42,1.05,2.38]} end={[side*1.58,.77,2.9]} radius={.032} color="#d14d3c"/>,<Rod key={`${side}d`} start={[side*.38,.78,2.52]} end={[side*1.5,.88,2.95]} radius={.03} color="#66d8ec"/>])}</PartGroup>
+  return (
+    <PartGroup id="front-suspension" category="dynamics" explodeVector={[0, .72, .75]}>
+      {[-1, 1].map(side => (
+        <group key={side}>
+          <Rod start={[side * .48, .7, 2.25]} end={[side * 1.58, .6, 2.83]} radius={.035} />
+          <Rod start={[side * .48, .7, 2.25]} end={[side * 1.58, .6, 3.04]} radius={.035} />
+          <Rod start={[side * .42, 1.05, 2.38]} end={[side * 1.58, .77, 2.9]} radius={.032} color="#d14d3c" />
+          <Rod start={[side * .38, .78, 2.52]} end={[side * 1.5, .88, 2.95]} radius={.03} color="#66d8ec" />
+          <mesh position={[side * .24, 1.08, 2.27]} rotation={[0, 0, side * .38]}>
+            <boxGeometry args={[.34, .065, .12]} />
+            <meshStandardMaterial color="#8c979d" roughness={.3} metalness={.82} />
+          </mesh>
+          <Rod start={[side * .24, 1.06, 2.26]} end={[side * .04, .96, 1.78]} radius={.028} color="#6be0f5" />
+        </group>
+      ))}
+    </PartGroup>
+  )
 }
 
 function GPRearSuspension() {
-  return <PartGroup id="rear-suspension" category="dynamics" explodeVector={[0,.75,-.78]}>{[-1,1].flatMap(side => [<Rod key={`${side}a`} start={[side*.54,.66,-2.55]} end={[side*1.56,.59,-3.15]} radius={.035}/>,<Rod key={`${side}b`} start={[side*.54,.66,-2.55]} end={[side*1.56,.59,-3.36]} radius={.035}/>,<Rod key={`${side}c`} start={[side*.48,1.02,-2.58]} end={[side*1.55,.78,-3.24]} radius={.032} color="#d14d3c"/>,<Rod key={`${side}d`} start={[side*.45,.78,-2.73]} end={[side*1.49,.9,-3.24]} radius={.03} color="#66d8ec"/>])}</PartGroup>
+  return (
+    <PartGroup id="rear-suspension" category="dynamics" explodeVector={[0, .75, -.78]}>
+      {[-1, 1].map(side => (
+        <group key={side}>
+          <Rod start={[side * .54, .66, -2.55]} end={[side * 1.56, .59, -3.15]} radius={.035} />
+          <Rod start={[side * .54, .66, -2.55]} end={[side * 1.56, .59, -3.36]} radius={.035} />
+          <Rod start={[side * .48, 1.02, -2.58]} end={[side * 1.55, .78, -3.24]} radius={.032} color="#d14d3c" />
+          <Rod start={[side * .45, .78, -2.73]} end={[side * 1.49, .9, -3.24]} radius={.03} color="#66d8ec" />
+          <mesh position={[side * .27, 1.04, -2.46]} rotation={[0, 0, side * -.38]}>
+            <boxGeometry args={[.36, .065, .12]} />
+            <meshStandardMaterial color="#8c979d" roughness={.3} metalness={.82} />
+          </mesh>
+          <Rod start={[side * .27, 1.02, -2.47]} end={[side * .05, .92, -2.0]} radius={.028} color="#6be0f5" />
+        </group>
+      ))}
+    </PartGroup>
+  )
 }
 
 function GPSteering() {

@@ -92,7 +92,7 @@ function Principle({ locale, vehicleId, partId }: { locale: Locale; vehicleId: V
         <p className="eng-insight">{localise(output.insight, locale)}</p>
       </section>
       <section className="eng-formulas">
-        <div className="eng-section-title"><span><Calculator size={17} />{u.formula}</span><div className="eng-formula-dots">{lesson.formulas.map((_, index) => <button key={index} className={index === formulaIndex ? 'is-active' : ''} onClick={() => setFormulaIndex(index as TripleIndex)} aria-pressed={index === formulaIndex}>{index + 1}</button>)}</div></div>
+        <div className="eng-section-title"><span><Calculator size={17} />{u.formula}</span><div className="eng-formula-dots">{lesson.formulas.map((item, index) => <button key={index} className={index === formulaIndex ? 'is-active' : ''} onClick={() => setFormulaIndex(index as TripleIndex)} aria-pressed={index === formulaIndex} aria-label={localise(item.name, locale)} title={localise(item.name, locale)}><span className="sr-only">{localise(item.name, locale)}</span></button>)}</div></div>
         <article key={`${partId}-${formulaIndex}-${locale}`} className="eng-formula-card">
           <span>{localise(formula.name, locale)}</span>
           <div className={`eng-formula-math ${formula.latex.length > 58 ? 'is-long' : ''}`} role="img" aria-label={formula.expression} dangerouslySetInnerHTML={{ __html: formulaHtml }} />

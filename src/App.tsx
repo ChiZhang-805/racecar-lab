@@ -392,7 +392,8 @@ function App() {
       try {
         const response = await fetch(currentMusicTrack.file, { method: 'HEAD', cache: 'no-store' })
         const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-        if (!cancelled) setMusicError(!response.ok || !contentType.startsWith('audio/'))
+        const supportedAudioResponse = contentType.startsWith('audio/') || contentType === 'application/octet-stream' || contentType === ''
+        if (!cancelled) setMusicError(!response.ok || !supportedAudioResponse)
       } catch {
         if (!cancelled) setMusicError(true)
       }
@@ -471,12 +472,37 @@ function App() {
     setActiveCourse(null); setVisitedParts([]); setScenario('idle'); setExplode(0); setXray(false); setVisibleCategories(CATEGORY_ORDER)
     setResetSignal((value) => value + 1)
   }
+  const playMusicFile = (file = currentMusicTrack.file) => {
+    const audio = audioRef.current
+    setMusicError(false)
+    setMusicPlaying(true)
+    if (!audio) return
+    if (audioSourceRef.current !== file) {
+      audioSourceRef.current = file
+      audio.src = file
+      audio.load()
+    }
+    void audio.play().catch(() => {
+      setMusicError(true)
+      setMusicPlaying(false)
+    })
+  }
+  const toggleMusicPlayback = () => {
+    const audio = audioRef.current
+    if (musicPlaying) {
+      audio?.pause()
+      setMusicPlaying(false)
+      return
+    }
+    playMusicFile()
+  }
   const chooseMusicTrack = (trackId: MusicTrackId) => {
+    const track = MUSIC_TRACKS.find((item) => item.id === trackId)
+    if (!track) return
     const audio = audioRef.current
     if (audio) audio.currentTime = 0
-    setMusicError(false)
     setMusicTrackId(trackId)
-    setMusicPlaying(true)
+    playMusicFile(track.file)
   }
   const cycleMusicMode = () => {
     setMusicMode((current) => MUSIC_MODES[(MUSIC_MODES.indexOf(current) + 1) % MUSIC_MODES.length]!)
@@ -530,7 +556,7 @@ function App() {
         </div>
       )}
       {knowledgeOpen && <Suspense fallback={<LoadingOverlay locale={locale} />}><KnowledgeCenter vehicleId={vehicleId} locale={locale} profileId={profileId} initialPartId={selectedId} onClose={() => setKnowledgeOpen(false)} /></Suspense>}
-      {settingsOpen && <SettingsModal locale={locale} vehicleId={vehicleId} musicTrackId={musicTrackId} musicMode={musicMode} musicPlaying={musicPlaying} musicError={musicError} onLocale={setLocale} onVehicle={switchVehicle} onMusicTrack={chooseMusicTrack} onMusicMode={cycleMusicMode} onToggleMusic={() => setMusicPlaying((value) => !value)} onClose={() => setSettingsOpen(false)} onResetProgress={resetProgress} />}
+      {settingsOpen && <SettingsModal locale={locale} vehicleId={vehicleId} musicTrackId={musicTrackId} musicMode={musicMode} musicPlaying={musicPlaying} musicError={musicError} onLocale={setLocale} onVehicle={switchVehicle} onMusicTrack={chooseMusicTrack} onMusicMode={cycleMusicMode} onToggleMusic={toggleMusicPlayback} onClose={() => setSettingsOpen(false)} onResetProgress={resetProgress} />}
     </main>
   )
 }
