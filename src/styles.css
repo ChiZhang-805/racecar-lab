@@ -2554,6 +2554,578 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
   }
 }
 
+@media (max-width: 680px) and (orientation: portrait) {
+  .detail-modal.engineering-detail {
+    width: calc(100vw - 12px);
+    height: calc(100dvh - 12px);
+    max-height: calc(100dvh - 12px);
+    grid-template-rows: 64px 52px minmax(0, 1fr) !important;
+  }
+
+  .engineering-detail__header {
+    padding: 0 18px;
+  }
+
+  .engineering-detail__header h2 {
+    max-width: calc(100vw - 112px);
+    overflow: hidden;
+    font-size: 27px;
+    line-height: 1.08;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .engineering-detail__header .settings-close {
+    width: 40px;
+    height: 40px;
+  }
+
+  .engineering-tabs {
+    padding: 0;
+  }
+
+  .engineering-tabs button {
+    min-width: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .engineering-tabs button > i {
+    margin: 0;
+  }
+
+  .engineering-detail__body {
+    padding: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .eng-principle,
+  .eng-observe,
+  .eng-engineering,
+  .eng-faults {
+    height: auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .eng-controls,
+  .eng-model-output,
+  .eng-formulas,
+  .eng-observe > aside,
+  .eng-experiment-card,
+  .eng-engineering > section,
+  .eng-faults > aside,
+  .eng-diagnostic {
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .eng-controls,
+  .eng-model-output,
+  .eng-formulas {
+    padding: 14px;
+  }
+
+  .eng-section-title {
+    margin-bottom: 10px;
+  }
+
+  .eng-controls h3 {
+    margin: 4px 0 14px;
+    font-size: 18px;
+  }
+
+  .eng-slider {
+    margin-bottom: 16px;
+  }
+
+  .eng-slider b {
+    font-size: 14px;
+  }
+
+  .eng-slider output {
+    font-size: 17px;
+  }
+
+  .eng-model-note {
+    position: static;
+    display: block;
+    margin-top: 8px;
+    font-size: 11px;
+  }
+
+  .eng-model-output {
+    display: block;
+  }
+
+  .eng-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .eng-metrics article {
+    padding: 10px;
+  }
+
+  .eng-metrics article > span {
+    font-size: 11px;
+  }
+
+  .eng-metrics article strong {
+    font-size: 20px;
+  }
+
+  .eng-chart {
+    height: 220px;
+    margin-top: 12px;
+  }
+
+  .eng-insight {
+    margin-top: 12px;
+    font-size: 12px;
+  }
+
+  .eng-formulas {
+    overflow: visible;
+  }
+
+  .eng-formula-card {
+    height: auto;
+    max-height: none;
+    padding: 14px;
+    overflow: visible;
+  }
+
+  .eng-formula-card > span {
+    font-size: 14px;
+  }
+
+  .eng-formula-math {
+    min-height: 78px;
+    margin: 12px 0;
+    padding: 13px 7px;
+  }
+
+  .eng-formula-math .katex {
+    font-size: 17px;
+  }
+
+  .eng-formula-math.is-long .katex {
+    font-size: 13px;
+  }
+
+  .eng-formula-card p,
+  .eng-formula-card li {
+    font-size: 12px;
+    line-height: 1.62;
+  }
+
+  .eng-observe > aside,
+  .eng-faults > aside {
+    padding: 14px;
+  }
+
+  .eng-observe > aside > .eng-label,
+  .eng-faults > aside > .eng-label {
+    margin-bottom: 10px;
+  }
+
+  .eng-observe > aside > button,
+  .eng-faults > aside > button {
+    min-height: 64px;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    grid-template-columns: 34px minmax(0, 1fr) 18px;
+  }
+
+  .eng-observe aside button strong,
+  .eng-faults aside button strong {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .eng-experiment-card {
+    padding: 15px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    gap: 12px;
+  }
+
+  .eng-experiment-question h3 {
+    font-size: 20px;
+    line-height: 1.35;
+  }
+
+  .eng-experiment-steps button {
+    min-height: 56px;
+    padding: 10px 12px;
+  }
+
+  .eng-evidence {
+    min-height: 150px;
+    padding: 16px;
+  }
+
+  .eng-evidence p {
+    margin-top: 12px;
+    font-size: 14px;
+  }
+
+  .eng-action {
+    grid-column: auto;
+    width: 100%;
+    min-width: 0;
+    justify-self: stretch;
+  }
+
+  .eng-engineering > section {
+    padding: 15px;
+  }
+
+  .eng-decision-list {
+    height: auto;
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+  }
+
+  .eng-decision-list article,
+  .eng-validation-list article {
+    min-height: 78px;
+    padding: 14px;
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .eng-decision-list p,
+  .eng-validation-list p {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .eng-references {
+    position: static;
+    margin-top: 14px;
+    padding-top: 12px;
+  }
+
+  .eng-references > strong {
+    width: 100%;
+    margin: 0 0 4px;
+  }
+
+  .eng-references a {
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .eng-diagnostic {
+    padding: 15px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 12px;
+  }
+
+  .eng-diagnostic__checks {
+    grid-row: auto;
+    grid-column: auto;
+  }
+
+  .eng-diagnostic__symptom,
+  .eng-diagnostic__checks,
+  .eng-diagnostic__resolution {
+    padding: 16px;
+  }
+
+  .eng-diagnostic__symptom p,
+  .eng-diagnostic__resolution p {
+    margin-top: 12px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .eng-diagnostic__checks > div {
+    min-height: 60px;
+  }
+
+  .eng-diagnostic__checks p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .knowledge-modal {
+    width: calc(100vw - 12px);
+    height: auto;
+    max-height: calc(100dvh - 12px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 58px auto auto;
+  }
+
+  .knowledge-modal::before {
+    left: 26px;
+    width: 125px;
+  }
+
+  .knowledge-header {
+    grid-column: 1;
+    padding: 0 16px;
+  }
+
+  .knowledge-title {
+    gap: 10px;
+  }
+
+  .knowledge-title h2 {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .knowledge-sidebar {
+    grid-row: 2;
+    padding: 8px 10px 9px;
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 7px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(180, 221, 233, .11);
+    overflow: visible;
+  }
+
+  .knowledge-categories {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+    overflow: visible;
+  }
+
+  .knowledge-categories button,
+  .knowledge-categories button:last-child {
+    grid-column: auto;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .knowledge-categories button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .knowledge-parts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .knowledge-parts button {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 8px;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .knowledge-parts button > span {
+    font-size: 10px;
+  }
+
+  .knowledge-parts button strong {
+    font-size: 13px;
+  }
+
+  .knowledge-parts button em,
+  .knowledge-parts button svg {
+    display: none;
+  }
+
+  .knowledge-main {
+    grid-row: 3;
+    padding: 12px 14px 14px;
+    min-height: 0;
+    max-height: calc(100dvh - 318px);
+    overflow-y: auto;
+  }
+
+  .knowledge-question-meta {
+    min-height: 0;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .knowledge-question-meta > span {
+    height: 30px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+
+  .knowledge-question-meta > strong {
+    width: 100%;
+    margin-left: 0;
+    font-size: 13px;
+  }
+
+  .knowledge-progress {
+    margin: 9px 0 12px;
+  }
+
+  .knowledge-question {
+    min-height: auto;
+    padding: 0 0 12px 38px;
+  }
+
+  .knowledge-question__number {
+    top: -2px;
+    font-size: 26px;
+  }
+
+  .knowledge-question h3 {
+    font-size: 20px;
+    line-height: 1.38;
+    padding-right: 0;
+  }
+
+  .knowledge-hint {
+    position: static;
+    width: max-content;
+    min-height: 32px;
+    margin-top: 8px;
+  }
+
+  .knowledge-hint-box {
+    position: static;
+    display: block;
+    max-width: none;
+    margin-top: 7px;
+  }
+
+  .knowledge-options {
+    gap: 7px;
+  }
+
+  .knowledge-options button {
+    min-height: 50px;
+    padding: 8px 10px;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .knowledge-options button i {
+    width: 30px;
+    height: 30px;
+  }
+
+  .knowledge-options button span {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .knowledge-explanation {
+    min-height: 0;
+    padding: 10px 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .knowledge-explanation > div {
+    min-height: 22px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(176, 221, 234, .1);
+  }
+
+  .knowledge-actions {
+    margin-top: 12px;
+    padding-top: 0;
+    justify-content: stretch;
+  }
+
+  .knowledge-actions .button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .course-modal {
+    width: calc(100vw - 12px);
+    height: auto;
+    max-height: calc(100dvh - 12px);
+    min-height: 0;
+    padding: 0 18px 18px;
+    grid-template-rows: auto auto;
+  }
+
+  .course-header {
+    padding: 16px 0 12px;
+    align-items: flex-start;
+  }
+
+  .course-header > div:first-child {
+    max-width: calc(100% - 54px);
+  }
+
+  .course-header h2 {
+    max-width: 100%;
+    font-size: clamp(24px, 6.4vw, 27px);
+    line-height: 1.08;
+    letter-spacing: -.04em;
+  }
+
+  .course-header .modal-overline {
+    font-size: 13px;
+  }
+
+  .course-header .settings-close {
+    width: 42px;
+    height: 42px;
+    margin-top: 2px;
+  }
+
+  .course-progress-ring {
+    display: none;
+  }
+
+  .course-path {
+    padding: 12px 0 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-content: start;
+    overflow: visible;
+    scrollbar-width: thin;
+  }
+
+  .course-connector {
+    display: none;
+  }
+
+  .course-node {
+    height: 60px;
+    padding: 0 10px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .course-node > svg {
+    display: none;
+  }
+
+  .course-node__number {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .course-node__copy strong {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .course-footer {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
