@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { CameraControls, ContactShadows, Grid, RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { PART_MAP, type CategoryId, type PartId, type ScenarioId } from './data'
@@ -941,10 +941,20 @@ function GrandPrixCar({ intro, paused, resetSignal }: { intro: boolean; paused: 
 
 function CameraRig({ vehicleId, intro, selectedId, resetSignal }: { vehicleId: VehicleId; intro: boolean; selectedId: PartId | null; resetSignal: number }) {
   const controls = useRef<ComponentRef<typeof CameraControls>>(null)
+  const { size } = useThree()
   useEffect(() => {
     if (!controls.current) return
+    const mobilePortraitIntro = intro && size.width <= 680 && size.height > size.width
     if (intro) {
-      controls.current.setLookAt(vehicleId === 'grand-prix-2026' ? 9.4 : 7.8, vehicleId === 'grand-prix-2026' ? 5.1 : 4.1, vehicleId === 'grand-prix-2026' ? 11.1 : 9.2, 0, 0.7, 0, true)
+      controls.current.setLookAt(
+        vehicleId === 'grand-prix-2026' ? 9.4 : 7.8,
+        vehicleId === 'grand-prix-2026' ? 5.1 : 4.1,
+        vehicleId === 'grand-prix-2026' ? 11.1 : 9.2,
+        0,
+        mobilePortraitIntro ? 0.16 : 0.7,
+        0,
+        true,
+      )
       return
     }
     if (!selectedId) {
@@ -953,7 +963,7 @@ function CameraRig({ vehicleId, intro, selectedId, resetSignal }: { vehicleId: V
     }
     const part = PART_MAP[selectedId]
     if (part && controls.current) controls.current.setLookAt(...part.camera, ...part.target, true)
-  }, [vehicleId, intro, selectedId, resetSignal])
+  }, [vehicleId, intro, selectedId, resetSignal, size.width, size.height])
 
   return (
     <CameraControls
