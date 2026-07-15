@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
-import { AlertTriangle, ArrowRight, BookOpen, Calculator, Check, ChevronRight, CircleGauge, ExternalLink, FlaskConical, RotateCcw, SlidersHorizontal, Wrench, X } from 'lucide-react'
-import { ENGINEERING_LESSONS, localise, type DiagnosticCase, type GuidedExperiment } from './engineeringData'
+import { Activity, AlertTriangle, ArrowRight, BookOpen, Calculator, Check, ChevronRight, CircleGauge, ExternalLink, FlaskConical, Gauge, GitBranch, RotateCcw, SearchCheck, ShieldCheck, SlidersHorizontal, Target, ThermometerSun, Wrench, X } from 'lucide-react'
+import { ENGINEERING_LESSONS, localise, type DiagnosticCase, type GuidedExperiment, type LabKind } from './engineeringData'
 import { initialValues, LAB_MODELS, type LabOutput } from './engineeringSim'
 import { copy, getPart, type Locale } from './i18n'
 import { ComponentWorkshop } from './ComponentWorkshop'
@@ -31,6 +31,54 @@ const ui = {
     definition: 'Engineering definition', architecture: 'System architecture', mentalModels: 'Three key mental models', liveModel: 'Live engineering model', inputs: 'Design inputs', results: 'Calculated results', curve: 'Response curve', formula: 'Core equations', symbols: 'Variables and limits', scenario: 'Engineering scenario', calculation: 'Calculation', answer: 'Engineering result', experiment: 'Guided experiment', prediction: 'Make a prediction', reveal: 'Reveal engineering result', hide: 'Hide result', steps: 'Procedure', decision: 'Design trade-offs', validation: 'Validation plan', sources: 'Professional references', source: 'Source', symptom: 'Fault symptom', checks: 'Diagnostic sequence', resolution: 'Root cause and action', revealResolution: 'Reveal diagnosis', chooseCase: 'Choose a fault case', reset: 'Reset inputs', modelNote: 'This learning model explains trends; real designs must be calibrated with test data.', case: 'Case', experimentIndex: 'Experiment', completeStep: 'Complete step', evidence: 'Evidence to observe', close: 'Close',
   },
 } as const
+
+const visualUi = {
+  zh: {
+    predict: '预测', linear: '持续变好', limit: '出现拐点', risk: '进入风险',
+    flow: '系统图', data: '数据', conclusion: '结论', tune: '调参数',
+    tradeMap: '取舍图', profile: '方案', balanced: '均衡', aggressive: '激进',
+    performance: '性能', reliability: '可靠', mass: '重量', efficiency: '效率', riskAxis: '风险',
+    testFlow: '验证链路', bench: '台架', install: '装车', track: '赛道', review: '复盘',
+    faultMap: '故障图', inspect: '排查', suspects: '根因选择', selected: '已选择',
+    correct: '最可能根因', exclude: '需要排除', sensor: '测量偏差', boundary: '边界条件',
+    thermal: '热源', control: '控制', transfer: '传递', output: '输出', environment: '环境',
+  },
+  en: {
+    predict: 'Predict', linear: 'Keeps improving', limit: 'Hits a limit', risk: 'Turns risky',
+    flow: 'System map', data: 'Data', conclusion: 'Result', tune: 'Tune',
+    tradeMap: 'Trade map', profile: 'Setup', balanced: 'Balanced', aggressive: 'Aggressive',
+    performance: 'Performance', reliability: 'Reliability', mass: 'Mass', efficiency: 'Efficiency', riskAxis: 'Risk',
+    testFlow: 'Validation chain', bench: 'Bench', install: 'Install', track: 'Track', review: 'Review',
+    faultMap: 'Fault map', inspect: 'Inspect', suspects: 'Suspects', selected: 'Selected',
+    correct: 'Most likely', exclude: 'Rule out', sensor: 'Sensor bias', boundary: 'Boundary condition',
+    thermal: 'Heat', control: 'Control', transfer: 'Transfer', output: 'Output', environment: 'Environment',
+  },
+} as const
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+
+const visualTheme = (kind: LabKind, locale: Locale) => {
+  const v = visualUi[locale]
+  const themes: Record<LabKind, { color: string; nodes: string[]; icon: typeof Activity }> = {
+    wing: { color: '#50d8ff', nodes: [locale === 'zh' ? '气流' : 'Air', locale === 'zh' ? '翼面' : 'Wing', locale === 'zh' ? '压力' : 'Pressure', locale === 'zh' ? '载荷' : 'Load'], icon: Activity },
+    floor: { color: '#52e0c4', nodes: [locale === 'zh' ? '入口' : 'Inlet', locale === 'zh' ? '喉部' : 'Throat', locale === 'zh' ? '扩散器' : 'Diffuser', locale === 'zh' ? '地面效应' : 'Ground effect'], icon: Activity },
+    impact: { color: '#ffb75b', nodes: [locale === 'zh' ? '碰撞' : 'Impact', locale === 'zh' ? '压溃' : 'Crush', locale === 'zh' ? '吸能' : 'Energy', locale === 'zh' ? '舱体' : 'Cell'], icon: ShieldCheck },
+    structure: { color: '#75d7ff', nodes: [locale === 'zh' ? '载荷' : 'Load', locale === 'zh' ? '蒙皮' : 'Skin', locale === 'zh' ? '夹芯' : 'Core', locale === 'zh' ? '刚度' : 'Stiffness'], icon: ShieldCheck },
+    protection: { color: '#9ee7ff', nodes: [locale === 'zh' ? '冲击' : 'Strike', locale === 'zh' ? '支点' : 'Mounts', locale === 'zh' ? '变形' : 'Deflection', locale === 'zh' ? '净空' : 'Clearance'], icon: ShieldCheck },
+    tire: { color: '#b9f071', nodes: [locale === 'zh' ? '载荷' : 'Load', locale === 'zh' ? '滑移' : 'Slip', locale === 'zh' ? '温度' : 'Temp', locale === 'zh' ? '抓地' : 'Grip'], icon: Gauge },
+    brake: { color: '#ff826b', nodes: [locale === 'zh' ? '踏板' : 'Pedal', locale === 'zh' ? '夹紧' : 'Clamp', locale === 'zh' ? '热量' : 'Heat', locale === 'zh' ? '减速' : 'Decel'], icon: ThermometerSun },
+    suspension: { color: '#a78bfa', nodes: [locale === 'zh' ? '轮胎' : 'Tyre', locale === 'zh' ? '弹簧' : 'Spring', locale === 'zh' ? '阻尼' : 'Damper', locale === 'zh' ? '平台' : 'Platform'], icon: GitBranch },
+    steering: { color: '#7dd3fc', nodes: [locale === 'zh' ? '输入' : 'Input', locale === 'zh' ? '转向机' : 'Rack', locale === 'zh' ? '轮角' : 'Wheel angle', locale === 'zh' ? '响应' : 'Response'], icon: Target },
+    battery: { color: '#7cf7b5', nodes: [locale === 'zh' ? '电芯' : 'Cells', locale === 'zh' ? '电流' : 'Current', locale === 'zh' ? '热量' : 'Heat', locale === 'zh' ? '功率' : 'Power'], icon: Activity },
+    inverter: { color: '#69e6ff', nodes: [locale === 'zh' ? '直流' : 'DC', locale === 'zh' ? '开关' : 'Switching', locale === 'zh' ? '三相' : '3 phase', locale === 'zh' ? '扭矩' : 'Torque'], icon: Activity },
+    motor: { color: '#58e6c5', nodes: [locale === 'zh' ? '电流' : 'Current', locale === 'zh' ? '磁场' : 'Field', locale === 'zh' ? '转子' : 'Rotor', locale === 'zh' ? '扭矩' : 'Torque'], icon: Activity },
+    differential: { color: '#f5c56a', nodes: [locale === 'zh' ? '输入' : 'Input', locale === 'zh' ? '锁止' : 'Lock', locale === 'zh' ? '轮速差' : 'Delta speed', locale === 'zh' ? '牵引' : 'Traction'], icon: GitBranch },
+    cooling: { color: '#4fd8ff', nodes: [v.thermal, locale === 'zh' ? '泵' : 'Pump', locale === 'zh' ? '散热器' : 'Radiator', v.environment], icon: ThermometerSun },
+    control: { color: '#d6b4ff', nodes: [locale === 'zh' ? '请求' : 'Request', locale === 'zh' ? '限制器' : 'Limits', locale === 'zh' ? '策略' : 'Logic', locale === 'zh' ? '命令' : 'Command'], icon: Target },
+    telemetry: { color: '#91d5ff', nodes: [locale === 'zh' ? '传感器' : 'Sensor', locale === 'zh' ? '采样' : 'Sample', locale === 'zh' ? '记录' : 'Log', locale === 'zh' ? '判断' : 'Decision'], icon: SearchCheck },
+  }
+  return themes[kind]
+}
 
 function MiniChart({ output, locale }: { output: LabOutput; locale: Locale }) {
   const width = 620
@@ -110,17 +158,92 @@ function Principle({ locale, vehicleId, partId }: { locale: Locale; vehicleId: V
   )
 }
 
-function ExperimentCard({ locale, experiment }: { locale: Locale; experiment: GuidedExperiment }) {
-  const [step, setStep] = useState(0)
+function FlowDiagram({ locale, labKind, intensity = 55, activeIndex = 1 }: { locale: Locale; labKind: LabKind; intensity?: number; activeIndex?: number }) {
+  const theme = visualTheme(labKind, locale)
+  const Icon = theme.icon
+  const glow = clamp(intensity, 0, 100)
+  return (
+    <div className="eng-flow-visual" style={{ ['--flow-color' as string]: theme.color, ['--flow-level' as string]: `${glow}%` }}>
+      <svg viewBox="0 0 680 210" role="img" aria-label={visualUi[locale].flow}>
+        <defs>
+          <linearGradient id={`flow-${labKind}`} x1="0" x2="1"><stop offset="0" stopColor={theme.color} stopOpacity=".18" /><stop offset="1" stopColor={theme.color} stopOpacity=".9" /></linearGradient>
+          <filter id={`flow-glow-${labKind}`}><feGaussianBlur stdDeviation="4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        </defs>
+        <path className="eng-flow-visual__rail" d="M92 105 H588" />
+        <path className="eng-flow-visual__pulse" d="M92 105 H588" style={{ strokeDashoffset: 240 - glow * 1.6 }} />
+        {theme.nodes.map((node, index) => {
+          const x = 92 + index * (496 / (theme.nodes.length - 1))
+          return (
+            <g key={node} className={index === activeIndex ? 'is-active' : ''} transform={`translate(${x} 105)`}>
+              <circle r={index === activeIndex ? 34 : 28} fill="rgba(8,18,23,.92)" stroke={theme.color} strokeOpacity={index === activeIndex ? .9 : .38} />
+              <circle r={11 + index * 2} fill={theme.color} opacity={index <= activeIndex ? .42 : .13} filter={`url(#flow-glow-${labKind})`} />
+              <text y="58" textAnchor="middle">{node}</text>
+            </g>
+          )
+        })}
+      </svg>
+      <Icon className="eng-flow-visual__icon" size={28} />
+    </div>
+  )
+}
+
+function GaugeTile({ label, value, unit, tone = 'normal' }: { label: string; value: number; unit: string; tone?: string }) {
+  const pct = clamp(Math.abs(value) % 120, 8, 100)
+  return (
+    <article className={`eng-visual-gauge is-${tone}`} style={{ ['--gauge' as string]: `${pct}%` }}>
+      <span>{label}</span>
+      <strong>{Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}<small>{unit}</small></strong>
+      <i />
+    </article>
+  )
+}
+
+function ExperimentCard({ locale, vehicleId, labKind, experiment }: { locale: Locale; vehicleId: VehicleId; labKind: LabKind; experiment: GuidedExperiment }) {
+  const model = modelFor(labKind, vehicleId)
+  const [values, setValues] = useState<Record<string, number>>(() => valuesFor(labKind, vehicleId))
+  const [prediction, setPrediction] = useState<'linear' | 'limit' | 'risk'>('limit')
+  const [activeNode, setActiveNode] = useState(1)
   const [revealed, setRevealed] = useState(false)
   const u = ui[locale]
-  useEffect(() => { setStep(0); setRevealed(false) }, [experiment])
+  const v = visualUi[locale]
+  useEffect(() => { setValues(valuesFor(labKind, vehicleId)); setPrediction('limit'); setActiveNode(1); setRevealed(false) }, [experiment, labKind, vehicleId])
+  const output = useMemo(() => model.evaluate(values), [model, values])
+  const controls = model.parameters.slice(0, 3)
+  const intensity = controls.length ? controls.reduce((sum, parameter) => {
+    const value = values[parameter.key] ?? parameter.initial
+    return sum + ((value - parameter.min) / Math.max(1e-9, parameter.max - parameter.min)) * 100
+  }, 0) / controls.length : 55
+  const predictionOptions: { id: typeof prediction; label: string }[] = [
+    { id: 'linear', label: v.linear }, { id: 'limit', label: v.limit }, { id: 'risk', label: v.risk },
+  ]
   return (
-    <div className="eng-experiment-card">
-      <div className="eng-experiment-question"><span>{u.prediction}</span><h3>{localise(experiment.question, locale)}</h3></div>
-      <div className="eng-experiment-steps"><span className="eng-label">{u.steps}</span>{experiment.steps.map((item, index) => <button key={index} className={`${index < step ? 'is-done' : ''} ${index === step ? 'is-active' : ''}`} onClick={() => setStep(Math.min(experiment.steps.length, index + 1))}><i>{index < step ? <Check size={15} /> : index + 1}</i><span>{localise(item, locale)}</span>{index === step && <ChevronRight size={17} />}</button>)}</div>
-      <div className={`eng-evidence ${revealed ? 'is-revealed' : ''}`}><span>{u.evidence}</span>{revealed ? <p>{localise(experiment.evidence, locale)}</p> : <div className="eng-evidence__mask" />}</div>
-      <button className="eng-action" disabled={step < experiment.steps.length} onClick={() => setRevealed(value => !value)}>{revealed ? u.hide : u.reveal}<ArrowRight size={16} /></button>
+    <div className="eng-experiment-card eng-experiment-card--visual">
+      <section className="eng-visual-brief">
+        <span>{v.predict}</span>
+        <h3>{localise(experiment.question, locale)}</h3>
+        <div className="eng-prediction-switch">{predictionOptions.map(item => <button key={item.id} className={prediction === item.id ? 'is-active' : ''} onClick={() => setPrediction(item.id)}>{item.label}</button>)}</div>
+      </section>
+      <section className="eng-visual-stage">
+        <span className="eng-label"><Activity size={16} />{v.flow}</span>
+        <FlowDiagram locale={locale} labKind={labKind} intensity={intensity} activeIndex={activeNode} />
+        <div className="eng-node-dots">{experiment.steps.map((stepText, index) => <button key={index} className={activeNode === index ? 'is-active' : ''} onClick={() => setActiveNode(index)} title={localise(stepText, locale)}><span>{index + 1}</span></button>)}</div>
+      </section>
+      <section className="eng-visual-controls">
+        <div className="eng-section-title"><span><SlidersHorizontal size={17} />{v.tune}</span><button onClick={() => setValues(valuesFor(labKind, vehicleId))} title={u.reset}><RotateCcw size={15} /></button></div>
+        {controls.map(parameter => {
+          const value = values[parameter.key] ?? parameter.initial
+          return <label key={parameter.key}><span>{localise(parameter.label, locale)}</span><input type="range" min={parameter.min} max={parameter.max} step={parameter.step} value={value} onChange={event => setValues(current => ({ ...current, [parameter.key]: Number(event.target.value) }))} /></label>
+        })}
+      </section>
+      <section className="eng-visual-data">
+        <span className="eng-label"><CircleGauge size={16} />{v.data}</span>
+        <div>{output.metrics.slice(0, 4).map((metric, index) => <GaugeTile key={index} label={localise(metric.label, locale)} value={metric.value} unit={metric.unit} tone={metric.tone} />)}</div>
+      </section>
+      <section className={`eng-visual-conclusion ${revealed ? 'is-revealed' : ''}`}>
+        <span>{v.conclusion}</span>
+        <p>{revealed ? localise(experiment.evidence, locale) : localise(experiment.steps[activeNode] ?? experiment.steps[0] ?? experiment.evidence, locale)}</p>
+        <button onClick={() => setRevealed(value => !value)}>{revealed ? u.hide : u.reveal}<ArrowRight size={16} /></button>
+      </section>
     </div>
   )
 }
@@ -129,29 +252,120 @@ function Observe({ locale, vehicleId, partId }: { locale: Locale; vehicleId: Veh
   const lesson = lessonFor(partId, vehicleId)
   const [selected, setSelected] = useState<PairIndex>(0)
   const u = ui[locale]
-  useEffect(() => setSelected(0), [partId])
-  return <div className="eng-observe"><aside><span className="eng-label"><FlaskConical size={16} />{u.experiment}</span>{lesson.experiments.map((experiment, index) => <button className={selected === index ? 'is-active' : ''} key={index} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><small>{u.experimentIndex}</small><strong>{localise(experiment.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><ExperimentCard locale={locale} experiment={lesson.experiments[selected]} /></div>
+  useEffect(() => setSelected(0), [partId, vehicleId])
+  return <div className="eng-observe eng-observe--visual"><aside><span className="eng-label"><FlaskConical size={16} />{u.experiment}</span>{lesson.experiments.map((experiment, index) => <button className={selected === index ? 'is-active' : ''} key={index} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><strong>{localise(experiment.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><ExperimentCard locale={locale} vehicleId={vehicleId} labKind={lesson.labKind} experiment={lesson.experiments[selected]} /></div>
+}
+
+function RadarChart({ locale, values }: { locale: Locale; values: number[] }) {
+  const v = visualUi[locale]
+  const labels = [v.performance, v.reliability, v.mass, v.efficiency, v.riskAxis]
+  const cx = 120; const cy = 110; const r = 82
+  const point = (index: number, scale = 1): [number, number] => {
+    const angle = -Math.PI / 2 + index * 2 * Math.PI / labels.length
+    return [cx + Math.cos(angle) * r * scale, cy + Math.sin(angle) * r * scale]
+  }
+  const poly = values.map((value, index) => point(index, clamp(value, 0, 100) / 100).join(',')).join(' ')
+  return (
+    <svg className="eng-radar" viewBox="0 0 240 230" role="img" aria-label={v.tradeMap}>
+      {[.35, .68, 1].map(level => <polygon key={level} points={labels.map((_, index) => point(index, level).join(',')).join(' ')} />)}
+      {labels.map((label, index) => {
+        const [x1, y1] = point(index, 0); const [x2, y2] = point(index, 1.08)
+        return <g key={label}><line x1={x1} y1={y1} x2={x2} y2={y2} /><text x={x2} y={y2} textAnchor={x2 > cx + 8 ? 'start' : x2 < cx - 8 ? 'end' : 'middle'}>{label}</text></g>
+      })}
+      <polygon className="eng-radar__shape" points={poly} />
+      {values.map((value, index) => { const [x, y] = point(index, clamp(value, 0, 100) / 100); return <circle key={index} cx={x} cy={y} r="4" /> })}
+    </svg>
+  )
 }
 
 function Engineering({ locale, vehicleId, partId }: { locale: Locale; vehicleId: VehicleId; partId: PartId }) {
   const lesson = lessonFor(partId, vehicleId)
+  const [selected, setSelected] = useState<TripleIndex>(0)
+  const [profile, setProfile] = useState(48)
   const u = ui[locale]
-  return <div className="eng-engineering"><section><span className="eng-label"><Wrench size={16} />{u.decision}</span><div className="eng-decision-list">{lesson.decisions.map((item, index) => <article key={index}><i>{String(index + 1).padStart(2, '0')}</i><p>{localise(item, locale)}</p></article>)}</div></section><section><span className="eng-label"><Check size={16} />{u.validation}</span><div className="eng-validation-list">{lesson.validation.map((item, index) => <article key={index}><i><Check size={16} /></i><p>{localise(item, locale)}</p></article>)}</div><div className="eng-references"><strong>{u.sources}</strong>{lesson.references.map((reference, index) => <a key={reference.url} href={reference.url} target="_blank" rel="noopener noreferrer" title={reference.title}>{u.source} {String(index + 1).padStart(2, '0')}<ExternalLink size={14} /></a>)}</div></section></div>
+  const v = visualUi[locale]
+  useEffect(() => { setSelected(0); setProfile(48) }, [partId, vehicleId])
+  const seed = (partId.length * 11 + selected * 17 + Math.round(profile)) % 31
+  const radarValues = [68 + seed % 18, 76 - selected * 7, 54 + Math.round(profile / 5) % 18, 72 - Math.round(profile / 7) % 17, 38 + selected * 13 + Math.round(profile / 12)]
+  const stages = [v.bench, v.install, v.track, v.review]
+  return (
+    <div className="eng-engineering eng-engineering--visual">
+      <section className="eng-trade-console">
+        <span className="eng-label"><Wrench size={16} />{v.tradeMap}</span>
+        <div className="eng-trade-main">
+          <RadarChart locale={locale} values={radarValues} />
+          <div className="eng-profile-control">
+            <span>{v.profile}</span>
+            <div><b>{v.balanced}</b><b>{v.aggressive}</b></div>
+            <input type="range" min="0" max="100" value={profile} onChange={event => setProfile(Number(event.target.value))} />
+          </div>
+        </div>
+        <div className="eng-decision-pills">{lesson.decisions.map((item, index) => <button key={index} className={selected === index ? 'is-active' : ''} onClick={() => setSelected(index as TripleIndex)}><i>{index + 1}</i><span>{localise(item, locale)}</span></button>)}</div>
+        <div className="eng-trade-matrix">
+          {[v.performance, v.reliability, v.efficiency, v.riskAxis].map((label, index) => {
+            const value = clamp(radarValues[index] ?? 50, 0, 100)
+            return <article key={label} style={{ ['--score' as string]: `${value}%` }}><span>{label}</span><strong>{Math.round(value)}</strong><i /></article>
+          })}
+        </div>
+      </section>
+      <section className="eng-validation-console">
+        <span className="eng-label"><ShieldCheck size={16} />{v.testFlow}</span>
+        <div className="eng-validation-track">{stages.map((stage, index) => <article key={stage} className={index <= selected + 1 ? 'is-on' : ''}><i>{index < 3 ? index + 1 : <Check size={15} />}</i><strong>{stage}</strong></article>)}</div>
+        <div className="eng-validation-brief">
+          {lesson.validation.map((item, index) => <p key={index}>{localise(item, locale)}</p>)}
+        </div>
+        <div className="eng-validation-gates">
+          {[v.performance, v.reliability, v.efficiency, v.riskAxis].map((label, index) => <article key={label} style={{ ['--gate' as string]: `${clamp(radarValues[index] ?? 50, 0, 100)}%` }}><span>{label}</span><i /></article>)}
+        </div>
+        <div className="eng-validation-map">
+          {stages.map((stage, index) => <article key={stage} className={index <= selected + 1 ? 'is-on' : ''}><span>{stage}</span><i /></article>)}
+        </div>
+        <div className="eng-references"><strong>{u.sources}</strong>{lesson.references.map((reference, index) => <a key={reference.url} href={reference.url} target="_blank" rel="noopener noreferrer" title={reference.title}>{u.source} {String(index + 1).padStart(2, '0')}<ExternalLink size={14} /></a>)}</div>
+      </section>
+    </div>
+  )
 }
 
-function Diagnostic({ locale, diagnostic }: { locale: Locale; diagnostic: DiagnosticCase }) {
+function Diagnostic({ locale, labKind, diagnostic }: { locale: Locale; labKind: LabKind; diagnostic: DiagnosticCase }) {
+  const [activeCheck, setActiveCheck] = useState(0)
+  const [suspect, setSuspect] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const u = ui[locale]
-  useEffect(() => setRevealed(false), [diagnostic])
-  return <section className="eng-diagnostic"><div className="eng-diagnostic__symptom"><span>{u.symptom}</span><p>{localise(diagnostic.symptom, locale)}</p></div><div className="eng-diagnostic__checks"><span>{u.checks}</span>{diagnostic.checks.map((item, index) => <div key={index}><i>{index + 1}</i><p>{localise(item, locale)}</p><ArrowRight size={15} /></div>)}</div><div className={`eng-diagnostic__resolution ${revealed ? 'is-revealed' : ''}`}><span>{u.resolution}</span>{revealed ? <p>{localise(diagnostic.resolution, locale)}</p> : <button onClick={() => setRevealed(true)}>{u.revealResolution}<ArrowRight size={16} /></button>}</div></section>
+  const v = visualUi[locale]
+  useEffect(() => { setActiveCheck(0); setSuspect(0); setRevealed(false) }, [diagnostic])
+  const suspects = [localise(diagnostic.title, locale), v.sensor, v.boundary]
+  return (
+    <section className="eng-diagnostic eng-diagnostic--visual">
+      <div className="eng-fault-map">
+        <span className="eng-label"><SearchCheck size={16} />{v.faultMap}</span>
+        <FlowDiagram locale={locale} labKind={labKind} intensity={revealed ? 86 : 58} activeIndex={activeCheck} />
+        <p>{localise(diagnostic.symptom, locale)}</p>
+      </div>
+      <div className="eng-diagnostic__checks">
+        <span>{v.inspect}</span>
+        {diagnostic.checks.map((item, index) => <button key={index} className={activeCheck === index ? 'is-active' : ''} onClick={() => setActiveCheck(index)}><i>{index + 1}</i><p>{localise(item, locale)}</p><ArrowRight size={15} /></button>)}
+        <div className="eng-diagnostic-strip">
+          {[v.data, v.control, v.output].map((label, index) => <article key={label} className={index === activeCheck ? 'is-hot' : ''}><span>{label}</span><i /></article>)}
+        </div>
+      </div>
+      <div className="eng-suspect-board">
+        <span>{v.suspects}</span>
+        <div>{suspects.map((item, index) => <button key={item} className={suspect === index ? 'is-active' : ''} onClick={() => setSuspect(index)}><i>{index === 0 ? <Target size={15} /> : <AlertTriangle size={15} />}</i>{item}</button>)}</div>
+      </div>
+      <div className={`eng-diagnostic__resolution ${revealed ? 'is-revealed' : ''}`}>
+        <span>{suspect === 0 ? v.correct : v.exclude}</span>
+        {revealed ? <p>{localise(diagnostic.resolution, locale)}</p> : <button onClick={() => setRevealed(true)}>{u.revealResolution}<ArrowRight size={16} /></button>}
+      </div>
+    </section>
+  )
 }
 
 function Faults({ locale, vehicleId, partId }: { locale: Locale; vehicleId: VehicleId; partId: PartId }) {
   const lesson = lessonFor(partId, vehicleId)
   const [selected, setSelected] = useState<PairIndex>(0)
   const u = ui[locale]
-  useEffect(() => setSelected(0), [partId])
-  return <div className="eng-faults"><aside><span className="eng-label"><AlertTriangle size={16} />{u.chooseCase}</span>{lesson.diagnostics.map((item, index) => <button key={index} className={selected === index ? 'is-active' : ''} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><small>{u.case}</small><strong>{localise(item.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><Diagnostic locale={locale} diagnostic={lesson.diagnostics[selected]} /></div>
+  useEffect(() => setSelected(0), [partId, vehicleId])
+  return <div className="eng-faults eng-faults--visual"><aside><span className="eng-label"><AlertTriangle size={16} />{u.chooseCase}</span>{lesson.diagnostics.map((item, index) => <button key={index} className={selected === index ? 'is-active' : ''} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><strong>{localise(item.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><Diagnostic locale={locale} labKind={lesson.labKind} diagnostic={lesson.diagnostics[selected]} /></div>
 }
 
 export default function EngineeringDetail({ vehicleId, locale, partId, onClose }: { vehicleId: VehicleId; locale: Locale; partId: PartId; onClose: () => void }) {
