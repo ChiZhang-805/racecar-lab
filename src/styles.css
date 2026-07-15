@@ -2569,13 +2569,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
 
   .lab-topbar .top-button,
   .intro-nav .icon-button {
+    position: relative;
     width: 42px;
     min-width: 42px;
     height: 42px;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    align-content: center;
+    gap: 0;
     padding: 0;
     line-height: 0;
   }
@@ -2586,8 +2587,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
     width: 22px;
     height: 22px;
     margin: 0;
-    align-self: center;
-    justify-self: center;
+    flex: 0 0 auto;
+  }
+
+  .lab-topbar .top-button:first-of-type > svg {
+    transform: translateY(1px);
   }
 
   .panel-minimize {
@@ -3400,28 +3404,29 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
   }
 
   .system-rail {
-    width: clamp(142px, 39vw, 154px);
+    width: clamp(188px, 55vw, 210px);
+    padding: 6px;
   }
 
   .system-button {
-    height: 54px;
+    height: 42px;
+    padding: 0 9px;
+    gap: 8px;
   }
 
   .system-name strong {
-    display: -webkit-box;
+    display: block;
     overflow: hidden;
     color: #d7e5e9;
-    font-size: clamp(11px, 3.05vw, 13px);
-    line-height: 1.12;
+    font-size: clamp(10px, 2.85vw, 12px);
+    line-height: 1;
     letter-spacing: 0;
     text-overflow: clip;
-    white-space: normal;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    white-space: nowrap;
   }
 
   .lesson-panel {
-    left: calc(clamp(142px, 39vw, 154px) + 18px);
+    left: calc(clamp(188px, 55vw, 210px) + 18px);
   }
 
   .settings-modal {
