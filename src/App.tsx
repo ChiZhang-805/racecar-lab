@@ -86,7 +86,7 @@ function IntroScreen({ locale, paused, onEnter, onReset, onTogglePause, onKnowle
         <h1>{c.heroA}<br /><span>{c.heroB}</span></h1>
         <div className="intro-actions">
           <button className="button button--primary button--large" onClick={() => onEnter(true)}>
-            <Play size={18} fill="currentColor" /> {c.firstLesson} <ArrowRight size={18} />
+            <Play size={18} fill="currentColor" /> {locale === 'zh' ? '开始学习' : 'Start learning'}
           </button>
           <button className="button button--glass button--large" onClick={() => onEnter(false)}>
             <Compass size={19} /> {c.freeExplore}
