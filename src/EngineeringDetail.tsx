@@ -13,6 +13,7 @@ import type { VehicleId } from './vehicles'
 import { GRAND_PRIX_ENGINEERING_LESSONS } from './grandPrixEngineeringData'
 import { GRAND_PRIX_FORMULA_EXAMPLES } from './grandPrixFormulaExamples'
 import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngineeringSim'
+import { CoolingFaultCards, CoolingObserveLab, CoolingReferenceCards } from './CoolingInteractionPanels'
 
 type Tab = 'intro' | 'principle' | 'observe' | 'engineering' | 'faults'
 type TripleIndex = 0 | 1 | 2
@@ -253,6 +254,7 @@ function Observe({ locale, vehicleId, partId }: { locale: Locale; vehicleId: Veh
   const [selected, setSelected] = useState<PairIndex>(0)
   const u = ui[locale]
   useEffect(() => setSelected(0), [partId, vehicleId])
+  if (partId === 'cooling') return <CoolingObserveLab locale={locale} vehicleId={vehicleId} />
   return <div className="eng-observe eng-observe--visual"><aside><span className="eng-label"><FlaskConical size={16} />{u.experiment}</span>{lesson.experiments.map((experiment, index) => <button className={selected === index ? 'is-active' : ''} key={index} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><strong>{localise(experiment.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><ExperimentCard locale={locale} vehicleId={vehicleId} labKind={lesson.labKind} experiment={lesson.experiments[selected]} /></div>
 }
 
@@ -285,6 +287,7 @@ function Engineering({ locale, vehicleId, partId }: { locale: Locale; vehicleId:
   const u = ui[locale]
   const v = visualUi[locale]
   useEffect(() => { setSelected(0); setProfile(48) }, [partId, vehicleId])
+  if (partId === 'cooling') return <CoolingReferenceCards locale={locale} />
   const seed = (partId.length * 11 + selected * 17 + Math.round(profile)) % 31
   const radarValues = [68 + seed % 18, 76 - selected * 7, 54 + Math.round(profile / 5) % 18, 72 - Math.round(profile / 7) % 17, 38 + selected * 13 + Math.round(profile / 12)]
   const stages = [v.bench, v.install, v.track, v.review]
@@ -365,6 +368,7 @@ function Faults({ locale, vehicleId, partId }: { locale: Locale; vehicleId: Vehi
   const [selected, setSelected] = useState<PairIndex>(0)
   const u = ui[locale]
   useEffect(() => setSelected(0), [partId, vehicleId])
+  if (partId === 'cooling') return <CoolingFaultCards locale={locale} vehicleId={vehicleId} />
   return <div className="eng-faults eng-faults--visual"><aside><span className="eng-label"><AlertTriangle size={16} />{u.chooseCase}</span>{lesson.diagnostics.map((item, index) => <button key={index} className={selected === index ? 'is-active' : ''} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><strong>{localise(item.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><Diagnostic locale={locale} labKind={lesson.labKind} diagnostic={lesson.diagnostics[selected]} /></div>
 }
 

@@ -113,7 +113,7 @@ const FSG = { title: 'Formula Student Rules 2026 v1.1', url: 'https://www.formul
 const NASA = { title: 'NASA Glenn — Lift and Drag Equations', url: 'https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/lift-to-drag-ratio/' }
 const RCVD = { title: 'SAE — Race Car Vehicle Dynamics', url: 'https://www.sae.org/images/books/toc_pdfs/R280.pdf' }
 const BOSCH = { title: 'Bosch Motorsport — Vehicle Control Unit', url: 'https://www.bosch-motorsport.com/products/control/vehicle-control-units/vehicle-control-unit-ms-50-4/' }
-const NREL = { title: 'NLR — Battery Thermal Characterization', url: 'https://www.nlr.gov/docs/fy17osti/68275.pdf' }
+const NREL = { title: 'NREL — Battery Thermal Characterization', url: 'https://docs.nrel.gov/docs/fy17osti/68275.pdf' }
 const FIA = { title: 'FIA 2026 F1 Technical Regulations — Issue 19', url: 'https://www.fia.com/system/files/documents/fia_2026_f1_regulations_-_section_c_technical_-_iss_19_-_2026-06-25.pdf' }
 
 export const ENGINEERING_LESSONS: Record<PartId, EngineeringLesson> = {

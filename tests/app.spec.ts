@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { MUSIC_TRACKS } from '../src/music'
 
@@ -20,6 +20,14 @@ async function assertPageFits(page: Page) {
   }))
   expect(dimensions.width).toBeLessThanOrEqual(dimensions.viewportWidth + 1)
   expect(dimensions.height).toBeLessThanOrEqual(dimensions.viewportHeight + 1)
+}
+
+async function assertNoHorizontalOverflow(locator: Locator) {
+  const dimensions = await locator.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1)
 }
 
 async function enterLab(page: Page) {
@@ -139,6 +147,132 @@ test('all 18 detailed 3D component models assemble, explode, select and calculat
     await detail.locator('.settings-close').click()
     await expect(detail).toBeHidden()
   }
+  expect(errors).toEqual([])
+})
+
+test('cooling detail exposes five experiments and two sets of three working flip cards', async ({ page }) => {
+  const errors = captureErrors(page)
+  await page.addInitScript(() => {
+    localStorage.setItem('racecar-lab-locale', 'en')
+    localStorage.setItem('racecar-lab-vehicle', 'student-ev')
+  })
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await enterLab(page)
+
+  await page.locator('[data-part-id="cooling"]').evaluate((element: HTMLButtonElement) => element.click())
+  await expect(page.locator('.part-panel')).toBeVisible()
+  await page.locator('.part-deep-button').click()
+  const detail = page.locator('.engineering-detail')
+  await expect(detail).toBeVisible()
+
+  await detail.locator('.engineering-tabs button').nth(2).click()
+  const observe = detail.getByTestId('cooling-observe')
+  await expect(observe).toBeVisible()
+  const experiments = observe.locator('[data-experiment-id]')
+  await expect(experiments).toHaveCount(5)
+  await expect(observe.locator('.eng-prediction-switch')).toHaveCount(0)
+  await expect(observe.locator('.eng-visual-conclusion')).toHaveCount(0)
+  const expectedModes = ['loop', 'pump-map', 'radiator', 'branches', 'timeline']
+  for (let index = 0; index < expectedModes.length; index += 1) {
+    await experiments.nth(index).click()
+    await expect(experiments.nth(index)).toHaveClass(/is-active/)
+    await expect(observe.locator('.cooling-lab-stage')).toHaveAttribute('data-diagram-mode', expectedModes[index]!)
+    await expect(observe.locator('[data-metric-id]')).toHaveCount(4)
+  }
+
+  await experiments.first().click()
+  const metricsBefore = await observe.locator('.cooling-lab-results').innerText()
+  const firstSlider = observe.locator('.cooling-lab-inputs input[type="range"]').first()
+  await firstSlider.fill(await firstSlider.getAttribute('min') ?? '0')
+  await expect.poll(() => observe.locator('.cooling-lab-results').innerText()).not.toBe(metricsBefore)
+
+  await detail.locator('.engineering-tabs button').nth(3).click()
+  const referenceCards = detail.locator('[data-resource-card-id]')
+  await expect(referenceCards).toHaveCount(3)
+  for (let index = 0; index < 3; index += 1) {
+    const card = referenceCards.nth(index)
+    await expect(card.locator('img')).toBeVisible()
+    expect(await card.locator('img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+    await card.locator('.cooling-flip-card__front').click()
+    await expect(card).toHaveAttribute('data-flipped', 'true')
+    await expect(card.locator('.cooling-flip-card__back')).toHaveAttribute('aria-hidden', 'false')
+    await card.locator('.cooling-flip-card__return').click()
+    await expect(card).toHaveAttribute('data-flipped', 'false')
+  }
+
+  await detail.locator('.engineering-tabs button').nth(4).click()
+  const faultCards = detail.locator('[data-fault-card-id]')
+  await expect(faultCards).toHaveCount(3)
+  for (let index = 0; index < 3; index += 1) {
+    const card = faultCards.nth(index)
+    await expect(card.locator('img')).toBeVisible()
+    expect(await card.locator('img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+    await card.locator('.cooling-flip-card__front').click()
+    await expect(card).toHaveAttribute('data-flipped', 'true')
+    await expect(card.locator('.cooling-flip-card__back')).toHaveAttribute('aria-hidden', 'false')
+    await card.locator('.cooling-flip-card__return').click()
+    await expect(card).toHaveAttribute('data-flipped', 'false')
+  }
+
+  expect(errors).toEqual([])
+})
+
+test('cooling experiments and flip cards remain reachable without horizontal overflow on portrait mobile', async ({ page }) => {
+  const errors = captureErrors(page)
+  await page.addInitScript(() => {
+    localStorage.setItem('racecar-lab-locale', 'en')
+    localStorage.setItem('racecar-lab-vehicle', 'student-ev')
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await enterLab(page)
+
+  await page.locator('[data-part-id="cooling"]').evaluate((element: HTMLButtonElement) => element.click())
+  await expect(page.locator('.part-panel')).toBeVisible()
+  await page.locator('.part-deep-button').click()
+  const detail = page.locator('.engineering-detail')
+  const body = detail.locator('.engineering-detail__body')
+  await expect(detail).toBeVisible()
+  await assertNoHorizontalOverflow(detail)
+
+  await detail.locator('.engineering-tabs button').nth(2).click()
+  const observe = detail.getByTestId('cooling-observe')
+  await expect(observe).toBeVisible()
+  await expect(observe).not.toContainText(/[\u3400-\u9fff]/)
+  await assertNoHorizontalOverflow(body)
+  await assertNoHorizontalOverflow(observe)
+  const fifthExperiment = observe.locator('[data-experiment-id]').nth(4)
+  await fifthExperiment.scrollIntoViewIfNeeded()
+  await fifthExperiment.click()
+  await expect(fifthExperiment).toHaveClass(/is-active/)
+  await expect(observe.locator('.cooling-lab-stage')).toHaveAttribute('data-diagram-mode', 'timeline')
+
+  await detail.locator('.engineering-tabs button').nth(3).click()
+  const references = detail.locator('[data-resource-card-id]')
+  await expect(references).toHaveCount(3)
+  await expect(detail.locator('.cooling-card-page')).not.toContainText(/[\u3400-\u9fff]/)
+  await assertNoHorizontalOverflow(body)
+  await assertNoHorizontalOverflow(detail.locator('.cooling-card-page'))
+  const thirdReference = references.nth(2)
+  await thirdReference.scrollIntoViewIfNeeded()
+  await thirdReference.locator('.cooling-flip-card__front').click()
+  await expect(thirdReference).toHaveAttribute('data-flipped', 'true')
+  await thirdReference.locator('.cooling-flip-card__return').click()
+
+  await detail.locator('.engineering-tabs button').nth(4).click()
+  const faults = detail.locator('[data-fault-card-id]')
+  await expect(faults).toHaveCount(3)
+  await expect(detail.locator('.cooling-card-page')).not.toContainText(/[\u3400-\u9fff]/)
+  await assertNoHorizontalOverflow(body)
+  await assertNoHorizontalOverflow(detail.locator('.cooling-card-page'))
+  const thirdFault = faults.nth(2)
+  await thirdFault.scrollIntoViewIfNeeded()
+  await thirdFault.locator('.cooling-flip-card__front').click()
+  await expect(thirdFault).toHaveAttribute('data-flipped', 'true')
+  await thirdFault.locator('.cooling-flip-card__return').click()
+
+  await assertPageFits(page)
   expect(errors).toEqual([])
 })
 

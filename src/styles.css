@@ -3742,6 +3742,316 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
   }
 }
 
+/* Cooling-system interaction pilot */
+.cooling-observe {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(210px, .34fr) minmax(0, 1.66fr);
+  gap: 14px;
+}
+
+.cooling-experiment-list,
+.cooling-lab-console,
+.cooling-card-page {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid rgba(176, 221, 234, .13);
+  background: rgba(255, 255, 255, .026);
+}
+
+.cooling-experiment-list {
+  padding: 16px;
+  display: grid;
+  grid-template-rows: auto repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cooling-experiment-list > span,
+.cooling-lab-inputs > div > span,
+.cooling-lab-results > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #63ddf7;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .035em;
+}
+
+.cooling-experiment-list > span { margin-bottom: 2px; }
+
+.cooling-experiment-list > button {
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(176, 221, 234, .11);
+  background: rgba(5, 15, 20, .3);
+  color: #9aabb0;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+
+.cooling-experiment-list > button:hover,
+.cooling-experiment-list > button.is-active {
+  border-color: rgba(83, 218, 248, .5);
+  background: linear-gradient(110deg, rgba(62, 205, 239, .12), rgba(62, 205, 239, .035));
+  color: #e6f3f5;
+}
+
+.cooling-experiment-list i {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(91, 219, 248, .24);
+  border-radius: 50%;
+  color: #61dcf6;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.cooling-experiment-list strong {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.32;
+}
+
+.cooling-lab-console {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(250px, .65fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 11px;
+  overflow: hidden;
+}
+
+.cooling-lab-console > header {
+  grid-column: 1 / -1;
+  min-height: 46px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border-left: 2px solid #58d9f6;
+  background: linear-gradient(90deg, rgba(66, 205, 238, .09), transparent 62%);
+  color: #e8f3f5;
+  font-size: clamp(17px, 1.35vw, 23px);
+  font-weight: 780;
+  letter-spacing: -.015em;
+}
+
+.cooling-lab-stage {
+  min-width: 0;
+  min-height: 210px;
+  padding: 10px;
+  display: grid;
+  place-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(176, 221, 234, .1);
+  background:
+    radial-gradient(circle at 52% 48%, rgba(53, 202, 236, .09), transparent 42%),
+    rgba(5, 15, 20, .38);
+}
+
+.cooling-lab-stage svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.cooling-lab-stage svg text { fill: #9eafb4; font-size: 13px; font-weight: 700; }
+.cooling-lab-stage svg rect,
+.cooling-lab-stage svg circle { fill: rgba(19, 42, 51, .94); stroke: rgba(112, 221, 246, .34); stroke-width: 1.4; }
+.cooling-lab-stage svg svg,
+.cooling-lab-stage svg foreignObject { color: #74e1f8; }
+.cooling-diagram__pipe { fill: none; stroke: rgba(183, 221, 232, .16); stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; }
+.cooling-diagram__flow { fill: none; stroke-linecap: round; stroke-dasharray: 24 14; animation: coolingFlow 2.1s linear infinite; }
+.cooling-diagram__flow.is-hot { stroke: url(#cooling-hot-line); }
+.cooling-diagram__flow.is-cold { stroke: #55daf5; }
+.cooling-diagram__air path,
+.cooling-radiator-air path,
+.cooling-radiator-out path { fill: none; stroke: #67def6; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 14 10; animation: coolingFlow 1.8s linear infinite; }
+.cooling-radiator-core rect { fill: rgba(37, 70, 80, .72); }
+.cooling-radiator-core line { stroke: rgba(139, 224, 245, .38); stroke-width: 1; }
+.cooling-radiator-core .cooling-radiator-core__blocked { fill: rgba(255, 163, 79, .42); stroke: rgba(255, 177, 97, .72); }
+.cooling-chart-grid line { stroke: rgba(188, 225, 235, .1); stroke-width: 1; }
+.cooling-chart-line { fill: none; stroke-width: 3; filter: drop-shadow(0 0 5px rgba(80, 216, 245, .28)); }
+.cooling-chart-line.is-pump { stroke: #55daf6; }
+.cooling-chart-line.is-system { stroke: #ffb55e; }
+.cooling-chart-line.is-temperature { stroke: #65e0c3; }
+.cooling-working-point circle:first-child { fill: rgba(255, 183, 91, .2); stroke: #ffc06e; stroke-width: 2; }
+.cooling-working-point circle:last-child,
+.cooling-timeline-marker { fill: #fff2bd; stroke: #ffb457; }
+.cooling-chart-legend text:first-child { fill: #64dff8; }
+.cooling-chart-legend text:last-child { fill: #ffbd6c; }
+.cooling-timeline-zone { fill: rgba(78, 218, 247, .035); stroke: none; }
+.cooling-timeline-zone.is-load { fill: rgba(255, 139, 100, .08); }
+.cooling-lab-stage g.is-danger rect { fill: rgba(126, 38, 39, .6); stroke: #ff7770; }
+.cooling-lab-stage g.is-danger text { fill: #ffaaa4; }
+
+@keyframes coolingFlow { to { stroke-dashoffset: -76; } }
+
+.cooling-lab-inputs {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid rgba(176, 221, 234, .1);
+  background: rgba(5, 15, 20, .3);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.cooling-lab-inputs > div {
+  min-height: 32px;
+  margin-bottom: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cooling-lab-inputs > div > button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(176, 221, 234, .14);
+  background: transparent;
+  color: #9aadb2;
+  cursor: pointer;
+}
+
+.cooling-lab-inputs label { display: block; margin-top: 15px; }
+.cooling-lab-inputs label > span { display: flex; justify-content: space-between; gap: 10px; color: #afbdc1; font-size: 12px; font-weight: 650; }
+.cooling-lab-inputs output { color: #eef9fb; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.cooling-lab-inputs output small { margin-left: 3px; color: #74878d; font-size: 9px; font-weight: 600; }
+.cooling-lab-inputs input { appearance: none; width: 100%; height: 5px; margin-top: 10px; border-radius: 6px; background: linear-gradient(90deg, #50d9f5, rgba(80, 217, 245, .19)); cursor: pointer; }
+.cooling-lab-inputs input::-webkit-slider-thumb { appearance: none; width: 17px; height: 17px; border: 3px solid #10242c; border-radius: 50%; background: #65dff8; box-shadow: 0 0 0 1px rgba(101, 223, 248, .55); }
+
+.cooling-lab-results {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(176, 221, 234, .1);
+  background: rgba(5, 15, 20, .3);
+}
+
+.cooling-lab-results > div {
+  margin-top: 9px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.cooling-metric { min-width: 0; padding: 8px 9px; border: 1px solid rgba(176, 221, 234, .09); background: rgba(255, 255, 255, .018); }
+.cooling-metric > span { display: block; overflow: hidden; color: #7f9298; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.cooling-metric strong { display: block; margin-top: 4px; color: #e3eff1; font-size: 17px; }
+.cooling-metric strong small { margin-left: 3px; color: #7f9197; font-size: 8px; }
+.cooling-metric.is-good strong { color: #75e2c5; }
+.cooling-metric.is-warn strong { color: #ffc16c; }
+.cooling-metric.is-danger strong { color: #ff8580; }
+
+.cooling-card-page { height: 100%; padding: 16px; overflow: hidden; }
+.cooling-card-grid { height: 100%; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.cooling-flip-card { min-width: 0; min-height: 0; height: 100%; perspective: 1500px; }
+.cooling-flip-card__inner { position: relative; width: 100%; height: 100%; min-height: 430px; transform-style: preserve-3d; transition: transform .62s cubic-bezier(.2, .72, .2, 1); }
+.cooling-flip-card.is-flipped .cooling-flip-card__inner { transform: rotateY(180deg); }
+.cooling-flip-card__face {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(176, 221, 234, .14);
+  background: linear-gradient(145deg, rgba(26, 39, 47, .98), rgba(10, 20, 26, .98));
+  color: #d8e4e7;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.cooling-flip-card__front {
+  width: 100%;
+  padding: 0;
+  display: grid;
+  grid-template-rows: minmax(190px, 42%) minmax(0, 1fr);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cooling-flip-card__front:hover { border-color: rgba(91, 219, 248, .48); }
+.cooling-flip-card__front img { width: 100%; height: 100%; min-height: 0; object-fit: cover; filter: saturate(.84) contrast(1.04); }
+.cooling-flip-card__front > div { min-height: 0; padding: 20px 21px 18px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 11px; align-content: start; }
+.cooling-flip-card__front i { grid-row: 1 / 3; width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid rgba(87, 218, 247, .3); border-radius: 50%; color: #66dcf6; font-size: 10px; font-style: normal; }
+.cooling-flip-card__front h3 { min-width: 0; margin: 2px 0 0; color: #eef7f9; font-size: clamp(18px, 1.35vw, 24px); line-height: 1.18; letter-spacing: -.02em; }
+.cooling-flip-card__front p { grid-column: 1 / -1; margin: 16px 0 12px; overflow: hidden; color: #b5c4c8; font-size: 12px; line-height: 1.66; }
+.cooling-flip-card__front span { grid-column: 1 / -1; align-self: end; display: flex; align-items: center; justify-content: flex-end; gap: 7px; color: #65dcf6; font-size: 11px; font-weight: 750; }
+
+.cooling-flip-card__back { padding: 24px 23px; display: flex; flex-direction: column; gap: 10px; transform: rotateY(180deg); overflow-y: auto; scrollbar-width: thin; }
+.cooling-flip-card__back > h3 { max-width: calc(100% - 48px); margin: 0 0 8px; color: #eef7f9; font-size: clamp(18px, 1.25vw, 23px); line-height: 1.22; letter-spacing: -.02em; }
+.cooling-flip-card__back > strong { margin-top: 8px; color: #64dcf7; font-size: 11px; letter-spacing: .04em; }
+.cooling-flip-card__back > p,
+.cooling-flip-card__back li { margin: 0; color: #c3d0d4; font-size: 12px; line-height: 1.68; }
+.cooling-flip-card__back ul { margin: 0; padding: 0 0 0 18px; display: grid; gap: 7px; }
+.cooling-flip-card:not(.cooling-fault-card) .cooling-flip-card__back ul { flex: 1; align-content: center; }
+.cooling-fault-card .cooling-flip-card__back > p { flex: 1; min-height: 0; padding: 10px 12px; display: flex; align-items: center; border: 1px solid rgba(176, 221, 234, .08); background: rgba(255, 255, 255, .018); }
+.cooling-flip-card__return { position: absolute; top: 15px; right: 15px; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(176, 221, 234, .14); background: rgba(5, 15, 20, .5); color: #a8bbc0; cursor: pointer; }
+.cooling-flip-card__back > a { min-height: 42px; margin-top: auto; padding: 0 13px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(87, 218, 247, .34); color: #77e0f7; font-size: 12px; font-weight: 750; text-align: center; text-decoration: none; }
+.cooling-fault-card .cooling-flip-card__front { grid-template-rows: minmax(180px, 37%) minmax(0, 1fr); }
+.cooling-fault-card .cooling-flip-card__front p { font-size: 12px; line-height: 1.65; }
+
+.cooling-experiment-list button:focus-visible,
+.cooling-lab-inputs button:focus-visible,
+.cooling-flip-card button:focus-visible,
+.cooling-flip-card a:focus-visible { outline: 2px solid #6ce0f8; outline-offset: 2px; }
+
+@media (max-width: 680px) and (orientation: portrait) {
+  .cooling-observe { height: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cooling-experiment-list { padding: 11px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; gap: 7px; }
+  .cooling-experiment-list > span { grid-column: 1 / -1; min-height: 30px; }
+  .cooling-experiment-list > button { min-height: 54px; padding: 8px 9px; grid-template-columns: 27px minmax(0, 1fr); gap: 7px; }
+  .cooling-experiment-list > button:last-child { grid-column: 1 / -1; }
+  .cooling-experiment-list i { width: 25px; height: 25px; }
+  .cooling-experiment-list strong { font-size: 12px; line-height: 1.24; }
+
+  .cooling-lab-console { padding: 10px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; gap: 9px; overflow: visible; }
+  .cooling-lab-console > header { grid-column: auto; min-height: 52px; padding: 9px 12px; font-size: 18px; line-height: 1.3; }
+  .cooling-lab-stage { min-height: 218px; padding: 5px; }
+  .cooling-lab-stage svg text { font-size: 12px; }
+  .cooling-lab-inputs { grid-column: auto; grid-row: auto; padding: 13px; overflow: visible; }
+  .cooling-lab-inputs label { margin-top: 16px; }
+  .cooling-lab-inputs label > span { font-size: 13px; }
+  .cooling-lab-inputs input { height: 6px; margin-top: 11px; }
+  .cooling-lab-inputs input::-webkit-slider-thumb { width: 20px; height: 20px; }
+  .cooling-lab-results { padding: 12px; }
+  .cooling-lab-results > div { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .cooling-metric { min-height: 66px; padding: 9px; }
+  .cooling-metric > span { font-size: 10px; }
+  .cooling-metric strong { font-size: 19px; }
+
+  .cooling-card-page { height: auto; padding: 10px; overflow: visible; }
+  .cooling-card-grid { height: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cooling-flip-card { height: 570px; }
+  .cooling-flip-card__inner { min-height: 570px; }
+  .cooling-flip-card__front { grid-template-rows: 218px minmax(0, 1fr); }
+  .cooling-flip-card__front > div { padding: 17px 17px 15px; }
+  .cooling-flip-card__front h3 { font-size: 22px; }
+  .cooling-flip-card__front p { margin-top: 13px; font-size: 13px; line-height: 1.62; }
+  .cooling-flip-card__front span { min-height: 40px; font-size: 12px; }
+  .cooling-flip-card__back { padding: 19px 18px; gap: 8px; }
+  .cooling-flip-card__back > h3 { margin-bottom: 4px; font-size: 20px; }
+  .cooling-flip-card__back > strong { margin-top: 6px; font-size: 12px; }
+  .cooling-flip-card__back > p,
+  .cooling-flip-card__back li { font-size: 13px; line-height: 1.62; }
+  .cooling-fault-card { height: 640px; }
+  .cooling-fault-card .cooling-flip-card__inner { min-height: 640px; }
+  .cooling-fault-card .cooling-flip-card__front { grid-template-rows: 218px minmax(0, 1fr); }
+  .cooling-fault-card .cooling-flip-card__back > p { flex: 0 0 auto; min-height: 108px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .cooling-flip-card__inner { transition: none; }
+  .cooling-diagram__flow,
+  .cooling-diagram__air path,
+  .cooling-radiator-air path,
+  .cooling-radiator-out path { animation: none; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }

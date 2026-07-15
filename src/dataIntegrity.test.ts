@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { existsSync, statSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import katex from 'katex'
 import { CATEGORIES, COURSES, COURSE_IDS, PARTS, PART_IDS, PART_MAP } from './data'
@@ -16,6 +17,15 @@ import { GRAND_PRIX_FORMULA_EXAMPLES } from './grandPrixFormulaExamples'
 import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngineeringSim'
 import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
 import { MUSIC_TRACKS } from './music'
+import {
+  coolingExperimentsFor,
+  coolingFaultCardsFor,
+  coolingReferenceCards,
+  evaluateCoolingExperiment,
+  initialCoolingValues,
+  type CoolingExperiment,
+  type CoolingExperimentResult,
+} from './coolingInteractions'
 
 const sorted = (values: readonly string[]) => [...values].sort()
 const cjk = /[\u3400-\u9fff]/
@@ -24,6 +34,27 @@ const expectLocalText = (value: { zh: string; en: string }) => {
   expect(value.zh.trim()).not.toBe('')
   expect(value.en.trim()).not.toBe('')
   expect(value.en).not.toMatch(cjk)
+}
+
+const coolingMetric = (result: CoolingExperimentResult, id: string) => {
+  const metric = result.metrics.find(item => item.id === id)
+  expect(metric, `missing cooling metric: ${id}`).toBeDefined()
+  return metric!.value
+}
+
+const coolingExperiment = (vehicleId: 'student-ev' | 'grand-prix-2026', id: CoolingExperiment['id']) => {
+  const experiment = coolingExperimentsFor(vehicleId).find(item => item.id === id)
+  expect(experiment, `missing cooling experiment: ${vehicleId}/${id}`).toBeDefined()
+  return experiment!
+}
+
+const coolingResult = (
+  vehicleId: 'student-ev' | 'grand-prix-2026',
+  id: CoolingExperiment['id'],
+  overrides: Record<string, number> = {},
+) => {
+  const experiment = coolingExperiment(vehicleId, id)
+  return evaluateCoolingExperiment(experiment, { ...initialCoolingValues(experiment), ...overrides }, vehicleId)
 }
 
 const expectCompleteLesson = (lesson: EngineeringLesson) => {
@@ -404,5 +435,207 @@ describe('runtime media configuration', () => {
       expect(existsSync(diskPath)).toBe(true)
       expect(statSync(diskPath).size).toBeGreaterThan(1024)
     })
+  })
+})
+
+describe('interactive cooling curriculum', () => {
+  const vehicleIds = ['student-ev', 'grand-prix-2026'] as const
+
+  it('provides five distinct, localized experiments for both vehicles', () => {
+    for (const vehicleId of vehicleIds) {
+      const experiments = coolingExperimentsFor(vehicleId)
+      expect(experiments).toHaveLength(5)
+      expect(new Set(experiments.map((experiment) => experiment.id)).size).toBe(5)
+      expect(new Set(experiments.map((experiment) => experiment.mode)).size).toBe(5)
+      expect(new Set(experiments.map((experiment) => experiment.parameters.map((parameter) => parameter.key).join('|'))).size).toBe(5)
+
+      for (const experiment of experiments) {
+        expectLocalText(experiment.title)
+        expectLocalText(experiment.question)
+        expect(experiment.parameters.length).toBeGreaterThanOrEqual(3)
+        expect(experiment.parameters.length).toBeLessThanOrEqual(4)
+        expect(new Set(experiment.parameters.map((parameter) => parameter.key)).size).toBe(experiment.parameters.length)
+        experiment.parameters.forEach((parameter) => {
+          expectLocalText(parameter.label)
+          expect(parameter.min).toBeLessThan(parameter.max)
+          expect(parameter.step).toBeGreaterThan(0)
+          expect(parameter.initial).toBeGreaterThanOrEqual(parameter.min)
+          expect(parameter.initial).toBeLessThanOrEqual(parameter.max)
+          expect(parameter.unit.trim()).not.toBe('')
+        })
+
+        const result = evaluateCoolingExperiment(experiment, initialCoolingValues(experiment), vehicleId)
+        expect(result.metrics).toHaveLength(4)
+        expect(new Set(result.metrics.map((metric) => metric.id)).size).toBe(4)
+        expectLocalText(result.observation)
+        result.metrics.forEach((metric) => {
+          expectLocalText(metric.label)
+          expect(Number.isFinite(metric.value)).toBe(true)
+          expect(metric.unit.trim()).not.toBe('')
+        })
+        for (const value of [result.visual.heat, result.visual.coolant, result.visual.airflow, result.visual.pressure, result.visual.hot, result.visual.cold]) {
+          expect(Number.isFinite(value)).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('provides three unique reference cards and three vehicle-specific fault cards', () => {
+    expect(coolingReferenceCards).toHaveLength(3)
+    expect(new Set(coolingReferenceCards.map((card) => card.id)).size).toBe(3)
+    expect(new Set(coolingReferenceCards.map((card) => card.image)).size).toBe(3)
+    expect(new Set(coolingReferenceCards.map((card) => card.url)).size).toBe(3)
+    coolingReferenceCards.forEach((card) => {
+      expectLocalText(card.title)
+      expectLocalText(card.imageAlt)
+      expectLocalText(card.summary)
+      expectLocalText(card.purpose)
+      expectLocalText(card.sourceTitle)
+      expect(card.details).toHaveLength(3)
+      card.details.forEach(expectLocalText)
+      expect(card.url).toMatch(/^https:\/\//)
+    })
+
+    for (const vehicleId of vehicleIds) {
+      const cards = coolingFaultCardsFor(vehicleId)
+      expect(cards).toHaveLength(3)
+      expect(new Set(cards.map((card) => card.id)).size).toBe(3)
+      expect(new Set(cards.map((card) => card.image)).size).toBe(3)
+      cards.forEach((card) => {
+        expectLocalText(card.title)
+        expectLocalText(card.imageAlt)
+        expectLocalText(card.scenario)
+        expectLocalText(card.strategy)
+        expectLocalText(card.principle)
+        expectLocalText(card.evidence)
+        expect(card.scenario.zh).toMatch(/\d/)
+        expect(card.scenario.en).toMatch(/\d/)
+      })
+    }
+  })
+
+  it('ships six distinct cooling illustrations rather than repeated placeholders', () => {
+    const cards = [...coolingReferenceCards, ...coolingFaultCardsFor('student-ev')]
+    expect(cards).toHaveLength(6)
+    expect(new Set(cards.map((card) => card.image)).size).toBe(6)
+
+    const hashes = new Set<string>()
+    cards.forEach((card) => {
+      expect(card.image).toMatch(/^\/images\/cooling\/.+\.webp$/)
+      const diskPath = join(process.cwd(), 'public', card.image.replace(/^\/+/, ''))
+      expect(existsSync(diskPath), `missing cooling illustration: ${card.image}`).toBe(true)
+      expect(statSync(diskPath).size, `cooling illustration is unexpectedly small: ${card.image}`).toBeGreaterThan(50_000)
+      hashes.add(createHash('sha256').update(readFileSync(diskPath)).digest('hex'))
+    })
+    expect(hashes.size).toBe(6)
+  })
+
+  it('keeps heat-balance trends thermodynamically consistent', () => {
+    for (const vehicleId of vehicleIds) {
+      const experiment = coolingExperiment(vehicleId, 'energy-balance')
+      const heat = experiment.parameters.find((parameter) => parameter.key === 'heat')!
+      const flow = experiment.parameters.find((parameter) => parameter.key === 'flow')!
+      const ambient = experiment.parameters.find((parameter) => parameter.key === 'ambient')!
+      const lowFlow = coolingResult(vehicleId, 'energy-balance', { flow: flow.min })
+      const highFlow = coolingResult(vehicleId, 'energy-balance', { flow: flow.max })
+      expect(coolingMetric(highFlow, 'coolant-rise')).toBeLessThan(coolingMetric(lowFlow, 'coolant-rise'))
+      expect(coolingMetric(highFlow, 'hot-outlet')).toBeLessThan(coolingMetric(lowFlow, 'hot-outlet'))
+
+      const lowHeat = coolingResult(vehicleId, 'energy-balance', { heat: heat.min })
+      const highHeat = coolingResult(vehicleId, 'energy-balance', { heat: heat.max })
+      expect(coolingMetric(highHeat, 'coolant-rise')).toBeGreaterThan(coolingMetric(lowHeat, 'coolant-rise'))
+      expect(coolingMetric(highHeat, 'hot-outlet')).toBeGreaterThan(coolingMetric(lowHeat, 'hot-outlet'))
+
+      const coolAmbient = coolingResult(vehicleId, 'energy-balance', { ambient: ambient.min })
+      const hotAmbient = coolingResult(vehicleId, 'energy-balance', { ambient: ambient.max })
+      expect(coolingMetric(hotAmbient, 'hot-outlet')).toBeGreaterThan(coolingMetric(coolAmbient, 'hot-outlet'))
+    }
+  })
+
+  it('solves the pump and system curves in the physically correct direction', () => {
+    for (const vehicleId of vehicleIds) {
+      const lowCommand = coolingResult(vehicleId, 'pump-system', { pumpDuty: 30 })
+      const highCommand = coolingResult(vehicleId, 'pump-system', { pumpDuty: 100 })
+      expect(coolingMetric(highCommand, 'flow')).toBeGreaterThan(coolingMetric(lowCommand, 'flow'))
+
+      const openLoop = coolingResult(vehicleId, 'pump-system', { resistance: 40 })
+      const restrictedLoop = coolingResult(vehicleId, 'pump-system', { resistance: 180 })
+      expect(coolingMetric(restrictedLoop, 'flow')).toBeLessThan(coolingMetric(openLoop, 'flow'))
+      for (const id of ['pressure', 'hydraulic-power', 'shaft-power']) {
+        expect(coolingMetric(restrictedLoop, id)).toBeGreaterThanOrEqual(0)
+      }
+      expect(restrictedLoop.visual.workingPoint).toBeDefined()
+      expect(restrictedLoop.visual.pumpCurve?.length).toBeGreaterThanOrEqual(20)
+      expect(restrictedLoop.visual.systemCurve?.length).toBe(restrictedLoop.visual.pumpCurve?.length)
+    }
+  })
+
+  it('models radiator airflow, leakage and blockage without reversing their effects', () => {
+    const studentLowAir = coolingResult('student-ev', 'radiator-airside', { fanDuty: 20, ductSeal: 40, blockage: 0 })
+    const studentHighAir = coolingResult('student-ev', 'radiator-airside', { fanDuty: 100, ductSeal: 100, blockage: 0 })
+    expect(coolingMetric(studentHighAir, 'effective-air')).toBeGreaterThan(coolingMetric(studentLowAir, 'effective-air'))
+    expect(coolingMetric(studentHighAir, 'coolant-out')).toBeLessThan(coolingMetric(studentLowAir, 'coolant-out'))
+    const studentBlocked = coolingResult('student-ev', 'radiator-airside', { fanDuty: 100, ductSeal: 100, blockage: 55 })
+    expect(coolingMetric(studentBlocked, 'coolant-out')).toBeGreaterThan(coolingMetric(studentHighAir, 'coolant-out'))
+
+    const gpLowAir = coolingResult('grand-prix-2026', 'radiator-airside', { vehicleSpeed: 30, coolingOpening: 30, blockage: 0 })
+    const gpHighAir = coolingResult('grand-prix-2026', 'radiator-airside', { vehicleSpeed: 340, coolingOpening: 100, blockage: 0 })
+    expect(coolingMetric(gpHighAir, 'effective-air')).toBeGreaterThan(coolingMetric(gpLowAir, 'effective-air'))
+    expect(coolingMetric(gpHighAir, 'coolant-out')).toBeLessThan(coolingMetric(gpLowAir, 'coolant-out'))
+    const gpBlocked = coolingResult('grand-prix-2026', 'radiator-airside', { vehicleSpeed: 340, coolingOpening: 100, blockage: 55 })
+    expect(coolingMetric(gpBlocked, 'coolant-out')).toBeGreaterThan(coolingMetric(gpHighAir, 'coolant-out'))
+
+    for (const result of [studentLowAir, studentHighAir, studentBlocked, gpLowAir, gpHighAir, gpBlocked]) {
+      expect(coolingMetric(result, 'coolant-out')).toBeGreaterThan(30)
+    }
+  })
+
+  it('redistributes parallel-branch flow and exposes the resulting hot branch', () => {
+    for (const vehicleId of vehicleIds) {
+      const open = coolingResult(vehicleId, 'branch-balance', { inverterValve: 100 })
+      const restricted = coolingResult(vehicleId, 'branch-balance', { inverterValve: 15 })
+      expect(coolingMetric(restricted, 'branch-two')).toBeLessThan(coolingMetric(open, 'branch-two'))
+      expect(coolingMetric(restricted, 'hottest')).toBeGreaterThan(coolingMetric(open, 'hottest'))
+      expect(restricted.visual.branches).toHaveLength(3)
+      restricted.visual.branches!.forEach((branch) => {
+        expect(Number.isFinite(branch)).toBe(true)
+        expect(branch).toBeGreaterThanOrEqual(0)
+        expect(branch).toBeLessThanOrEqual(1)
+      })
+    }
+  })
+
+  it('keeps lap-transient peak and recovery responses physically ordered', () => {
+    for (const vehicleId of vehicleIds) {
+      const experiment = coolingExperiment(vehicleId, 'lap-transient')
+      const peakHeat = experiment.parameters.find((parameter) => parameter.key === 'peakHeat')!
+      const lowHeat = coolingResult(vehicleId, 'lap-transient', { peakHeat: peakHeat.min })
+      const highHeat = coolingResult(vehicleId, 'lap-transient', { peakHeat: peakHeat.max })
+      expect(coolingMetric(highHeat, 'peak-temperature')).toBeGreaterThan(coolingMetric(lowHeat, 'peak-temperature'))
+
+      const weakRecovery = coolingResult(vehicleId, 'lap-transient', { recovery: 30 })
+      const strongRecovery = coolingResult(vehicleId, 'lap-transient', { recovery: 100 })
+      expect(coolingMetric(strongRecovery, 'recovery-temperature')).toBeLessThan(coolingMetric(weakRecovery, 'recovery-temperature'))
+      expect(strongRecovery.visual.timeline?.length).toBeGreaterThanOrEqual(80)
+    }
+  })
+
+  it('remains finite at every experiment boundary for both vehicle models', () => {
+    for (const vehicleId of vehicleIds) {
+      for (const experiment of coolingExperimentsFor(vehicleId)) {
+        const boundarySets = [
+          Object.fromEntries(experiment.parameters.map((parameter) => [parameter.key, parameter.min])),
+          Object.fromEntries(experiment.parameters.map((parameter) => [parameter.key, parameter.max])),
+        ]
+        for (const values of boundarySets) {
+          const result = evaluateCoolingExperiment(experiment, values, vehicleId)
+          result.metrics.forEach((metric) => expect(Number.isFinite(metric.value), `${vehicleId}/${experiment.id}/${metric.id}`).toBe(true))
+          for (const value of [result.visual.heat, result.visual.coolant, result.visual.airflow, result.visual.pressure, result.visual.hot, result.visual.cold]) {
+            expect(Number.isFinite(value), `${vehicleId}/${experiment.id}`).toBe(true)
+          }
+          expect(result.visual.pressure).toBeGreaterThanOrEqual(0)
+        }
+      }
+    }
   })
 })

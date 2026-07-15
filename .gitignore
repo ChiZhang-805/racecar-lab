@@ -29,5 +29,9 @@ known_hosts
 *.webp
 *.gif
 
+!public/images/
+!public/images/cooling/
+!public/images/cooling/*.webp
+
 .DS_Store
 Thumbs.db
