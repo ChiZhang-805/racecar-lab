@@ -960,9 +960,9 @@ function CameraRig({ vehicleId, intro, selectedId, resetSignal }: { vehicleId: V
     }
     if (!selectedId) {
       const cameraPosition: [number, number, number] = mobilePortrait
-        ? vehicleId === 'grand-prix-2026' ? [12.0, 6.6, 13.55] : [10.7, 5.9, 12.0]
+        ? vehicleId === 'grand-prix-2026' ? [13.0, 7.0, 14.65] : [11.45, 6.2, 12.85]
         : vehicleId === 'grand-prix-2026' ? [9.1, 5.3, 10.2] : [7.4, 4.6, 8.4]
-      controls.current.setLookAt(...cameraPosition, 0, 0.72, -0.1, true)
+      controls.current.setLookAt(...cameraPosition, 0, 0.72, 0.05, true)
       return
     }
     const part = PART_MAP[selectedId]

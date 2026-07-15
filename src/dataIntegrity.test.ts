@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { existsSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import katex from 'katex'
 import { CATEGORIES, COURSES, COURSE_IDS, PARTS, PART_IDS, PART_MAP } from './data'
 import { COMPONENT_FACTS } from './componentWorkshopData'
@@ -368,6 +370,23 @@ describe('complete grand prix hybrid curriculum', () => {
       expect(grandPrix.faults).toHaveLength(2)
     }
   })
+
+  it('keeps the 2026 power-unit explanation aligned with FIA Issue 19 constraints', () => {
+    const motor = GRAND_PRIX_ENGINEERING_LESSONS.motor
+    expect(motor.overview.zh).toContain('1.6 L')
+    expect(motor.overview.zh).toContain('90°')
+    expect(motor.overview.zh).toContain('350 kW')
+    expect(motor.overview.zh).toContain('车速函数')
+    expect(motor.overview.zh).toContain('250 kW')
+    expect(motor.overview.zh).toContain('SOC')
+    expect(motor.overview.zh).not.toContain('4 月公布')
+    expect(motor.overview.en).toContain('speed-dependent')
+    expect(motor.overview.en).toContain('250 kW')
+    expect(motor.overview.en).toContain('state-of-charge')
+    expect(motor.overview.en).not.toContain('April 2026')
+    expect(motor.concepts.map((item) => item.zh).join(' ')).not.toContain('350/250')
+    expect(motor.concepts.map((item) => item.en).join(' ')).not.toContain('350/250')
+  })
 })
 
 describe('runtime media configuration', () => {
@@ -381,6 +400,9 @@ describe('runtime media configuration', () => {
       expect(track.title.en.trim()).not.toBe('')
       expect(track.title.en).not.toMatch(cjk)
       expect(track.file).toMatch(/^\/audio\/.+\.mp3$/)
+      const diskPath = join(process.cwd(), 'public', track.file.replace(/^\//, ''))
+      expect(existsSync(diskPath)).toBe(true)
+      expect(statSync(diskPath).size).toBeGreaterThan(1024)
     })
   })
 })
