@@ -193,7 +193,7 @@ test('cooling detail exposes five experiments and two sets of three working flip
   for (let index = 0; index < 3; index += 1) {
     const card = referenceCards.nth(index)
     await expect(card.locator('img')).toBeVisible()
-    expect(await card.locator('img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+    await expect.poll(() => card.locator('img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0), { timeout: 30_000 }).toBe(true)
     await card.locator('.cooling-flip-card__front').click()
     await expect(card).toHaveAttribute('data-flipped', 'true')
     await expect(card.locator('.cooling-flip-card__back')).toHaveAttribute('aria-hidden', 'false')
@@ -207,7 +207,7 @@ test('cooling detail exposes five experiments and two sets of three working flip
   for (let index = 0; index < 3; index += 1) {
     const card = faultCards.nth(index)
     await expect(card.locator('img')).toBeVisible()
-    expect(await card.locator('img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+    await expect.poll(() => card.locator('img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0), { timeout: 30_000 }).toBe(true)
     await card.locator('.cooling-flip-card__front').click()
     await expect(card).toHaveAttribute('data-flipped', 'true')
     await expect(card.locator('.cooling-flip-card__back')).toHaveAttribute('aria-hidden', 'false')

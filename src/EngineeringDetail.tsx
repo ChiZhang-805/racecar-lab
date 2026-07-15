@@ -14,6 +14,7 @@ import { GRAND_PRIX_ENGINEERING_LESSONS } from './grandPrixEngineeringData'
 import { GRAND_PRIX_FORMULA_EXAMPLES } from './grandPrixFormulaExamples'
 import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngineeringSim'
 import { CoolingFaultCards, CoolingObserveLab, CoolingReferenceCards } from './CoolingInteractionPanels'
+import { coolingFaultCardsFor, coolingReferenceCards } from './coolingInteractions'
 
 type Tab = 'intro' | 'principle' | 'observe' | 'engineering' | 'faults'
 type TripleIndex = 0 | 1 | 2
@@ -379,6 +380,16 @@ export default function EngineeringDetail({ vehicleId, locale, partId, onClose }
   const part = getPart(partId, locale, vehicleId)
   const dialogRef = useDialogFocus<HTMLDivElement>()
   useEffect(() => setTab('intro'), [partId])
+  useEffect(() => {
+    if (partId !== 'cooling') return
+    const images = [...coolingReferenceCards, ...coolingFaultCardsFor(vehicleId)].map(card => {
+      const image = new Image()
+      image.decoding = 'async'
+      image.src = card.image
+      return image
+    })
+    return () => images.forEach(image => { image.src = '' })
+  }, [partId, vehicleId])
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
     { id: 'intro', label: c.detailIntro, icon: BookOpen }, { id: 'principle', label: c.detailPrinciple, icon: Calculator }, { id: 'observe', label: c.detailObserve, icon: FlaskConical }, { id: 'engineering', label: c.detailEngineering, icon: Wrench }, { id: 'faults', label: c.detailFaults, icon: AlertTriangle },
   ]

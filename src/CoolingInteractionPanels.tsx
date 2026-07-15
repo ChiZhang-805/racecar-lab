@@ -210,7 +210,7 @@ function ReferenceCard({ locale, index }: { locale: Locale; index: number }) {
     <article className={`cooling-flip-card ${flipped ? 'is-flipped' : ''}`} data-resource-card-id={card.id} data-flipped={flipped}>
       <div className="cooling-flip-card__inner">
         <button className="cooling-flip-card__face cooling-flip-card__front" onClick={() => setFlipped(true)} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
-          <img src={card.image} alt={localise(card.imageAlt, locale)} />
+          <img src={card.image} alt={localise(card.imageAlt, locale)} loading="eager" decoding="async" fetchPriority="high" />
           <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><p>{localise(card.summary, locale)}</p><span><ArrowLeftRight size={16} />{u.flip}</span></div>
         </button>
         <section className="cooling-flip-card__face cooling-flip-card__back" aria-hidden={!flipped}>
@@ -239,7 +239,7 @@ function FaultCard({ locale, vehicleId, index }: { locale: Locale; vehicleId: Ve
     <article className={`cooling-flip-card cooling-fault-card ${flipped ? 'is-flipped' : ''}`} data-fault-card-id={card.id} data-flipped={flipped}>
       <div className="cooling-flip-card__inner">
         <button className="cooling-flip-card__face cooling-flip-card__front" onClick={() => setFlipped(true)} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
-          <img src={card.image} alt={localise(card.imageAlt, locale)} />
+          <img src={card.image} alt={localise(card.imageAlt, locale)} loading="eager" decoding="async" fetchPriority="high" />
           <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><p>{localise(card.scenario, locale)}</p><span><ArrowLeftRight size={16} />{u.flip}</span></div>
         </button>
         <section className="cooling-flip-card__face cooling-flip-card__back" aria-hidden={!flipped}>
