@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import {
   ArrowRight, Check, ChevronRight, CircleDot, Compass, Eye, EyeOff, Gauge, Globe2, House,
-  Languages, Layers3, LockKeyhole, Map, Maximize2, Pause, Play, RotateCcw, ScanLine,
+  Languages, Layers3, LockKeyhole, Map, Maximize2, Minimize2, Pause, Play, RotateCcw, ScanLine,
   Settings, Sparkles, Wind, X, Zap, BookOpenCheck, CarFront, Music2, Repeat, Repeat1, Shuffle,
   Volume2,
 } from 'lucide-react'
@@ -122,16 +122,26 @@ function SystemRail({ locale, visible, onToggle }: { locale: Locale; visible: Ca
 
 function PartPanel({ locale, vehicleId, partId, onClose, onDetails }: { locale: Locale; vehicleId: VehicleId; partId: PartId; onClose: () => void; onDetails: () => void }) {
   const c = copy[locale]
+  const [collapsed, setCollapsed] = useState(false)
   const part = getPart(partId, locale, vehicleId)
+  useEffect(() => setCollapsed(false), [partId, vehicleId])
   if (!part) return null
+  if (collapsed) {
+    const label = locale === 'zh' ? '展开零件卡片' : 'Expand part card'
+    return <button className="panel-minibutton panel-minibutton--part glass-panel" onClick={() => setCollapsed(false)} aria-label={label} title={label}><Maximize2 size={21} /></button>
+  }
   const summary = [part.short, part.purpose, part.analogy, part.engineering[0], part.engineering[1], part.faults[0]].join(locale === 'zh' ? '' : ' ')
+  const collapseLabel = locale === 'zh' ? '缩小零件卡片' : 'Minimize part card'
   return (
     <aside className="part-panel glass-panel">
       <div className="part-panel__topline">
         <div className="category-pill" style={{ '--category-color': CATEGORIES[part.category].color } as React.CSSProperties}>
           <span /> {getCategoryName(part.category, locale)}
         </div>
-        <button className="icon-button" onClick={onClose} aria-label={c.close}><X size={18} /></button>
+        <div className="panel-actions">
+          <button className="icon-button panel-minimize" onClick={() => setCollapsed(true)} aria-label={collapseLabel} title={collapseLabel}><Minimize2 size={16} /></button>
+          <button className="icon-button" onClick={onClose} aria-label={c.close}><X size={18} /></button>
+        </div>
       </div>
       <h2>{part.name}</h2>
       <p>{summary}</p>
@@ -178,11 +188,24 @@ function CourseMap({ locale, vehicleId, completed, activeCourse, onStart, onClos
 function LessonPanel({ locale, vehicleId, course: baseCourse, visited, onPart, onQuiz, onClose }: { locale: Locale; vehicleId: VehicleId; course: Course; visited: PartId[]; onPart: (partId: PartId) => void; onQuiz: () => void; onClose: () => void }) {
   const c = copy[locale]
   const course = getCourse(baseCourse, locale, vehicleId)
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => setCollapsed(false), [course.id, vehicleId])
   const requiredVisited = course.parts.filter((part) => visited.includes(part)).length
   const remaining = course.parts.length - requiredVisited
+  if (collapsed) {
+    const label = locale === 'zh' ? '展开课程卡片' : 'Expand lesson card'
+    return <button className="panel-minibutton panel-minibutton--lesson glass-panel" onClick={() => setCollapsed(false)} aria-label={label} title={label}><BookOpenCheck size={21} /></button>
+  }
+  const collapseLabel = locale === 'zh' ? '缩小课程卡片' : 'Minimize lesson card'
   return (
     <aside className="lesson-panel glass-panel">
-      <div className="lesson-top"><span>{c.lesson} {course.number}</span><button className="icon-button" onClick={onClose} aria-label={c.close}><X size={17} /></button></div>
+      <div className="lesson-top">
+        <span>{c.lesson} {course.number}</span>
+        <div className="panel-actions">
+          <button className="icon-button panel-minimize" onClick={() => setCollapsed(true)} aria-label={collapseLabel} title={collapseLabel}><Minimize2 size={16} /></button>
+          <button className="icon-button" onClick={onClose} aria-label={c.close}><X size={17} /></button>
+        </div>
+      </div>
       <h3>{course.title}</h3><p>{course.description}</p>
       <div className="lesson-task"><span>{c.task}</span>{course.task}</div>
       <div className="lesson-parts">{course.parts.map((partId, index) => (
