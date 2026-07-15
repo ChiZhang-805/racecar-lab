@@ -944,21 +944,25 @@ function CameraRig({ vehicleId, intro, selectedId, resetSignal }: { vehicleId: V
   const { size } = useThree()
   useEffect(() => {
     if (!controls.current) return
-    const mobilePortraitIntro = intro && size.width <= 680 && size.height > size.width
+    const mobilePortrait = size.width <= 680 && size.height > size.width
     if (intro) {
+      const cameraPosition: [number, number, number] = mobilePortrait
+        ? vehicleId === 'grand-prix-2026' ? [11.2, 5.9, 13.1] : [9.7, 5.15, 11.55]
+        : vehicleId === 'grand-prix-2026' ? [9.4, 5.1, 11.1] : [7.8, 4.1, 9.2]
       controls.current.setLookAt(
-        vehicleId === 'grand-prix-2026' ? 9.4 : 7.8,
-        vehicleId === 'grand-prix-2026' ? 5.1 : 4.1,
-        vehicleId === 'grand-prix-2026' ? 11.1 : 9.2,
+        ...cameraPosition,
         0,
-        mobilePortraitIntro ? 0.16 : 0.7,
+        mobilePortrait ? 0.24 : 0.7,
         0,
         true,
       )
       return
     }
     if (!selectedId) {
-      controls.current.setLookAt(vehicleId === 'grand-prix-2026' ? 9.1 : 7.4, vehicleId === 'grand-prix-2026' ? 5.3 : 4.6, vehicleId === 'grand-prix-2026' ? 10.2 : 8.4, 0, 0.72, -0.1, true)
+      const cameraPosition: [number, number, number] = mobilePortrait
+        ? vehicleId === 'grand-prix-2026' ? [12.0, 6.6, 13.55] : [10.7, 5.9, 12.0]
+        : vehicleId === 'grand-prix-2026' ? [9.1, 5.3, 10.2] : [7.4, 4.6, 8.4]
+      controls.current.setLookAt(...cameraPosition, 0, 0.72, -0.1, true)
       return
     }
     const part = PART_MAP[selectedId]

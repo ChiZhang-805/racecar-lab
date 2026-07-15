@@ -3429,6 +3429,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
     left: calc(clamp(188px, 55vw, 210px) + 18px);
   }
 
+  .interaction-hint {
+    grid-template-columns: 12px max-content max-content;
+    width: max-content;
+    max-width: calc(100vw - 34px);
+    left: 50%;
+    gap: 7px;
+  }
+
+  .interaction-hint strong,
+  .interaction-hint > span:last-child {
+    white-space: nowrap;
+  }
+
+  .interaction-hint > span:last-child {
+    font-size: clamp(10px, 3.2vw, 12px);
+  }
+
   .settings-modal {
     width: calc(100vw - 12px);
     max-height: calc(100dvh - 12px);
