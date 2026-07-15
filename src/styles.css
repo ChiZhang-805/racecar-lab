@@ -3742,7 +3742,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
   }
 }
 
-/* Cooling-system interaction pilot */
+/* Shared component interaction system, first established for cooling. */
 .cooling-observe {
   height: 100%;
   min-height: 0;
@@ -3888,6 +3888,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
 .cooling-timeline-zone.is-load { fill: rgba(255, 139, 100, .08); }
 .cooling-lab-stage g.is-danger rect { fill: rgba(126, 38, 39, .6); stroke: #ff7770; }
 .cooling-lab-stage g.is-danger text { fill: #ffaaa4; }
+
+/* Shared diagrams for the component-by-component interaction expansion. */
+.part-interaction-observe { --interaction-accent: #58d9f6; }
+.part-interaction-observe .cooling-experiment-list > button:hover,
+.part-interaction-observe .cooling-experiment-list > button.is-active { border-color: color-mix(in srgb, var(--interaction-accent) 58%, transparent); }
+.part-interaction-observe .cooling-lab-console > header { border-color: var(--interaction-accent); }
+.part-interaction-observe .cooling-lab-inputs input { background: linear-gradient(90deg, var(--interaction-accent), color-mix(in srgb, var(--interaction-accent) 20%, transparent)); }
+.part-interaction-observe .cooling-lab-inputs input::-webkit-slider-thumb { background: var(--interaction-accent); }
+.interaction-lab-stage svg { overflow: hidden; }
+.interaction-grid line,
+.interaction-axis { fill: none; stroke: rgba(184, 224, 234, .12); stroke-width: 1; }
+.interaction-line { fill: none; stroke: var(--interaction-accent); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--interaction-accent) 35%, transparent)); }
+.interaction-line.is-secondary { stroke: #ffba68; stroke-width: 2.3; stroke-dasharray: 8 7; opacity: .82; }
+.interaction-marker { stroke: rgba(237, 250, 252, .55); stroke-width: 1.3; stroke-dasharray: 5 5; }
+.interaction-flow-base { fill: none; stroke: rgba(188, 226, 235, .16); stroke-width: 13; stroke-linecap: round; }
+.interaction-flow-active { fill: none; stroke: url(#interaction-flow-gradient); stroke-linecap: round; stroke-dasharray: 20 13; animation: coolingFlow 2s linear infinite; }
+.interaction-lab-stage svg g circle { transition: r .2s ease, opacity .2s ease, fill .2s ease; }
+.interaction-lab-stage svg g.is-danger circle { fill: rgba(126, 38, 39, .62); stroke: #ff7770; }
+.interaction-node-core { fill: var(--interaction-accent) !important; stroke: none !important; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--interaction-accent) 54%, transparent)); }
+.interaction-bar-track { fill: rgba(13, 29, 36, .72) !important; stroke: rgba(179, 219, 230, .12) !important; }
+.interaction-bar { fill: color-mix(in srgb, var(--interaction-accent) 78%, #173641) !important; stroke: color-mix(in srgb, var(--interaction-accent) 64%, transparent) !important; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--interaction-accent) 24%, transparent)); }
+.interaction-geometry-link { fill: none; stroke: rgba(201, 232, 239, .5); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.interaction-geometry-body { fill: rgba(25, 51, 61, .95) !important; stroke: var(--interaction-accent) !important; }
+.interaction-geometry-node { fill: rgba(10, 22, 28, .95) !important; stroke: var(--interaction-accent) !important; stroke-width: 3 !important; }
+.interaction-direction { fill: none; stroke: #ffbd68; stroke-width: 4; stroke-linecap: round; }
+.interaction-field-halo { fill: url(#interaction-field-hot) !important; stroke: none !important; }
+.interaction-field-node { fill: color-mix(in srgb, var(--interaction-accent) 55%, #142d36) !important; stroke: var(--interaction-accent) !important; }
+.interaction-field-link { stroke: color-mix(in srgb, var(--interaction-accent) 40%, transparent); stroke-width: 2; stroke-dasharray: 6 6; }
+.interaction-field-center { fill: rgba(12, 31, 39, .98) !important; stroke: #ffb766 !important; stroke-width: 3 !important; filter: drop-shadow(0 0 11px rgba(255, 182, 96, .25)); }
+.interaction-timeline-zone { fill: color-mix(in srgb, var(--interaction-accent) 5%, transparent) !important; stroke: none !important; }
+.interaction-timeline-zone.is-secondary { fill: rgba(255, 161, 94, .07) !important; }
 
 @keyframes coolingFlow { to { stroke-dashoffset: -76; } }
 

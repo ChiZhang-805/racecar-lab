@@ -15,6 +15,8 @@ import { GRAND_PRIX_FORMULA_EXAMPLES } from './grandPrixFormulaExamples'
 import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngineeringSim'
 import { CoolingFaultCards, CoolingObserveLab, CoolingReferenceCards } from './CoolingInteractionPanels'
 import { coolingFaultCardsFor, coolingReferenceCards } from './coolingInteractions'
+import { PartFaultCards, PartObserveLab, PartReferenceCards } from './PartInteractionPanels'
+import { getPartInteractionPack } from './partInteractionRegistry'
 
 type Tab = 'intro' | 'principle' | 'observe' | 'engineering' | 'faults'
 type TripleIndex = 0 | 1 | 2
@@ -252,10 +254,12 @@ function ExperimentCard({ locale, vehicleId, labKind, experiment }: { locale: Lo
 
 function Observe({ locale, vehicleId, partId }: { locale: Locale; vehicleId: VehicleId; partId: PartId }) {
   const lesson = lessonFor(partId, vehicleId)
+  const interactionPack = getPartInteractionPack(partId)
   const [selected, setSelected] = useState<PairIndex>(0)
   const u = ui[locale]
   useEffect(() => setSelected(0), [partId, vehicleId])
   if (partId === 'cooling') return <CoolingObserveLab locale={locale} vehicleId={vehicleId} />
+  if (interactionPack) return <PartObserveLab locale={locale} vehicleId={vehicleId} partId={partId} pack={interactionPack} />
   return <div className="eng-observe eng-observe--visual"><aside><span className="eng-label"><FlaskConical size={16} />{u.experiment}</span>{lesson.experiments.map((experiment, index) => <button className={selected === index ? 'is-active' : ''} key={index} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><strong>{localise(experiment.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><ExperimentCard locale={locale} vehicleId={vehicleId} labKind={lesson.labKind} experiment={lesson.experiments[selected]} /></div>
 }
 
@@ -283,12 +287,14 @@ function RadarChart({ locale, values }: { locale: Locale; values: number[] }) {
 
 function Engineering({ locale, vehicleId, partId }: { locale: Locale; vehicleId: VehicleId; partId: PartId }) {
   const lesson = lessonFor(partId, vehicleId)
+  const interactionPack = getPartInteractionPack(partId)
   const [selected, setSelected] = useState<TripleIndex>(0)
   const [profile, setProfile] = useState(48)
   const u = ui[locale]
   const v = visualUi[locale]
   useEffect(() => { setSelected(0); setProfile(48) }, [partId, vehicleId])
   if (partId === 'cooling') return <CoolingReferenceCards locale={locale} />
+  if (interactionPack) return <PartReferenceCards locale={locale} pack={interactionPack} />
   const seed = (partId.length * 11 + selected * 17 + Math.round(profile)) % 31
   const radarValues = [68 + seed % 18, 76 - selected * 7, 54 + Math.round(profile / 5) % 18, 72 - Math.round(profile / 7) % 17, 38 + selected * 13 + Math.round(profile / 12)]
   const stages = [v.bench, v.install, v.track, v.review]
@@ -366,10 +372,12 @@ function Diagnostic({ locale, labKind, diagnostic }: { locale: Locale; labKind: 
 
 function Faults({ locale, vehicleId, partId }: { locale: Locale; vehicleId: VehicleId; partId: PartId }) {
   const lesson = lessonFor(partId, vehicleId)
+  const interactionPack = getPartInteractionPack(partId)
   const [selected, setSelected] = useState<PairIndex>(0)
   const u = ui[locale]
   useEffect(() => setSelected(0), [partId, vehicleId])
   if (partId === 'cooling') return <CoolingFaultCards locale={locale} vehicleId={vehicleId} />
+  if (interactionPack) return <PartFaultCards locale={locale} vehicleId={vehicleId} pack={interactionPack} />
   return <div className="eng-faults eng-faults--visual"><aside><span className="eng-label"><AlertTriangle size={16} />{u.chooseCase}</span>{lesson.diagnostics.map((item, index) => <button key={index} className={selected === index ? 'is-active' : ''} onClick={() => setSelected(index as PairIndex)}><i>{String(index + 1).padStart(2, '0')}</i><span><strong>{localise(item.title, locale)}</strong></span><ChevronRight size={17} /></button>)}</aside><Diagnostic locale={locale} labKind={lesson.labKind} diagnostic={lesson.diagnostics[selected]} /></div>
 }
 
@@ -381,8 +389,13 @@ export default function EngineeringDetail({ vehicleId, locale, partId, onClose }
   const dialogRef = useDialogFocus<HTMLDivElement>()
   useEffect(() => setTab('intro'), [partId])
   useEffect(() => {
-    if (partId !== 'cooling') return
-    const images = [...coolingReferenceCards, ...coolingFaultCardsFor(vehicleId)].map(card => {
+    const interactionPack = getPartInteractionPack(partId)
+    const cards = partId === 'cooling'
+      ? [...coolingReferenceCards, ...coolingFaultCardsFor(vehicleId)]
+      : interactionPack
+        ? [...interactionPack.referenceCards, ...interactionPack.faultCardsFor(vehicleId)]
+        : []
+    const images = cards.map(card => {
       const image = new Image()
       image.decoding = 'async'
       image.src = card.image

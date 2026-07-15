@@ -32,6 +32,9 @@ known_hosts
 !public/images/
 !public/images/cooling/
 !public/images/cooling/*.webp
+!public/images/interactions/
+!public/images/interactions/**/
+!public/images/interactions/**/*.webp
 
 .DS_Store
 Thumbs.db

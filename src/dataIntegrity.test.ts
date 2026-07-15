@@ -26,6 +26,8 @@ import {
   type CoolingExperiment,
   type CoolingExperimentResult,
 } from './coolingInteractions'
+import { partInteractionRegistry } from './partInteractionRegistry'
+import { initialInteractionValues, type InteractionResult } from './interactionTypes'
 
 const sorted = (values: readonly string[]) => [...values].sort()
 const cjk = /[\u3400-\u9fff]/
@@ -636,6 +638,311 @@ describe('interactive cooling curriculum', () => {
           expect(result.visual.pressure).toBeGreaterThanOrEqual(0)
         }
       }
+    }
+  })
+})
+
+describe('interactive curriculum for every non-cooling assembly', () => {
+  const vehicleIds = ['student-ev', 'grand-prix-2026'] as const
+  const interactivePartIds = PART_IDS.filter(partId => partId !== 'cooling')
+  type InteractivePartId = Exclude<(typeof PART_IDS)[number], 'cooling'>
+
+  const interactionResult = (
+    partId: InteractivePartId,
+    vehicleId: (typeof vehicleIds)[number],
+    experimentId: string,
+    overrides: Record<string, number> = {},
+  ) => {
+    const experiment = partInteractionRegistry[partId]!.experimentsFor(vehicleId).find(item => item.id === experimentId)
+    expect(experiment, `missing interaction experiment: ${partId}/${vehicleId}/${experimentId}`).toBeDefined()
+    return experiment!.evaluate({ ...initialInteractionValues(experiment!), ...overrides })
+  }
+
+  const interactionMetric = (result: InteractionResult, id: string) => {
+    const value = result.metrics.find(metric => metric.id === id)
+    expect(value, `missing interaction metric: ${id}`).toBeDefined()
+    return value!.value
+  }
+
+  it('registers every non-cooling assembly exactly once', () => {
+    expect(Object.keys(partInteractionRegistry).sort()).toEqual([...interactivePartIds].sort())
+  })
+
+  it('keeps all 180 nominal experiment states out of danger', () => {
+    let count = 0
+    for (const vehicleId of vehicleIds) {
+      for (const partId of interactivePartIds) {
+        for (const experiment of partInteractionRegistry[partId]!.experimentsFor(vehicleId)) {
+          const output = experiment.evaluate(initialInteractionValues(experiment))
+          output.metrics.forEach(metric => expect(metric.tone, `${partId}/${vehicleId}/${experiment.id}/${metric.id}`).not.toBe('danger'))
+          count += 1
+        }
+      }
+      for (const experiment of coolingExperimentsFor(vehicleId)) {
+        const output = evaluateCoolingExperiment(experiment, initialCoolingValues(experiment), vehicleId)
+        output.metrics.forEach(metric => expect(metric.tone, `cooling/${vehicleId}/${experiment.id}/${metric.id}`).not.toBe('danger'))
+        count += 1
+      }
+    }
+    expect(count).toBe(180)
+  })
+
+  it('keeps corrected nominal engineering quantities in credible teaching windows', () => {
+    for (const vehicleId of vehicleIds) {
+      const frontWing = interactionResult('front-wing', vehicleId, 'stiffness-deflection')
+      expect(interactionMetric(frontWing, 'deflection')).toBeGreaterThan(0)
+      expect(interactionMetric(frontWing, 'deflection')).toBeLessThan(15)
+
+      const rearWing = interactionResult('rear-wing', vehicleId, 'pylon-flap-aeroelasticity')
+      expect(interactionMetric(rearWing, 'load-error')).toBeLessThan(30)
+
+      const cell = interactionResult('monocoque', vehicleId, 'side-floor-equivalence')
+      expect(interactionMetric(cell, 'deflection')).toBeLessThan(25)
+      expect(interactionMetric(cell, 'margin')).toBeGreaterThan(10)
+
+      const nosePulse = interactionResult('nose', vehicleId, 'force-stroke-shaping')
+      expect(interactionMetric(nosePulse, 'peak-g')).toBeLessThan(vehicleId === 'grand-prix-2026' ? 38 : 32)
+      expect(interactionMetric(nosePulse, 'quality')).toBeGreaterThan(65)
+      const noseMount = interactionResult('nose', vehicleId, 'wing-mount-repeatability')
+      expect(interactionMetric(noseMount, 'repeatability')).toBeGreaterThan(65)
+
+      const tyre = interactionResult('tires', vehicleId, 'thermal-pressure-transient')
+      expect(interactionMetric(tyre, 'carcass-temperature')).toBeGreaterThan(vehicleId === 'grand-prix-2026' ? 75 : 50)
+      expect(interactionMetric(tyre, 'grip-window')).toBeGreaterThan(75)
+
+      const steering = interactionResult('steering', vehicleId, 'steering-effort')
+      expect(interactionMetric(steering, 'hand-torque')).toBeGreaterThan(5)
+      expect(interactionMetric(steering, 'hand-torque')).toBeLessThan(28)
+
+      const battery = interactionResult('battery', vehicleId, 'battery-soc-ledger')
+      expect(interactionMetric(battery, 'true-soc')).toBeGreaterThan(20)
+      expect(interactionMetric(battery, 'true-soc')).toBeLessThan(60)
+
+      const inverter = interactionResult('inverter', vehicleId, 'inverter-voltage-utilisation')
+      expect(interactionMetric(inverter, 'voltage-margin')).toBeGreaterThan(0)
+
+      const motor = interactionResult('motor', vehicleId, 'motor-efficiency-map')
+      expect(interactionMetric(motor, 'motor-efficiency')).toBeGreaterThan(94)
+      expect(interactionMetric(motor, 'motor-efficiency')).toBeLessThan(98.5)
+      expect(interactionMetric(motor, 'copper-loss')).toBeGreaterThan(vehicleId === 'grand-prix-2026' ? .7 : .25)
+
+      const gearing = interactionResult('motor', vehicleId, 'motor-wheel-force')
+      expect(interactionMetric(gearing, 'top-speed')).toBeGreaterThan(vehicleId === 'grand-prix-2026' ? 250 : 140)
+      expect(interactionMetric(gearing, 'top-speed')).toBeLessThan(vehicleId === 'grand-prix-2026' ? 350 : 210)
+      expect(interactionMetric(gearing, 'grip-margin')).toBeGreaterThan(0)
+
+      const canBus = interactionResult('ecu', vehicleId, 'ecu-can-age')
+      expect(interactionMetric(canBus, 'bus-load')).toBeGreaterThan(35)
+      expect(interactionMetric(canBus, 'bus-load')).toBeLessThan(65)
+      expect(interactionMetric(canBus, 'stale-signals')).toBe(0)
+
+      const timeSync = interactionResult('sensors', vehicleId, 'sensor-time-sync')
+      expect(interactionMetric(timeSync, 'power-balance')).toBeGreaterThan(90)
+    }
+  })
+
+  it('preserves the corrected nonlinear and precedence-sensitive trends', () => {
+    const deadTimeZero = interactionResult('inverter', 'student-ev', 'inverter-dead-time', { phaseCurrent: 0 })
+    const deadTimeLoaded = interactionResult('inverter', 'student-ev', 'inverter-dead-time', { phaseCurrent: 120 })
+    expect(interactionMetric(deadTimeZero, 'torque-ripple')).toBe(0)
+    expect(interactionMetric(deadTimeLoaded, 'torque-ripple')).toBeGreaterThan(0)
+
+    const oilCold = interactionResult('differential', 'grand-prix-2026', 'differential-oil', { oilTemp: 20 })
+    const oilHot = interactionResult('differential', 'grand-prix-2026', 'differential-oil', { oilTemp: 160 })
+    expect(interactionMetric(oilCold, 'viscosity')).toBeGreaterThan(interactionMetric(oilHot, 'viscosity'))
+
+    const wingLowLoad = interactionResult('front-wing', 'student-ev', 'stiffness-deflection', { force: 100 })
+    const wingHighLoad = interactionResult('front-wing', 'student-ev', 'stiffness-deflection', { force: 900 })
+    expect(interactionMetric(wingHighLoad, 'deflection')).toBeGreaterThan(interactionMetric(wingLowLoad, 'deflection'))
+
+    const longRatio = interactionResult('motor', 'student-ev', 'motor-wheel-force', { ratio: 7 })
+    const shortRatio = interactionResult('motor', 'student-ev', 'motor-wheel-force', { ratio: 16 })
+    expect(interactionMetric(longRatio, 'top-speed')).toBeGreaterThan(interactionMetric(shortRatio, 'top-speed'))
+
+    const canFast = interactionResult('ecu', 'student-ev', 'ecu-can-age', { bitrate: 1 })
+    const canSlow = interactionResult('ecu', 'student-ev', 'ecu-can-age', { bitrate: .5 })
+    expect(interactionMetric(canSlow, 'bus-load')).toBeGreaterThan(interactionMetric(canFast, 'bus-load'))
+  })
+
+  it('enforces conservation, thermal closed forms and tyre grip limits', () => {
+    const safeThermal = interactionResult('motor', 'student-ev', 'motor-thermal-transient', { load: 10, cooling: 100 })
+    expect(interactionMetric(safeThermal, 'remaining-time')).toBe(600)
+    const thermalAt60 = interactionResult('motor', 'student-ev', 'motor-thermal-transient', { load: 60, cooling: 20, duration: 60 })
+    const thermalAt120 = interactionResult('motor', 'student-ev', 'motor-thermal-transient', { load: 60, cooling: 20, duration: 120 })
+    expect(interactionMetric(thermalAt60, 'remaining-time') - interactionMetric(thermalAt120, 'remaining-time')).toBeCloseTo(60, 0)
+
+    for (const vehicleId of vehicleIds) {
+      const total = vehicleId === 'grand-prix-2026' ? 140 : 45
+      for (const offset of [vehicleId === 'grand-prix-2026' ? -220 : -180, vehicleId === 'grand-prix-2026' ? 220 : 180]) {
+        const reactions = interactionResult('halo', vehicleId, 'mount-load-sharing', { offset, direction: 90 })
+        const front = interactionMetric(reactions, 'front')
+        const left = interactionMetric(reactions, 'rear-left')
+        const right = interactionMetric(reactions, 'rear-right')
+        expect(front).toBeGreaterThanOrEqual(0)
+        expect(left).toBeGreaterThanOrEqual(0)
+        expect(right).toBeGreaterThanOrEqual(0)
+        expect(front + left + right).toBeCloseTo(total, 8)
+      }
+    }
+
+    const frequency = 400
+    const ripple = .1
+    const skew = .0002
+    const phase = 2 * Math.PI * frequency * skew
+    const correlatedRipple = .1 * ripple / 2
+    const expectedPowerError = correlatedRipple * (1 - Math.cos(phase)) / (1 + correlatedRipple) * 100
+    const timeSync = interactionResult('sensors', 'student-ev', 'sensor-time-sync', { rippleFrequency: frequency, ripple: ripple * 100, skew: skew * 1000, sampleRate: 1000 })
+    expect(interactionMetric(timeSync, 'power-error')).toBeCloseTo(expectedPowerError, 2)
+    expect(interactionMetric(timeSync, 'energy-error')).toBeCloseTo(expectedPowerError, 2)
+
+    const openDiff = interactionResult('differential', 'student-ev', 'differential-locking', { inputTorque: 180, insideLoad: 200, rearLoad: 600, preload: 0, locking: 0 })
+    const lockedDiff = interactionResult('differential', 'student-ev', 'differential-locking', { inputTorque: 180, insideLoad: 200, rearLoad: 600, preload: 0, locking: 80 })
+    const outsideCap = (600 - 200) * 1.35 * .24
+    expect(interactionMetric(lockedDiff, 'outside-torque')).toBeGreaterThan(interactionMetric(openDiff, 'outside-torque'))
+    expect(interactionMetric(lockedDiff, 'outside-torque')).toBeLessThanOrEqual(outsideCap + .1)
+    expect(interactionMetric(lockedDiff, 'inside-torque') + interactionMetric(lockedDiff, 'outside-torque')).toBeLessThanOrEqual(180.1)
+
+    const oil = interactionResult('differential', 'student-ev', 'differential-oil', { oilTemp: 75, speed: 5000, torque: 160, fill: 100 })
+    const inputPower = 160 * 5000 * Math.PI / 30 / 1000
+    const reportedLoss = inputPower * (100 - interactionMetric(oil, 'efficiency')) / 100
+    const expectedLoss = interactionMetric(oil, 'churn-loss') + inputPower * .025
+    expect(reportedLoss).toBeCloseTo(expectedLoss, 1)
+
+    const highGrip = interactionResult('tires', 'student-ev', 'combined-slip', { longitudinalDemand: -35, lateralDemand: 65, gripScale: 100, normalLoad: 850 })
+    const lowGrip = interactionResult('tires', 'student-ev', 'combined-slip', { longitudinalDemand: -35, lateralDemand: 65, gripScale: 40, normalLoad: 850 })
+    const lowGripForce = Math.hypot(interactionMetric(lowGrip, 'actual-fx'), interactionMetric(lowGrip, 'actual-fy'))
+    expect(lowGripForce).toBeLessThanOrEqual(1.4 * 850 * .4 + .1)
+    expect(interactionMetric(lowGrip, 'friction-utilisation')).toBeGreaterThan(interactionMetric(highGrip, 'friction-utilisation'))
+    expect(interactionMetric(lowGrip, 'lateral-reserve')).toBeLessThan(interactionMetric(highGrip, 'lateral-reserve'))
+  })
+
+  it('provides five distinct, bilingual experiments with finite boundary behaviour', () => {
+    for (const partId of interactivePartIds) {
+      const pack = partInteractionRegistry[partId]
+      expect(pack, `missing interaction pack: ${partId}`).toBeDefined()
+      expect(pack!.partId).toBe(partId)
+      expect(pack!.theme).toMatch(/^#[0-9a-f]{6}$/i)
+
+      for (const vehicleId of vehicleIds) {
+        const experiments = pack!.experimentsFor(vehicleId)
+        expect(experiments, `${partId}/${vehicleId}`).toHaveLength(5)
+        expect(new Set(experiments.map(experiment => experiment.id)).size).toBe(5)
+
+        for (const experiment of experiments) {
+          expectLocalText(experiment.title)
+          expectLocalText(experiment.question)
+          expect(experiment.parameters.length).toBeGreaterThanOrEqual(2)
+          expect(new Set(experiment.parameters.map(parameter => parameter.key)).size).toBe(experiment.parameters.length)
+          experiment.parameters.forEach(parameter => {
+            expectLocalText(parameter.label)
+            expect(Number.isFinite(parameter.min)).toBe(true)
+            expect(Number.isFinite(parameter.max)).toBe(true)
+            expect(Number.isFinite(parameter.step)).toBe(true)
+            expect(Number.isFinite(parameter.initial)).toBe(true)
+            expect(parameter.min).toBeLessThan(parameter.max)
+            expect(parameter.initial).toBeGreaterThanOrEqual(parameter.min)
+            expect(parameter.initial).toBeLessThanOrEqual(parameter.max)
+            expect(parameter.step).toBeGreaterThan(0)
+            expect(parameter.unit.trim()).not.toBe('')
+          })
+
+          const valueSets = [
+            initialInteractionValues(experiment),
+            Object.fromEntries(experiment.parameters.map(parameter => [parameter.key, parameter.min])),
+            Object.fromEntries(experiment.parameters.map(parameter => [parameter.key, parameter.max])),
+            Object.fromEntries(experiment.parameters.map(parameter => [parameter.key, Number.NaN])),
+          ]
+          for (const values of valueSets) {
+            const result = experiment.evaluate(values)
+            expect(result.metrics.length, `${partId}/${vehicleId}/${experiment.id}`).toBeGreaterThanOrEqual(3)
+            expect(new Set(result.metrics.map(metric => metric.id)).size).toBe(result.metrics.length)
+            result.metrics.forEach(metric => {
+              expectLocalText(metric.label)
+              expect(Number.isFinite(metric.value), `${partId}/${vehicleId}/${experiment.id}/${metric.id}`).toBe(true)
+              expect(metric.unit.trim()).not.toBe('')
+            })
+            expectLocalText(result.insight)
+            expect(result.points.length).toBeGreaterThanOrEqual(2)
+            for (const point of [...result.points, ...(result.secondaryPoints ?? [])]) {
+              expect(Number.isFinite(point.x)).toBe(true)
+              expect(Number.isFinite(point.y)).toBe(true)
+            }
+            expect(result.visual.labels.length).toBe(result.visual.values.length)
+            result.visual.labels.forEach(expectLocalText)
+            result.visual.values.forEach(value => {
+              expect(Number.isFinite(value)).toBe(true)
+              expect(value).toBeGreaterThanOrEqual(0)
+              expect(value).toBeLessThanOrEqual(1)
+            })
+            if (result.visual.marker !== undefined) {
+              expect(result.visual.marker).toBeGreaterThanOrEqual(0)
+              expect(result.visual.marker).toBeLessThanOrEqual(1)
+            }
+            if (result.visual.risk !== undefined) {
+              expect(result.visual.risk).toBeGreaterThanOrEqual(0)
+              expect(result.visual.risk).toBeLessThanOrEqual(1)
+            }
+            if (result.visual.direction !== undefined) {
+              expect(result.visual.direction).toBeGreaterThanOrEqual(-1)
+              expect(result.visual.direction).toBeLessThanOrEqual(1)
+            }
+          }
+        }
+      }
+    }
+  })
+
+  it('provides three professional references and three vehicle-specific fault scenarios per assembly', () => {
+    for (const partId of interactivePartIds) {
+      const pack = partInteractionRegistry[partId]!
+      expect(pack.referenceCards).toHaveLength(3)
+      expect(new Set(pack.referenceCards.map(card => card.id)).size).toBe(3)
+      expect(new Set(pack.referenceCards.map(card => card.image)).size).toBe(3)
+      for (const card of pack.referenceCards) {
+        expectLocalText(card.title)
+        expectLocalText(card.imageAlt)
+        expectLocalText(card.summary)
+        expectLocalText(card.purpose)
+        expectLocalText(card.sourceTitle)
+        expect(card.details).toHaveLength(3)
+        card.details.forEach(expectLocalText)
+        expect(card.url).toMatch(/^https:\/\//)
+      }
+
+      for (const vehicleId of vehicleIds) {
+        const faultCards = pack.faultCardsFor(vehicleId)
+        expect(faultCards, `${partId}/${vehicleId}`).toHaveLength(3)
+        expect(new Set(faultCards.map(card => card.id)).size).toBe(3)
+        expect(new Set(faultCards.map(card => card.image)).size).toBe(3)
+        for (const card of faultCards) {
+          expectLocalText(card.title)
+          expectLocalText(card.imageAlt)
+          expectLocalText(card.scenario)
+          expectLocalText(card.strategy)
+          expectLocalText(card.principle)
+          expectLocalText(card.evidence)
+          expect(card.scenario.zh).toMatch(/\d/)
+          expect(card.scenario.en).toMatch(/\d/)
+        }
+      }
+    }
+  })
+
+  it('ships six distinct, non-placeholder interaction images for every assembly', () => {
+    for (const partId of interactivePartIds) {
+      const pack = partInteractionRegistry[partId]!
+      const cards = [...pack.referenceCards, ...pack.faultCardsFor('student-ev')]
+      expect(cards).toHaveLength(6)
+      expect(new Set(cards.map(card => card.image)).size).toBe(6)
+      const hashes = new Set<string>()
+      for (const card of cards) {
+        expect(card.image).toMatch(new RegExp(`^/images/interactions/${partId}/.+\\.webp$`))
+        const diskPath = join(process.cwd(), 'public', card.image.replace(/^\/+/, ''))
+        expect(existsSync(diskPath), `missing interaction image: ${card.image}`).toBe(true)
+        expect(statSync(diskPath).size, `interaction image is unexpectedly small: ${card.image}`).toBeGreaterThan(50_000)
+        hashes.add(createHash('sha256').update(readFileSync(diskPath)).digest('hex'))
+      }
+      expect(hashes.size, `${partId} reuses an image`).toBe(6)
     }
   })
 })
