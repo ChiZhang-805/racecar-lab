@@ -18,6 +18,19 @@ export type GrandPrixPalette = {
   metalness: number
 }
 
+export type GrandPrixPaint = {
+  nose: string
+  monocoque: string
+  sidepod: string
+  engineCover: string
+  airbox: string
+  halo: string
+  frontWing: string
+  frontWingAccent: string
+  rearWing: string
+  rearWingAccent: string
+}
+
 export type GrandPrixGeometry = {
   noseRearRadius: number
   noseTipRadius: number
@@ -79,6 +92,7 @@ export type GrandPrixTeam = {
   signature: Record<Locale, string>
   designQuestion: Record<Locale, string>
   palette: GrandPrixPalette
+  paint: GrandPrixPaint
   geometry: GrandPrixGeometry
   facts: GrandPrixFact[]
   sources: GrandPrixSource[]
@@ -115,7 +129,11 @@ export const GRAND_PRIX_TEAMS: Record<GrandPrixTeamId, GrandPrixTeam> = {
     palette: {
       body: '#e01b24', secondary: '#f1eee8', accent: '#a70e17', pinstripe: '#ffffff',
       carbon: '#151719', metal: '#aeb7bc', wheelAccent: '#e6363e', powerUnitAccent: '#d2aa55',
-      roughness: .17, metalness: .42,
+      roughness: .13, metalness: .36,
+    },
+    paint: {
+      nose: '#e3131b', monocoque: '#df151e', sidepod: '#dc121b', engineCover: '#d90f18', airbox: '#f4f1ec',
+      halo: '#111315', frontWing: '#0b0d0f', frontWingAccent: '#e3131b', rearWing: '#0b0d0f', rearWingAccent: '#151719',
     },
     geometry: {
       noseRearRadius: .40, noseTipRadius: .075, noseLength: 2.30, noseHeight: .70, noseTipHeight: .65, noseUndercutDepth: .05,
@@ -171,6 +189,10 @@ export const GRAND_PRIX_TEAMS: Record<GrandPrixTeamId, GrandPrixTeam> = {
       body: '#ff8000', secondary: '#20242a', accent: '#22c7c7', pinstripe: '#f2f4f3',
       carbon: '#111417', metal: '#9da9af', wheelAccent: '#ff8c1a', powerUnitAccent: '#48d9d4',
       roughness: .20, metalness: .40,
+    },
+    paint: {
+      nose: '#ff8000', monocoque: '#f97808', sidepod: '#171b1f', engineCover: '#15191d', airbox: '#15191d',
+      halo: '#101317', frontWing: '#111417', frontWingAccent: '#ff8000', rearWing: '#111417', rearWingAccent: '#ff8000',
     },
     geometry: {
       noseRearRadius: .36, noseTipRadius: .09, noseLength: 2.38, noseHeight: .76, noseTipHeight: .69, noseUndercutDepth: .11,
@@ -228,6 +250,10 @@ export const GRAND_PRIX_TEAMS: Record<GrandPrixTeamId, GrandPrixTeam> = {
       carbon: '#101417', metal: '#c4ccd0', wheelAccent: '#27c5ba', powerUnitAccent: '#31d5c9',
       roughness: .19, metalness: .62,
     },
+    paint: {
+      nose: '#c8d0d3', monocoque: '#111519', sidepod: '#090c0f', engineCover: '#080b0e', airbox: '#0b0e11',
+      halo: '#0a0d10', frontWing: '#0b0e11', frontWingAccent: '#00a69d', rearWing: '#080b0e', rearWingAccent: '#00a69d',
+    },
     geometry: {
       noseRearRadius: .43, noseTipRadius: .12, noseLength: 2.18, noseHeight: .84, noseTipHeight: .77, noseUndercutDepth: .17,
       cockpitOffset: .14, monocoqueLength: 3.22, monocoqueWidth: 1.46,
@@ -280,9 +306,13 @@ export const GRAND_PRIX_TEAMS: Record<GrandPrixTeamId, GrandPrixTeam> = {
       en: 'How do tube-like sidepods expose more floor while moving cooling mass upward?',
     },
     palette: {
-      body: '#f0efe9', secondary: '#111c3c', accent: '#d9232e', pinstripe: '#f3c932',
-      carbon: '#11151b', metal: '#abb5bb', wheelAccent: '#e22b33', powerUnitAccent: '#f2b72e',
-      roughness: .15, metalness: .46,
+      body: '#101d55', secondary: '#f2f0e9', accent: '#d9232e', pinstripe: '#f3c932',
+      carbon: '#080d1a', metal: '#abb5bb', wheelAccent: '#e22b33', powerUnitAccent: '#f2b72e',
+      roughness: .12, metalness: .48,
+    },
+    paint: {
+      nose: '#f2b72e', monocoque: '#101d55', sidepod: '#0b1747', engineCover: '#0a1848', airbox: '#f2b72e',
+      halo: '#10162e', frontWing: '#090e20', frontWingAccent: '#d9232e', rearWing: '#090e20', rearWingAccent: '#d9232e',
     },
     geometry: {
       noseRearRadius: .47, noseTipRadius: .15, noseLength: 2.22, noseHeight: .79, noseTipHeight: .72, noseUndercutDepth: .14,

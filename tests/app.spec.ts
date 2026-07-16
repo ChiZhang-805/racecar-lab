@@ -701,6 +701,7 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
   await enterLab(page)
 
   const geometrySignatures = new Set<string>()
+  const paintSignatures = new Set<string>()
   for (const id of ['ferrari', 'mclaren', 'mercedes', 'red-bull']) {
     await page.locator('button.garage-launch').click()
     const garage = page.locator('.garage-modal')
@@ -715,12 +716,14 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
     await expect(scene).toHaveAttribute('data-gp-power-unit', /.+/)
     await expect(scene).toHaveAttribute('data-gp-nose-profile', /.+/)
     await expect(scene).toHaveAttribute('data-gp-sidepod-width', /.+/)
+    await expect(scene).toHaveAttribute('data-gp-paint-signature', /^#[0-9a-f]{6}(\|#[0-9a-f]{6}){9}$/i)
     const signature = await scene.evaluate(element => JSON.stringify([
       element.getAttribute('data-gp-power-unit'),
       element.getAttribute('data-gp-nose-profile'),
       element.getAttribute('data-gp-sidepod-width'),
     ]))
     geometrySignatures.add(signature)
+    paintSignatures.add((await scene.getAttribute('data-gp-paint-signature'))!)
     await expect.poll(() => page.evaluate(() => localStorage.getItem('racecar-lab-grand-prix-team'))).toBe(id)
     await expect(garage.locator(`[data-grand-prix-team="${id}"]`)).toHaveAttribute('aria-pressed', 'true')
     await assertNoHorizontalOverflow(garage)
@@ -759,6 +762,7 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
     await scene.screenshot({ path: testInfo.outputPath(`grand-prix-team-${id}.png`) })
   }
   expect(geometrySignatures.size).toBe(4)
+  expect(paintSignatures.size).toBe(4)
   await page.screenshot({ path: testInfo.outputPath('grand-prix-lab.png') })
 
   for (let scenarioIndex = 1; scenarioIndex < 5; scenarioIndex += 1) {

@@ -501,6 +501,14 @@ describe('complete grand prix hybrid curriculum', () => {
       expect(team.palette.roughness).toBeLessThan(1)
       expect(team.palette.metalness).toBeGreaterThanOrEqual(0)
       expect(team.palette.metalness).toBeLessThanOrEqual(1)
+      expect(Object.keys(team.paint)).toHaveLength(10)
+      expect(Object.values(team.paint).every(value => /^#[0-9a-f]{6}$/i.test(value))).toBe(true)
+      expect(new Set([
+        team.paint.nose,
+        team.paint.sidepod,
+        team.paint.engineCover,
+        team.paint.frontWing,
+      ]).size).toBeGreaterThanOrEqual(3)
 
       const geometryValues = Object.values(team.geometry)
       expect(geometryValues.every(Number.isFinite)).toBe(true)
@@ -562,6 +570,11 @@ describe('complete grand prix hybrid curriculum', () => {
     }
     expect(driverIds.size).toBe(8)
     expect(geometrySignatures.size).toBe(4)
+    expect(new Set(GRAND_PRIX_TEAM_IDS.map(id => JSON.stringify(GRAND_PRIX_TEAMS[id].paint))).size).toBe(4)
+    expect(GRAND_PRIX_TEAMS.ferrari.paint.nose).not.toBe(GRAND_PRIX_TEAMS.ferrari.paint.frontWing)
+    expect(GRAND_PRIX_TEAMS.mclaren.paint.nose).not.toBe(GRAND_PRIX_TEAMS.mclaren.paint.sidepod)
+    expect(GRAND_PRIX_TEAMS.mercedes.paint.nose).not.toBe(GRAND_PRIX_TEAMS.mercedes.paint.monocoque)
+    expect(GRAND_PRIX_TEAMS['red-bull'].paint.nose).not.toBe(GRAND_PRIX_TEAMS['red-bull'].paint.engineCover)
     expect(GRAND_PRIX_TEAMS.mclaren.facts[0]!.value.en).toBe(GRAND_PRIX_TEAMS.mercedes.facts[0]!.value.en)
     expect(GRAND_PRIX_TEAMS.ferrari.facts[0]!.value.en).not.toBe(GRAND_PRIX_TEAMS['red-bull'].facts[0]!.value.en)
     expect(isGrandPrixTeamId('unknown')).toBe(false)

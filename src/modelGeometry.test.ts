@@ -7,7 +7,10 @@ import {
   grandPrixSceneUnitsToMm,
   grandPrixFrontWingIncidence,
   grandPrixRearWingIncidence,
+  MOBILE_SCENE_CAMERAS,
   rodTransform,
+  SCENE_CAMERA_FOV,
+  SCENE_CAMERA_MAX_DISTANCE,
   wheelGroundClearance,
   wheelOuterRadius,
   wheelSectionWidth,
@@ -17,6 +20,13 @@ import {
 } from './modelGeometry'
 
 describe('3D model geometry integrity', () => {
+  it('keeps every portrait overview camera inside the controls distance limit', () => {
+    for (const position of Object.values(MOBILE_SCENE_CAMERAS)) {
+      expect(Math.hypot(...position)).toBeLessThanOrEqual(SCENE_CAMERA_MAX_DISTANCE)
+    }
+    expect(SCENE_CAMERA_FOV.mobilePortrait).toBeGreaterThan(SCENE_CAMERA_FOV.desktop)
+  })
+
   it('records the governing 2026 Grand Prix geometry and control anchors', () => {
     expect(GRAND_PRIX_REGULATION_BASIS).toMatchObject({
       maxBodyworkWidthMmExcludingTyresAndRims: 1900,

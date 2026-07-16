@@ -8,7 +8,18 @@ RaceCar Lab contains four code-generated study cars: Ferrari SF-26, McLaren MCL4
 
 They remain educational interpretations. Public rules and launch material do not provide production CAD, hidden cooling layouts, suspension kinematics, laminate schedules, software, or complete internals. Scene values are dimensionless modelling controls and must not be read as team measurements.
 
-No team badge, sponsor mark, official texture, or downloaded team model is bundled. Colour is used only as an unbranded orientation aid.
+No team badge, sponsor mark, official texture, or downloaded team model is bundled. The launch-livery studies are rebuilt from code as unbranded colour blocking, clear-coated materials, geometric sweeps, model identifiers, and racing numbers.
+
+## 2026 launch-livery implementation
+
+The exterior treatment was re-checked on 2026-07-16 against primary team launch material: [Ferrari SF-26 reveal](https://www.ferrari.com/en-EN/formula1/articles/ferrari-unveils-the-sf-26), [McLaren MCL40 launch](https://www.mclaren.com/racing/formula-1/2026/mcl40-launch/), [Mercedes W17 reveal media](https://media.mercedesamgf1.com/marsF1/en/instance/ko/2026-Challenger-Revealed.xhtml?oid=194865013), and [Red Bull RB22 launch](https://www.redbullracing.com/int-en/races/season-launch-2026/). Official front, side, three-quarter, and overhead views were used to compare colour balance and placement; downloaded reference images are research material only and are not shipped by the site.
+
+- Ferrari uses a gloss red primary body, black wings, and tapered white surfaces around the cockpit and engine cover rather than rectangular white bars.
+- McLaren separates papaya nose and monocoque surfaces from the large anthracite sidepod/engine-cover volume, then adds papaya diagonals and a restrained teal flow line.
+- Mercedes is black-dominant with a silver nose and upper shoulders, a low continuous teal sweep, and a small rhombus transition field on the engine cover.
+- Red Bull is gloss deep blue-dominant with a yellow nose and airbox, dark wings, and layered red, yellow, and white engine-cover/sidepod motifs. The visible official imagery is the colour-balance authority for the study model.
+
+Every profile now owns ten independent paint zones: nose, monocoque, sidepod, engine cover, airbox, Halo, front wing, front-wing accent, rear wing, and rear-wing accent. The main body uses a clear-coated physical material; surface graphics are fitted procedural polygons rather than detached rectangular colour bars. Programmatic `SF-26`, `MCL40`, `W17`, and `RB22` marks plus representative racing numbers provide scale and identification without bundling protected team or sponsor artwork.
 
 ## Evidence labels used in the interface
 
@@ -83,7 +94,7 @@ Implemented study cues:
 - the narrowest, lowest, most steeply falling tube-like sidepods in the set;
 - more exposed floor, two dominant floor-board elements, and a taller upper cooling cover;
 - Red Bull Ford DM01 works power-unit identity with its own package proportions;
-- heritage white, deep navy, red, and yellow orientation surfaces without the bull or sponsor marks.
+- gloss deep navy bodywork, yellow nose and airbox, and red/yellow/white procedural motifs without the bull or sponsor marks.
 
 Core learning question: how can narrow falling sidepods expose more floor while moving inferred cooling volume and mass upward?
 
@@ -94,8 +105,8 @@ Core learning question: how can narrow falling sidepods expose more floor while 
 - `src/GrandPrixGarage.tsx` provides the in-lab selector, evidence cards, sources, and four-car comparison.
 - `src/grandPrixTeamLens.ts` maps all 18 assemblies to a current-team evidence note, including explicit non-public boundaries.
 - Selection persists under `racecar-lab-grand-prix-team`; the older `racecar-lab-grand-prix-livery` key is read once as a compatibility fallback.
-- Unit tests require four unique geometry signatures, complete evidence tiers, valid public sources, and 72 localized team-part lenses.
-- Browser tests switch and screenshot all four cars, verify geometry attributes and persistence, exercise the comparison view, and check desktop plus 320 px portrait overlap boundaries.
+- Unit tests require four unique geometry and ten-zone paint signatures, complete evidence tiers, valid public sources, and 72 localized team-part lenses.
+- Browser tests switch and screenshot all four cars, verify geometry and paint attributes plus persistence, exercise the comparison view, and check desktop plus 320 px portrait overlap boundaries.
 
 Launch images are snapshots, not a promise that the racing car will remain unchanged. Future updates must re-check the [official Formula 1 launch-car guidance](https://www.formula1.com/en/latest/article/the-beginners-guide-to-f1-car-launches.5njwLoM1KId9QBthP9PAOH), current FIA issue, and team sources before changing a profile.
 

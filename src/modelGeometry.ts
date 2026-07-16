@@ -3,6 +3,15 @@ import type { PartId } from './data'
 
 export type V3 = [number, number, number]
 
+export const SCENE_CAMERA_MAX_DISTANCE = 24
+export const SCENE_CAMERA_FOV = { desktop: 36, mobilePortrait: 58 } as const
+export const MOBILE_SCENE_CAMERAS = {
+  grandPrixIntro: [11.2, 5.9, 13.1],
+  studentIntro: [9.7, 5.15, 11.55],
+  grandPrixOverview: [13.0, 7.0, 14.65],
+  studentOverview: [11.45, 6.2, 12.85],
+} satisfies Record<string, V3>
+
 export type WheelGeometry = {
   centerY: number
   majorRadius: number
