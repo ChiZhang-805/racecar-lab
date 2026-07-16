@@ -12,12 +12,12 @@ No team badge, sponsor mark, official texture, or downloaded team model is bundl
 
 ## 2026 launch-livery implementation
 
-The exterior treatment was re-checked on 2026-07-16 against primary team launch material: [Ferrari SF-26 reveal](https://www.ferrari.com/en-EN/formula1/articles/ferrari-unveils-the-sf-26), [McLaren MCL40 launch](https://www.mclaren.com/racing/formula-1/2026/mcl40-launch/), [Mercedes W17 reveal media](https://media.mercedesamgf1.com/marsF1/en/instance/ko/2026-Challenger-Revealed.xhtml?oid=194865013), and [Red Bull RB22 launch](https://www.redbullracing.com/int-en/races/season-launch-2026/). Official front, side, three-quarter, and overhead views were used to compare colour balance and placement; downloaded reference images are research material only and are not shipped by the site.
+The exterior treatment was re-checked on 2026-07-17 against primary team launch material: [Ferrari SF-26 reveal](https://www.ferrari.com/en-EN/formula1/articles/ferrari-unveils-the-sf-26), [McLaren MCL40 launch](https://www.mclaren.com/racing/formula-1/2026/mcl40-launch/), [Mercedes W17 reveal media](https://media.mercedesamgf1.com/marsF1/en/instance/ko/2026-Challenger-Revealed.xhtml?oid=194865013), and [Red Bull RB22 launch](https://www.redbullracing.com/int-en/races/season-launch-2026/). Official front, side, three-quarter, and overhead views were used to compare colour balance and placement; downloaded reference images are research material only and are not shipped by the site.
 
 - Ferrari uses a gloss red primary body, black wings, and tapered white surfaces around the cockpit and engine cover rather than rectangular white bars.
 - McLaren separates papaya nose and monocoque surfaces from the large anthracite sidepod/engine-cover volume, then adds papaya diagonals and a restrained teal flow line.
 - Mercedes is black-dominant with a silver nose and upper shoulders, a low continuous teal sweep, and a small rhombus transition field on the engine cover.
-- Red Bull is gloss deep blue-dominant with a yellow nose and airbox, dark wings, and layered red, yellow, and white engine-cover/sidepod motifs. The visible official imagery is the colour-balance authority for the study model.
+- Red Bull uses the official 2026 heritage white gloss base, dark-blue structural sweeps, dark wings, and layered red and yellow engine-cover/sidepod motifs. The visible official imagery is the colour-balance authority for the study model.
 
 Every profile now owns ten independent paint zones: nose, monocoque, sidepod, engine cover, airbox, Halo, front wing, front-wing accent, rear wing, and rear-wing accent. The main body uses a clear-coated physical material; surface graphics are fitted procedural polygons rather than detached rectangular colour bars. Programmatic `SF-26`, `MCL40`, `W17`, and `RB22` marks plus representative racing numbers provide scale and identification without bundling protected team or sponsor artwork.
 
@@ -58,7 +58,7 @@ Core learning question: how can floor-board and diffuser flow recover performanc
 
 ## McLaren MCL40 study profile
 
-Sources: [official McLaren technical specification](https://www.mclaren.com/racing/formula-1/2026/what-is-the-technical-specification-of-our-2026-formula-1/), [official MCL40 design briefing](https://www.mclaren.com/racing/formula-1/2026/behind-the-design-of-the-mcl40/), and [official Formula 1 sidepod comparison](https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH.4JiI9b23NHWjwnK53TBQNH).
+Sources: [official McLaren technical specification](https://www.mclaren.com/racing/formula-1/2026/what-is-the-technical-specification-of-our-2026-formula-1/), [official MCL40 design briefing](https://www.mclaren.com/racing/formula-1/2026/behind-the-design-of-the-mcl40/), and [official Formula 1 sidepod comparison](https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH).
 
 Implemented study cues:
 
@@ -86,7 +86,7 @@ Core learning question: how do a forward cockpit and higher nose alter wheel wak
 
 ## Red Bull RB22 study profile
 
-Sources: [official RB22 car profile](https://www.redbullracing.com/int-en/cars/rb22), [official Red Bull 2026 guide](https://www.redbullracing.com/int-en/f1-season-guide-2026), and [official Formula 1 sidepod comparison](https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH.4JiI9b23NHWjwnK53TBQNH).
+Sources: [official RB22 car profile](https://www.redbullracing.com/int-en/cars/rb22), [official Red Bull 2026 guide](https://www.redbullracing.com/int-en/f1-season-guide-2026), [official RB22 launch-livery description](https://www.redbullracing.com/int-en/races/season-launch-2026/), and [official Formula 1 sidepod comparison](https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH).
 
 Implemented study cues:
 
@@ -94,7 +94,7 @@ Implemented study cues:
 - the narrowest, lowest, most steeply falling tube-like sidepods in the set;
 - more exposed floor, two dominant floor-board elements, and a taller upper cooling cover;
 - Red Bull Ford DM01 works power-unit identity with its own package proportions;
-- gloss deep navy bodywork, yellow nose and airbox, and red/yellow/white procedural motifs without the bull or sponsor marks.
+- gloss heritage-white bodywork, deep-blue structural sweeps, and red/yellow procedural motifs without the bull or sponsor marks.
 
 Core learning question: how can narrow falling sidepods expose more floor while moving inferred cooling volume and mass upward?
 

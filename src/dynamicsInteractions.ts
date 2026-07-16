@@ -1298,7 +1298,7 @@ const steeringFaultCardsFor = (vehicleId: VehicleId): InteractionFaultCard[] => 
   return [
     {
       id: 'steering-u-joint-phase', title: l('万向节相位错误', 'Mis-phased U-joints'), image: '/images/interactions/steering/fault-1.webp', imageAlt: l('万向节相位激光线与速度波形', 'U-joint phase laser lines and speed traces'),
-      scenario: gp ? l('方向盘恒定 110°/s 输入，齿条等效速率在 91–132°/s 周期波动，两个叉相位差 22°。', 'At a constant 110°/s hand input, rack-equivalent rate cycles 91–132°/s and yoke phase error is 22°.') : l('方向盘恒定 90°/s 输入，齿条等效速率在 72–111°/s 周期波动，两个叉相位差 28°。', 'At a constant 90°/s hand input, rack-equivalent rate cycles 72–111°/s and yoke phase error is 28°.'),
+      scenario: gp ? l('方向盘恒定 110°/s 输入，齿条等效速率在 91–132°/s 周期波动，两个叉相位差 22°。', 'At a constant 110°/s hand input, rack-equivalent rate cycles 91–132°/s and yoke phase error reaches 22° in this case.') : l('方向盘恒定 90°/s 输入，齿条等效速率在 72–111°/s 周期波动，两个叉相位差 28°。', 'At a constant 90°/s hand input, rack-equivalent rate cycles 72–111°/s and yoke phase error reaches 28°.'),
       strategy: l('检查节角、叉相位和花键标记；恢复两节抵消几何后扫方向盘输入与齿条位移。', 'Check joint angles, yoke phasing and spline marks; restore cancelling geometry and sweep steering input versus rack travel.'), principle: l('Hooke joint 的非等速误差在错误相位下不能由第二节抵消，留下二次谐波。', 'Hooke-joint speed nonuniformity is not cancelled by the second joint when phasing is wrong, leaving a second harmonic.'), evidence: l('恒速输入时齿条速率波动回到公差，左右转一致且无局部扭矩峰。', 'Rack-rate ripple returns to tolerance under constant input, with symmetric turns and no local torque peak.'),
     },
     {

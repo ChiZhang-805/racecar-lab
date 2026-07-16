@@ -10,6 +10,7 @@ import type { PartId } from './data'
 import { rodTransform, workshopScaleForExplode, WORKSHOP_EXPLODE_VECTORS, type V3 } from './modelGeometry'
 import type { VehicleId } from './vehicles'
 import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
+import BalancedParagraph from './BalancedParagraph'
 
 type AssemblyProps = { selected: number | null; explode: number; onSelect: (index: number) => void }
 const ActiveContext = createContext(false)
@@ -482,7 +483,7 @@ export function ComponentWorkshop({ vehicleId, partId, locale, lesson }: { vehic
     </section>
     {selected === null || current === null ? <aside className="component-inspector is-empty" aria-hidden="true"><Box size={40} /></aside> : <aside className="component-inspector">
       <header><span><Cog size={18} />{c.structure}</span><h3>{localise(lesson.subcomponents[selected]!, locale)}</h3></header>
-      <div><article><span><MapPin size={17} />{c.position}</span><p>{localise(current.position, locale)}</p></article><article><span><Wrench size={17} />{c.role}</span><p>{localise(current.role, locale)}</p></article><article><span><CircleDot size={17} />{c.principle}</span><p>{localise(current.principle, locale)}</p></article><article className="is-plain"><span><Lightbulb size={17} />{c.plain}</span><p>{localise(current.plain, locale)}</p></article></div>
+      <div><article><span><MapPin size={17} />{c.position}</span><BalancedParagraph locale={locale} text={localise(current.position, locale)} /></article><article><span><Wrench size={17} />{c.role}</span><BalancedParagraph locale={locale} text={localise(current.role, locale)} /></article><article><span><CircleDot size={17} />{c.principle}</span><BalancedParagraph locale={locale} text={localise(current.principle, locale)} /></article><article className="is-plain"><span><Lightbulb size={17} />{c.plain}</span><BalancedParagraph locale={locale} text={localise(current.plain, locale)} /></article></div>
     </aside>}
   </div>
 }

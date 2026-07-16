@@ -25,6 +25,31 @@
   border: 0;
 }
 
+/* The tail span is structural only. It must never inherit contextual styles
+   intended for labels or badges nested elsewhere in the same card. */
+p.balanced-copy[data-balanced-copy] > span.balanced-copy__content,
+p.balanced-copy[data-balanced-copy] span.balanced-copy__tail {
+  display: inline;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  grid-column: auto;
+  grid-row: auto;
+  align-self: auto;
+  justify-self: auto;
+  align-items: normal;
+  justify-content: normal;
+  gap: normal;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+  white-space: inherit;
+}
+
 /* Comprehensive engineering lesson */
 .engineering-detail {
   width: min(1600px, calc(100vw - 32px));

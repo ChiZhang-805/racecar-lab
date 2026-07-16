@@ -18,6 +18,7 @@ import { coolingFaultCardsFor, coolingReferenceCards } from './coolingInteractio
 import { PartFaultCards, PartObserveLab, PartReferenceCards } from './PartInteractionPanels'
 import { getPartInteractionPack } from './partInteractionRegistry'
 import { formatUiNumber } from './uiNumber'
+import BalancedParagraph from './BalancedParagraph'
 
 type Tab = 'intro' | 'principle' | 'observe' | 'engineering' | 'faults'
 type TripleIndex = 0 | 1 | 2
@@ -142,20 +143,20 @@ function Principle({ locale, vehicleId, partId }: { locale: Locale; vehicleId: V
         <div className="eng-section-title"><span><CircleGauge size={17} />{u.results}</span></div>
           <div className="eng-metrics">{output.metrics.map((metric, index) => <article key={index} className={metric.tone ? `is-${metric.tone}` : ''}><span>{localise(metric.label, locale)}</span><strong>{Number.isFinite(metric.value) ? formatUiNumber(metric.value, locale, { maximumFractionDigits: 2 }) : '—'}<small>{metric.unit}</small></strong></article>)}</div>
         <MiniChart output={output} locale={locale} />
-        <p className="eng-insight">{localise(output.insight, locale)}</p>
+        <BalancedParagraph className="eng-insight" locale={locale} text={localise(output.insight, locale)} />
       </section>
       <section className="eng-formulas">
         <div className="eng-section-title"><span><Calculator size={17} />{u.formula}</span><div className="eng-formula-dots">{lesson.formulas.map((item, index) => <button key={index} className={index === formulaIndex ? 'is-active' : ''} onClick={() => setFormulaIndex(index as TripleIndex)} aria-pressed={index === formulaIndex} aria-label={localise(item.name, locale)} title={localise(item.name, locale)}><span className="sr-only">{localise(item.name, locale)}</span></button>)}</div></div>
         <article key={`${partId}-${formulaIndex}-${locale}`} className="eng-formula-card">
           <span>{localise(formula.name, locale)}</span>
           <div className={`eng-formula-math ${formula.latex.length > 58 ? 'is-long' : ''}`} role="img" aria-label={formula.expression} dangerouslySetInnerHTML={{ __html: formulaHtml }} />
-          <section className="eng-formula-boundary"><h4>{u.symbols}</h4><p>{localise(formula.variables, locale)}</p><p>{localise(formula.insight, locale)}</p></section>
+          <section className="eng-formula-boundary"><h4>{u.symbols}</h4><BalancedParagraph locale={locale} text={localise(formula.variables, locale)} /><BalancedParagraph locale={locale} text={localise(formula.insight, locale)} /></section>
           <section className="eng-worked-example">
             <h4>{u.scenario}</h4>
-            <p>{localise(workedExample.scenario, locale)}</p>
+            <BalancedParagraph locale={locale} text={localise(workedExample.scenario, locale)} />
             <h4>{u.calculation}</h4>
             <ol>{workedExample.steps.map((step, index) => <li key={index}>{localise(step, locale)}</li>)}</ol>
-            <div className="eng-worked-result"><h4>{u.answer}</h4><p>{localise(workedExample.result, locale)}</p></div>
+            <div className="eng-worked-result"><h4>{u.answer}</h4><BalancedParagraph locale={locale} text={localise(workedExample.result, locale)} /></div>
           </section>
         </article>
       </section>
@@ -246,7 +247,7 @@ function ExperimentCard({ locale, vehicleId, labKind, experiment }: { locale: Lo
       </section>
       <section className={`eng-visual-conclusion ${revealed ? 'is-revealed' : ''}`}>
         <span>{v.conclusion}</span>
-        <p>{revealed ? localise(experiment.evidence, locale) : localise(experiment.steps[activeNode] ?? experiment.steps[0] ?? experiment.evidence, locale)}</p>
+        <BalancedParagraph locale={locale} text={revealed ? localise(experiment.evidence, locale) : localise(experiment.steps[activeNode] ?? experiment.steps[0] ?? experiment.evidence, locale)} />
         <button onClick={() => setRevealed(value => !value)}>{revealed ? u.hide : u.reveal}<ArrowRight size={16} /></button>
       </section>
     </div>
@@ -323,7 +324,7 @@ function Engineering({ locale, vehicleId, partId }: { locale: Locale; vehicleId:
         <span className="eng-label"><ShieldCheck size={16} />{v.testFlow}</span>
         <div className="eng-validation-track">{stages.map((stage, index) => <article key={stage} className={index <= selected + 1 ? 'is-on' : ''}><i>{index < 3 ? index + 1 : <Check size={15} />}</i><strong>{stage}</strong></article>)}</div>
         <div className="eng-validation-brief">
-          {lesson.validation.map((item, index) => <p key={index}>{localise(item, locale)}</p>)}
+          {lesson.validation.map((item, index) => <BalancedParagraph key={index} locale={locale} text={localise(item, locale)} />)}
         </div>
         <div className="eng-validation-gates">
           {[v.performance, v.reliability, v.efficiency, v.riskAxis].map((label, index) => <article key={label} style={{ ['--gate' as string]: `${clamp(radarValues[index] ?? 50, 0, 100)}%` }}><span>{label}</span><i /></article>)}
@@ -350,11 +351,11 @@ function Diagnostic({ locale, labKind, diagnostic }: { locale: Locale; labKind: 
       <div className="eng-fault-map">
         <span className="eng-label"><SearchCheck size={16} />{v.faultMap}</span>
         <FlowDiagram locale={locale} labKind={labKind} intensity={revealed ? 86 : 58} activeIndex={activeCheck} />
-        <p>{localise(diagnostic.symptom, locale)}</p>
+        <BalancedParagraph locale={locale} text={localise(diagnostic.symptom, locale)} />
       </div>
       <div className="eng-diagnostic__checks">
         <span>{v.inspect}</span>
-        {diagnostic.checks.map((item, index) => <button key={index} className={activeCheck === index ? 'is-active' : ''} onClick={() => setActiveCheck(index)}><i>{index + 1}</i><p>{localise(item, locale)}</p><ArrowRight size={15} /></button>)}
+        {diagnostic.checks.map((item, index) => <button key={index} className={activeCheck === index ? 'is-active' : ''} onClick={() => setActiveCheck(index)}><i>{index + 1}</i><BalancedParagraph locale={locale} text={localise(item, locale)} /><ArrowRight size={15} /></button>)}
         <div className="eng-diagnostic-strip">
           {[v.data, v.control, v.output].map((label, index) => <article key={label} className={index === activeCheck ? 'is-hot' : ''}><span>{label}</span><i /></article>)}
         </div>
@@ -365,7 +366,7 @@ function Diagnostic({ locale, labKind, diagnostic }: { locale: Locale; labKind: 
       </div>
       <div className={`eng-diagnostic__resolution ${revealed ? 'is-revealed' : ''}`}>
         <span>{suspect === 0 ? v.correct : v.exclude}</span>
-        {revealed ? <p>{localise(diagnostic.resolution, locale)}</p> : <button onClick={() => setRevealed(true)}>{u.revealResolution}<ArrowRight size={16} /></button>}
+        {revealed ? <BalancedParagraph locale={locale} text={localise(diagnostic.resolution, locale)} /> : <button onClick={() => setRevealed(true)}>{u.revealResolution}<ArrowRight size={16} /></button>}
       </div>
     </section>
   )

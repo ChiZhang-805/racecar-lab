@@ -227,7 +227,7 @@ export const GRAND_PRIX_TEAMS: Record<GrandPrixTeamId, GrandPrixTeam> = {
       regulationSource,
       { label: { zh: 'McLaren MCL40 官方技术规格', en: 'Official McLaren MCL40 technical specification' }, url: 'https://www.mclaren.com/racing/formula-1/2026/what-is-the-technical-specification-of-our-2026-formula-1/', kind: 'team' },
       { label: { zh: 'McLaren MCL40 设计说明', en: 'McLaren MCL40 design briefing' }, url: 'https://www.mclaren.com/racing/formula-1/2026/behind-the-design-of-the-mcl40/', kind: 'team' },
-      { label: { zh: 'Formula 1 侧箱路线对照', en: 'Formula 1 sidepod concept comparison' }, url: 'https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH.4JiI9b23NHWjwnK53TBQNH', kind: 'technical-analysis' },
+      { label: { zh: 'Formula 1 侧箱路线对照', en: 'Formula 1 sidepod concept comparison' }, url: 'https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH', kind: 'technical-analysis' },
     ],
   },
   mercedes: {
@@ -306,12 +306,12 @@ export const GRAND_PRIX_TEAMS: Record<GrandPrixTeamId, GrandPrixTeam> = {
       en: 'How do tube-like sidepods expose more floor while moving cooling mass upward?',
     },
     palette: {
-      body: '#101d55', secondary: '#f2f0e9', accent: '#d9232e', pinstripe: '#f3c932',
+      body: '#f4f1e8', secondary: '#101d55', accent: '#d9232e', pinstripe: '#f3c932',
       carbon: '#080d1a', metal: '#abb5bb', wheelAccent: '#e22b33', powerUnitAccent: '#f2b72e',
-      roughness: .12, metalness: .48,
+      roughness: .10, metalness: .34,
     },
     paint: {
-      nose: '#f2b72e', monocoque: '#101d55', sidepod: '#0b1747', engineCover: '#0a1848', airbox: '#f2b72e',
+      nose: '#f4f1e8', monocoque: '#f4f1e8', sidepod: '#f1eee6', engineCover: '#f4f1e8', airbox: '#101d55',
       halo: '#10162e', frontWing: '#090e20', frontWingAccent: '#d9232e', rearWing: '#090e20', rearWingAccent: '#d9232e',
     },
     geometry: {
@@ -347,7 +347,8 @@ export const GRAND_PRIX_TEAMS: Record<GrandPrixTeamId, GrandPrixTeam> = {
       regulationSource,
       { label: { zh: 'Red Bull RB22 官方车型资料', en: 'Official Red Bull RB22 car profile' }, url: 'https://www.redbullracing.com/int-en/cars/rb22', kind: 'team' },
       { label: { zh: 'Red Bull 2026 技术指南', en: 'Red Bull 2026 technical guide' }, url: 'https://www.redbullracing.com/int-en/f1-season-guide-2026', kind: 'team' },
-      { label: { zh: 'Formula 1 侧箱路线对照', en: 'Formula 1 sidepod concept comparison' }, url: 'https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH.4JiI9b23NHWjwnK53TBQNH', kind: 'technical-analysis' },
+      { label: { zh: 'Red Bull RB22 官方涂装发布', en: 'Official Red Bull RB22 livery launch' }, url: 'https://www.redbullracing.com/int-en/races/season-launch-2026/', kind: 'team' },
+      { label: { zh: 'Formula 1 侧箱路线对照', en: 'Formula 1 sidepod concept comparison' }, url: 'https://www.formula1.com/en/latest/article/theyve-been-quite-smart-and-innovative-stella-singles-out-different-design-trend-from-mclaren-rival.4JiI9b23NHWjwnK53TBQNH', kind: 'technical-analysis' },
     ],
   },
 }

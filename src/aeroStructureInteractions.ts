@@ -764,7 +764,7 @@ const monocoqueFaultsFor = (vehicleId: VehicleId): InteractionFaultCard[] => {
       id: 'monocoque-insert-debond', title: l('悬架硬点嵌件脱粘', 'Suspension hard-point insert debond'), image: '/images/interactions/monocoque/fault-insert-debond.webp',
       imageAlt: l('硬点环形超声缺陷、应变片和灌封嵌件剖面', 'Annular hard-point ultrasonic defect, strain gauge and potted-insert section'),
       scenario: gp ? l('前悬架硬点峰值载荷下局部应变比历史高 48%，扭矩正常但超声发现 42 mm 环形脱粘；初始转向响应变软。', 'At peak front-suspension load, local strain is 48% above history; torque is normal but ultrasound finds a 42 mm annular debond and initial steering response softens.') : l('前推杆峰值 14.8 kN 时局部应变比历史高 62%，扭矩正常但敲击圈有 55 mm 闷音区；方向响应晚半拍。', 'At a 14.8 kN front-pushrod peak, local strain is 62% above history and torque is normal, but a 55 mm dull tap-test region accompanies delayed response.'),
-      strategy: l('停跑卸载，禁止加扭矩补偿；用超声/热像检查嵌件、灌封、芯材压溃和蒙皮，按批准范围修理或更换。', 'Stop and unload; do not compensate with torque. Inspect insert, potting, crushed core and faces by ultrasound/thermography, then repair or replace within approval.'),
+      strategy: l('停跑卸载，禁止加扭矩补偿；用超声/热像检查嵌件、灌封、芯材压溃和蒙皮，按批准范围修理或更换。', 'Stop and unload; do not compensate with torque. Inspect insert, potting, crushed core and faces by ultrasound/thermography, then repair or replace within the approved limits and record the result.'),
       principle: l('扭矩只证明螺纹夹紧，不证明嵌件仍向夹层传力；脱粘会集中剪切和剥离。', 'Torque proves clamping, not load transfer into the sandwich; debonding concentrates shear and peel.'),
       evidence: l('静载应变回基线、NDT 无扩展、加载—卸载无迟滞，硬点几何和轮荷相关性恢复。', 'Static strain returns to baseline, NDT is stable, load-unload is hysteresis-free, and geometry/wheel-load correlation recover.'),
     },

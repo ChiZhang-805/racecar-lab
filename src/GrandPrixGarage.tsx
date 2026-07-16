@@ -9,6 +9,7 @@ import {
   type GrandPrixTeamId,
 } from './grandPrixTeams'
 import { useDialogFocus } from './useDialogFocus'
+import BalancedParagraph from './BalancedParagraph'
 
 type GarageTab = 'models' | 'compare' | 'drivers'
 
@@ -171,7 +172,7 @@ export default function GrandPrixGarage({
           <article className="garage-profile" style={styleFor(teamId)} data-profile-team={teamId}>
             <div className="garage-profile-hero">
               <div className="garage-car-hero"><TeamCarGraphic id={teamId} /></div>
-              <div><span>{ui.selected}</span><h3>{selected.name[locale]}</h3><p>{selected.signature[locale]}</p></div>
+              <div><span>{ui.selected}</span><h3>{selected.name[locale]}</h3><BalancedParagraph locale={locale} text={selected.signature[locale]} /></div>
             </div>
 
             <div className="garage-question"><Palette size={20} /><div><span>{ui.question}</span><strong>{selected.designQuestion[locale]}</strong></div></div>
@@ -180,7 +181,7 @@ export default function GrandPrixGarage({
               {selected.facts.map((fact) => <article key={fact.label.en} data-evidence={fact.evidence}>
                 <span>{fact.label[locale]}</span>
                 <strong>{fact.value[locale]}</strong>
-                <p>{fact.detail[locale]}</p>
+                <BalancedParagraph locale={locale} text={fact.detail[locale]} />
                 <small>{evidenceCopy[fact.evidence][locale]}</small>
               </article>)}
             </div>
@@ -226,7 +227,7 @@ export default function GrandPrixGarage({
                         <div><small>{driver.nationality[locale]}</small><h4>{driver.name}</h4></div>
                         <a href={driver.profileUrl} target="_blank" rel="noopener noreferrer" aria-label={`${ui.profile}${driver.name}`} title={`${ui.profile}${driver.name}`}><ExternalLink size={16} /></a>
                       </div>
-                      <p>{driver.intro[locale]}</p>
+                      <BalancedParagraph locale={locale} text={driver.intro[locale]} />
                       <div className="garage-driver-credit">
                         <a href={driver.photo.sourceUrl} target="_blank" rel="noopener noreferrer">{ui.photoBy}{driver.photo.author}</a>
                         <a href={driver.photo.licenseUrl} target="_blank" rel="noopener noreferrer">{driver.photo.license}</a>

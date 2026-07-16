@@ -14,6 +14,7 @@ import { readJson, readText, removeStored, writeJson, writeText } from './storag
 import { useDialogFocus } from './useDialogFocus'
 import { VEHICLES, VEHICLE_IDS, isVehicleId, type VehicleId } from './vehicles'
 import { MUSIC_MODES, MUSIC_TRACKS, type MusicMode, type MusicTrackId } from './music'
+import BalancedParagraph from './BalancedParagraph'
 import {
   DEFAULT_GRAND_PRIX_TEAM_ID,
   GRAND_PRIX_TEAMS,
@@ -169,8 +170,8 @@ function PartPanel({ locale, vehicleId, grandPrixTeamId, partId, onClose, onDeta
         </div>
       </div>
       <h2>{part.name}</h2>
-      {teamLens && team && <div className="team-part-lens" data-team-lens={team.id} data-evidence={teamLens.evidence}><span>{team.modelName} · {evidenceLabel}</span><p>{teamLens.text[locale]}</p></div>}
-      <p>{summary}</p>
+      {teamLens && team && <div className="team-part-lens" data-team-lens={team.id} data-evidence={teamLens.evidence}><span>{team.modelName} · {evidenceLabel}</span><BalancedParagraph locale={locale} text={teamLens.text[locale]} /></div>}
+      <BalancedParagraph locale={locale} text={summary} />
       <div className="connection-row"><span>{c.related}</span><div>{part.connections.slice(0, 3).map((name) => <em key={name}>{name}</em>)}</div></div>
       <button className="button button--primary part-deep-button" onClick={onDetails}>{c.deepDive} <Maximize2 size={17} /></button>
     </aside>
@@ -242,7 +243,7 @@ function LessonPanel({ locale, vehicleId, course: baseCourse, visited, onPart, o
           <button className="icon-button" onClick={onClose} aria-label={c.close}><X size={17} /></button>
         </div>
       </div>
-      <h3>{course.title}</h3><p>{course.description}</p>
+      <h3>{course.title}</h3><BalancedParagraph locale={locale} text={course.description} />
       <div className="lesson-task"><span>{c.task}</span>{course.task}</div>
       <div className="lesson-parts">{course.parts.map((partId, index) => (
         <button key={partId} className={visited.includes(partId) ? 'is-visited' : ''} onClick={() => onPart(partId)}>

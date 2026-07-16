@@ -4,6 +4,7 @@ import { localise } from './engineeringData'
 import type { Locale } from './i18n'
 import type { VehicleId } from './vehicles'
 import { formatUiNumber } from './uiNumber'
+import BalancedParagraph from './BalancedParagraph'
 import {
   coolingExperimentsFor,
   coolingFaultCardsFor,
@@ -247,12 +248,12 @@ function ReferenceCard({ locale, index }: { locale: Locale; index: number }) {
       <div className="cooling-flip-card__inner">
         <button ref={frontRef} className="cooling-flip-card__face cooling-flip-card__front" onClick={showBack} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
           <img src={card.image} alt={localise(card.imageAlt, locale)} loading="eager" decoding="async" fetchPriority="high" />
-          <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><p>{localise(card.summary, locale)}</p><span><ArrowLeftRight size={16} />{u.flip}</span></div>
+          <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><BalancedParagraph locale={locale} text={localise(card.summary, locale)} /><span><ArrowLeftRight size={16} />{u.flip}</span></div>
         </button>
         <section className="cooling-flip-card__face cooling-flip-card__back" aria-hidden={!flipped}>
           <button ref={returnRef} className="cooling-flip-card__return" onClick={showFront} aria-label={u.back} title={u.back} tabIndex={flipped ? 0 : -1}><ArrowLeftRight size={18} /></button>
           <h3>{localise(card.title, locale)}</h3>
-          <strong>{u.purpose}</strong><p>{localise(card.purpose, locale)}</p>
+          <strong>{u.purpose}</strong><BalancedParagraph locale={locale} text={localise(card.purpose, locale)} />
           <strong>{u.details}</strong><ul>{card.details.map((item, detailIndex) => <li key={detailIndex}>{localise(item, locale)}</li>)}</ul>
           <a href={card.url} target="_blank" rel="noopener noreferrer" tabIndex={flipped ? 0 : -1}>{localise(card.sourceTitle, locale)}<ExternalLink size={15} /></a>
         </section>
@@ -286,14 +287,14 @@ function FaultCard({ locale, vehicleId, index }: { locale: Locale; vehicleId: Ve
       <div className="cooling-flip-card__inner">
         <button ref={frontRef} className="cooling-flip-card__face cooling-flip-card__front" onClick={showBack} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
           <img src={card.image} alt={localise(card.imageAlt, locale)} loading="eager" decoding="async" fetchPriority="high" />
-          <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><p>{localise(card.scenario, locale)}</p><span><ArrowLeftRight size={16} />{u.flip}</span></div>
+          <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><BalancedParagraph locale={locale} text={localise(card.scenario, locale)} /><span><ArrowLeftRight size={16} />{u.flip}</span></div>
         </button>
         <section className="cooling-flip-card__face cooling-flip-card__back" aria-hidden={!flipped}>
           <button ref={returnRef} className="cooling-flip-card__return" onClick={showFront} aria-label={u.back} title={u.back} tabIndex={flipped ? 0 : -1}><ArrowLeftRight size={18} /></button>
           <h3>{localise(card.title, locale)}</h3>
-          <strong>{u.strategy}</strong><p>{localise(card.strategy, locale)}</p>
-          <strong>{u.principle}</strong><p>{localise(card.principle, locale)}</p>
-          <strong>{u.evidence}</strong><p>{localise(card.evidence, locale)}</p>
+          <strong>{u.strategy}</strong><BalancedParagraph locale={locale} text={localise(card.strategy, locale)} />
+          <strong>{u.principle}</strong><BalancedParagraph locale={locale} text={localise(card.principle, locale)} />
+          <strong>{u.evidence}</strong><BalancedParagraph locale={locale} text={localise(card.evidence, locale)} />
         </section>
       </div>
     </article>

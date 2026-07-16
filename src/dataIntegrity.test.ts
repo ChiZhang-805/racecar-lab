@@ -574,7 +574,12 @@ describe('complete grand prix hybrid curriculum', () => {
     expect(GRAND_PRIX_TEAMS.ferrari.paint.nose).not.toBe(GRAND_PRIX_TEAMS.ferrari.paint.frontWing)
     expect(GRAND_PRIX_TEAMS.mclaren.paint.nose).not.toBe(GRAND_PRIX_TEAMS.mclaren.paint.sidepod)
     expect(GRAND_PRIX_TEAMS.mercedes.paint.nose).not.toBe(GRAND_PRIX_TEAMS.mercedes.paint.monocoque)
-    expect(GRAND_PRIX_TEAMS['red-bull'].paint.nose).not.toBe(GRAND_PRIX_TEAMS['red-bull'].paint.engineCover)
+    const redBull = GRAND_PRIX_TEAMS['red-bull']
+    expect(redBull.paint.nose).toBe(redBull.palette.body)
+    expect(redBull.paint.engineCover).toBe(redBull.palette.body)
+    expect(redBull.palette.secondary).not.toBe(redBull.palette.body)
+    expect(redBull.palette.roughness).toBeLessThanOrEqual(.1)
+    expect(redBull.sources.some(source => source.url.includes('/races/season-launch-2026/'))).toBe(true)
     expect(GRAND_PRIX_TEAMS.mclaren.facts[0]!.value.en).toBe(GRAND_PRIX_TEAMS.mercedes.facts[0]!.value.en)
     expect(GRAND_PRIX_TEAMS.ferrari.facts[0]!.value.en).not.toBe(GRAND_PRIX_TEAMS['red-bull'].facts[0]!.value.en)
     expect(isGrandPrixTeamId('unknown')).toBe(false)

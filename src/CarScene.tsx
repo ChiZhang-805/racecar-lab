@@ -1074,7 +1074,7 @@ function GPTeamSurfaceDetails({
     ferrari: { number: '16', color: '#fffaf2', accent: '#fffaf2' },
     mclaren: { number: '4', color: '#ff8a12', accent: '#32d7d3' },
     mercedes: { number: '63', color: '#d7dde0', accent: '#16c9bd' },
-    'red-bull': { number: '3', color: '#f5ce33', accent: '#f1eee7' },
+    'red-bull': { number: '3', color: '#101d55', accent: '#d9232e' },
   }
   const mark = marks[grandPrixTeamId]
   const modelMarks = [-1, 1].map(side => <LiveryMark
@@ -1246,7 +1246,7 @@ function GPTeamSurfaceDetails({
         renderOrder={5}
       ><circleGeometry args={[.3, 32]} /><meshStandardMaterial color={palette.pinstripe} roughness={.1} metalness={.3} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-3} /></mesh>
       <LiveryPanel
-        name="livery-red-bull-white-speedmark"
+        name="livery-red-bull-heritage-blue-sweep"
         points={[[-geometry.sidepodLength * .35, -.05], [geometry.sidepodLength * .38, .21], [geometry.sidepodLength * .18, .3], [-geometry.sidepodLength * .25, .11]]}
         position={[side * (sidepodSurfaceX + .02), sidepodY + .08, sidepodZ]}
         rotation={sideRotation(side)}
