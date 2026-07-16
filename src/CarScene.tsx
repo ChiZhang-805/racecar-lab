@@ -4,7 +4,7 @@ import { CameraControls, ContactShadows, Grid, RoundedBox } from '@react-three/d
 import * as THREE from 'three'
 import { PART_MAP, type CategoryId, type PartId, type ScenarioId } from './data'
 import { GRAND_PRIX_PART_VIEWS, GRAND_PRIX_SCENE_ENVELOPE, grandPrixFrontWingIncidence, grandPrixRearWingIncidence, rodTransform, WHEEL_GEOMETRY } from './modelGeometry'
-import { GRAND_PRIX_LIVERIES, type GrandPrixLiveryId } from './grandPrixLiveries'
+import { GRAND_PRIX_TEAMS, type GrandPrixTeamId } from './grandPrixTeams'
 import type { VehicleId } from './vehicles'
 
 type SceneState = {
@@ -15,7 +15,7 @@ type SceneState = {
   xray: boolean
   visibleCategories: CategoryId[]
   scenario: ScenarioId
-  liveryId: GrandPrixLiveryId
+  grandPrixTeamId: GrandPrixTeamId
 }
 
 const SceneContext = createContext<SceneState | null>(null)
@@ -158,9 +158,9 @@ function CarbonMaterial({ color = '#171b20', roughness = 0.26, metalness = 0.52 
   return <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
 }
 
-function useGrandPrixLivery() {
-  const { liveryId } = useSceneState()
-  return GRAND_PRIX_LIVERIES[liveryId]
+function useGrandPrixTeam() {
+  const { grandPrixTeamId } = useSceneState()
+  return GRAND_PRIX_TEAMS[grandPrixTeamId]
 }
 
 function Rod({
@@ -748,7 +748,7 @@ function FormulaCar({ intro, paused, resetSignal }: { intro: boolean; paused: bo
 function GrandPrixWheel({ x, z, rear = false }: { x: number; z: number; rear?: boolean }) {
   const wheel = useRef<THREE.Group>(null)
   const { scenario } = useSceneState()
-  const { palette } = useGrandPrixLivery()
+  const { palette } = useGrandPrixTeam()
   useFrame((_, delta) => {
     if (!wheel.current) return
     const speed = scenario === 'acceleration' ? 9 : scenario === 'braking' ? 3 : 0
@@ -776,7 +776,7 @@ function GrandPrixWheel({ x, z, rear = false }: { x: number; z: number; rear?: b
 
 function GPFrontWing() {
   const { scenario } = useSceneState()
-  const { palette } = useGrandPrixLivery()
+  const { palette, geometry } = useGrandPrixTeam()
   const active = scenario === 'acceleration'
   return <PartGroup id="front-wing" category="aero" explodeVector={[0, .25, 2.5]}>
     {[0, 1, 2].map((layer) => {
@@ -785,7 +785,14 @@ function GPFrontWing() {
       const incidence = grandPrixFrontWingIncidence(layer as 0 | 1 | 2, active)
       const width = GRAND_PRIX_SCENE_ENVELOPE.frontWingWidthSceneUnits - layer * .25
       const color = layer === 0 ? palette.carbon : layer === 1 ? palette.secondary : palette.accent
-      return <mesh key={layer} position={[0, .3 + layer * .11, 4.36 - layer * .15]} rotation={[incidence, 0, 0]} castShadow><boxGeometry args={[width, .055, .46]} /><CarbonMaterial color={color} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
+      return <group key={layer}>
+        {[-1, 1].map(side => <mesh
+          key={side}
+          position={[side * width * .245, .3 + layer * .11, 4.36 - layer * .15 - Math.abs(geometry.frontWingSweep) * .08]}
+          rotation={[incidence, side * geometry.frontWingSweep, 0]}
+          castShadow
+        ><boxGeometry args={[width * .505, .055, .46]} /><CarbonMaterial color={color} roughness={palette.roughness} metalness={palette.metalness} /></mesh>)}
+      </group>
     })}
     {[-GRAND_PRIX_SCENE_ENVELOPE.frontWingEndplateHalfSpanSceneUnits, GRAND_PRIX_SCENE_ENVELOPE.frontWingEndplateHalfSpanSceneUnits].map(x => <group key={x}><mesh position={[x, .57, 4.28]}><boxGeometry args={[.055, .72, .84]} /><CarbonMaterial color={palette.carbon} /></mesh><mesh position={[x * .98, .34, 3.95]} rotation={[0, 0, x > 0 ? -.16 : .16]}><boxGeometry args={[.32, .045, .72]} /><CarbonMaterial color={palette.secondary} /></mesh></group>)}
     <mesh position={[0, .45, 4.18]}><boxGeometry args={[.72, .18, .62]} /><meshStandardMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
@@ -795,60 +802,73 @@ function GPFrontWing() {
 
 function GPRearWing() {
   const { scenario } = useSceneState()
-  const { palette } = useGrandPrixLivery()
+  const { palette, geometry } = useGrandPrixTeam()
   const active = scenario === 'acceleration'
+  const wingWidth = 2.55 * geometry.rearWingWidthScale
   return <PartGroup id="rear-wing" category="aero" explodeVector={[0, .9, -2.1]}>
     {/* The main profile is fixed; the trailing flap alone switches state. */}
-    <mesh position={[0, 2.05, -4.15]} rotation={[grandPrixRearWingIncidence('mainplane', active), 0, 0]} castShadow><boxGeometry args={[2.55, .1, .55]} /><CarbonMaterial color={palette.carbon} /></mesh>
-    <mesh position={[0, 2.31, -4.08]} rotation={[grandPrixRearWingIncidence('flap', active), 0, 0]} castShadow><boxGeometry args={[2.42, .075, .38]} /><meshStandardMaterial color={palette.accent} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
-    {[-1.27, 1.27].map(x => <mesh key={x} position={[x, 2.08, -4.12]}><boxGeometry args={[.06, .83, .9]} /><CarbonMaterial color={palette.secondary} /></mesh>)}
-    <mesh position={[0, 2.365, -4.08]} rotation={[grandPrixRearWingIncidence('flap', active), 0, 0]}><boxGeometry args={[2.18, .015, .055]} /><meshStandardMaterial color={palette.pinstripe} roughness={.2} /></mesh>
+    <mesh position={[0, 2.05, -4.15]} rotation={[grandPrixRearWingIncidence('mainplane', active), 0, 0]} castShadow><boxGeometry args={[wingWidth, .1, .55]} /><CarbonMaterial color={palette.carbon} /></mesh>
+    <mesh position={[0, 2.31, -4.08]} rotation={[grandPrixRearWingIncidence('flap', active), 0, 0]} castShadow><boxGeometry args={[wingWidth * .95, .075, .38]} /><meshStandardMaterial color={palette.accent} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
+    {[-1, 1].map(side => <mesh key={side} position={[side * wingWidth * .5, 2.08, -4.12]}><boxGeometry args={[.06, .83, .9]} /><CarbonMaterial color={palette.secondary} /></mesh>)}
+    <mesh position={[0, 2.365, -4.08]} rotation={[grandPrixRearWingIncidence('flap', active), 0, 0]}><boxGeometry args={[wingWidth * .855, .015, .055]} /><meshStandardMaterial color={palette.pinstripe} roughness={.2} /></mesh>
     {[-.44, .44].map(x => <Rod key={x} start={[x, 1.18, -3.78]} end={[x, 1.85, -4.04]} radius={.045} color="#89969c" />)}
   </PartGroup>
 }
 
 function GPFloor() {
+  const { geometry, palette } = useGrandPrixTeam()
+  const floorBoardOffsets = Array.from({ length: geometry.floorBoardCount }, (_, index) => .77 + index * .18)
   return <PartGroup id="floor" category="aero" explodeVector={[0, -1.15, 0]}>
     <mesh position={[0, .23, -.2]} castShadow><boxGeometry args={[2.72, .105, 6.75]} /><CarbonMaterial color="#0b1115" roughness={.34} /></mesh>
-    {[-1.29, -1.05, 1.05, 1.29].map(x => <mesh key={x} position={[x, .31, .1]}><boxGeometry args={[.055, .18, 5.7]} /><meshStandardMaterial color="#273940" roughness={.34} metalness={.58} /></mesh>)}
+    {[-1, 1].flatMap(side => [1.06 + geometry.floorEdgeCut * .35, 1.30 - geometry.floorEdgeCut * .18].map(offset => <mesh key={`${side}-${offset}`} position={[side * offset, .31, .1]}><boxGeometry args={[.055, .18, 5.7]} /><meshStandardMaterial color="#273940" roughness={.34} metalness={.58} /></mesh>))}
     {[-.82, -.28, .28, .82].map(x => <mesh key={x} position={[x, .49, -3.3]} rotation={[-.26, 0, 0]}><boxGeometry args={[.065, .07, 1.45]} /><meshStandardMaterial color="#61d9ee" emissive="#0b4552" emissiveIntensity={.42} /></mesh>)}
     <mesh position={[0, .26, 2.85]}><boxGeometry args={[3.25, .055, .55]} /><CarbonMaterial color="#1d2b31" /></mesh>
+    {[-1, 1].flatMap(side => floorBoardOffsets.map((offset, index) => <mesh key={`board-${side}-${index}`} position={[side * offset, .49 + index * .035, 1.82 - index * .08]} rotation={[0, side * geometry.floorBoardSweep, side * -.04]}><boxGeometry args={[.055, .52 - index * .05, .82]} /><meshStandardMaterial color={index === 0 ? palette.secondary : palette.carbon} roughness={.3} metalness={.58} /></mesh>))}
+    {[-1, 1].map(side => <group key={`diffuser-slot-${side}`}>
+      <mesh position={[side * (.66 + geometry.diffuserSlotWidth * .22), .48, -3.38]} rotation={[-.2, 0, side * .09]}><boxGeometry args={[geometry.diffuserSlotWidth, .035, 1.28]} /><meshStandardMaterial color="#06090b" roughness={.7} /></mesh>
+      <mesh position={[side * (.67 + geometry.diffuserSlotWidth * .22), .505, -3.37]} rotation={[-.2, 0, side * .09]}><boxGeometry args={[.025, .02, 1.16]} /><meshStandardMaterial color={palette.accent} emissive={palette.accent} emissiveIntensity={.22} /></mesh>
+    </group>)}
   </PartGroup>
 }
 
 function GPNose() {
-  const { palette } = useGrandPrixLivery()
+  const { palette, geometry } = useGrandPrixTeam()
+  const noseFront = 4.48
+  const noseCenter = noseFront - geometry.noseLength / 2
   return <PartGroup id="nose" category="structure" explodeVector={[0, .2, 1.75]}>
-    <mesh position={[0, .75, 3.35]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[.14, .42, 2.25, 12]} /><meshStandardMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
-    <mesh position={[0, .74, 4.32]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[.08, .16, .36, 12]} /><meshStandardMaterial color={palette.secondary} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
-    <mesh position={[0, .945, 3.34]} rotation={[-.018, 0, 0]}><boxGeometry args={[.105, .025, 1.72]} /><meshStandardMaterial color={palette.pinstripe} roughness={.18} /></mesh>
-    <Rod start={[-.18, .76, 2.6]} end={[-.82, .55, 3.9]} radius={.038} /><Rod start={[.18, .76, 2.6]} end={[.82, .55, 3.9]} radius={.038} />
+    <mesh position={[0, geometry.noseHeight, noseCenter]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[geometry.noseTipRadius, geometry.noseRearRadius, geometry.noseLength, 16]} /><meshStandardMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
+    <mesh position={[0, geometry.noseTipHeight, noseFront - .16]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[geometry.noseTipRadius * .62, geometry.noseTipRadius, .34, 14]} /><meshStandardMaterial color={palette.secondary} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
+    <mesh position={[0, geometry.noseHeight + .195, noseCenter]} rotation={[-.018, 0, 0]}><boxGeometry args={[.105, .025, geometry.noseLength * .76]} /><meshStandardMaterial color={palette.pinstripe} roughness={.18} /></mesh>
+    <mesh position={[0, geometry.noseHeight - .23, noseCenter - .05]} rotation={[-.08, 0, 0]}><boxGeometry args={[Math.max(.18, geometry.noseRearRadius * 1.35), .035, geometry.noseLength * .58]} /><meshStandardMaterial color={palette.carbon} roughness={.36} metalness={.44} /></mesh>
+    <Rod start={[-geometry.noseRearRadius * .45, geometry.noseHeight, noseFront - geometry.noseLength + .18]} end={[-.82, .55, 3.9]} radius={.038} /><Rod start={[geometry.noseRearRadius * .45, geometry.noseHeight, noseFront - geometry.noseLength + .18]} end={[.82, .55, 3.9]} radius={.038} />
   </PartGroup>
 }
 
 function GPMonocoque() {
-  const { palette } = useGrandPrixLivery()
+  const { palette, geometry } = useGrandPrixTeam()
+  const z = .75 + geometry.cockpitOffset
   return <PartGroup id="monocoque" category="structure" explodeVector={[0, .58, 0]}>
-    <RoundedBox args={[1.45, 1.05, 3.15]} radius={.32} smoothness={5} position={[0, .92, .75]} castShadow><CarbonMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></RoundedBox>
-    <mesh position={[0, 1.36, .52]} rotation={[-.1, 0, 0]}><boxGeometry args={[.92, .68, 1.48]} /><meshStandardMaterial color="#050708" roughness={.83} /></mesh>
-    <RoundedBox args={[.66, .22, 1.12]} radius={.1} smoothness={4} position={[0, .91, .28]} rotation={[-.2, 0, 0]}><meshStandardMaterial color="#363f44" roughness={.86} /></RoundedBox>
-    <mesh position={[0, 1.42, .35]} scale={[.38, .48, .38]}><sphereGeometry args={[.5, 32, 20]} /><meshStandardMaterial color="#e9eef0" roughness={.24} metalness={.4} /></mesh>
-    <mesh position={[0, 1.45, .16]} rotation={[-.08, 0, 0]}><boxGeometry args={[.42, .15, .32]} /><meshStandardMaterial color="#182a33" roughness={.18} metalness={.52} /></mesh>
-    {[-.21, .21].map(x => <mesh key={x} position={[x, 1.12, .17]} rotation={[-.2, x > 0 ? -.28 : .28, 0]}><boxGeometry args={[.08, .06, .82]} /><meshStandardMaterial color={palette.pinstripe} roughness={.38} /></mesh>)}
-    {[-.73, .73].map(x => <mesh key={`side-${x}`} position={[x, 1.06, .54]}><boxGeometry args={[.025, .17, 1.65]} /><meshStandardMaterial color={palette.secondary} roughness={palette.roughness} metalness={palette.metalness} /></mesh>)}
+    <RoundedBox args={[geometry.monocoqueWidth, 1.05, geometry.monocoqueLength]} radius={.32} smoothness={5} position={[0, .92, z]} castShadow><CarbonMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></RoundedBox>
+    <mesh position={[0, 1.36, .52 + geometry.cockpitOffset]} rotation={[-.1, 0, 0]}><boxGeometry args={[.92, .68, 1.48]} /><meshStandardMaterial color="#050708" roughness={.83} /></mesh>
+    <RoundedBox args={[.66, .22, 1.12]} radius={.1} smoothness={4} position={[0, .91, .28 + geometry.cockpitOffset]} rotation={[-.2, 0, 0]}><meshStandardMaterial color="#363f44" roughness={.86} /></RoundedBox>
+    <mesh position={[0, 1.42, .35 + geometry.cockpitOffset]} scale={[.38, .48, .38]}><sphereGeometry args={[.5, 32, 20]} /><meshStandardMaterial color="#e9eef0" roughness={.24} metalness={.4} /></mesh>
+    <mesh position={[0, 1.45, .16 + geometry.cockpitOffset]} rotation={[-.08, 0, 0]}><boxGeometry args={[.42, .15, .32]} /><meshStandardMaterial color="#182a33" roughness={.18} metalness={.52} /></mesh>
+    {[-.21, .21].map(x => <mesh key={x} position={[x, 1.12, .17 + geometry.cockpitOffset]} rotation={[-.2, x > 0 ? -.28 : .28, 0]}><boxGeometry args={[.08, .06, .82]} /><meshStandardMaterial color={palette.pinstripe} roughness={.38} /></mesh>)}
+    {[-1, 1].map(side => <mesh key={`side-${side}`} position={[side * geometry.monocoqueWidth * .505, 1.06, .54 + geometry.cockpitOffset]}><boxGeometry args={[.025, .17, 1.65]} /><meshStandardMaterial color={palette.secondary} roughness={palette.roughness} metalness={palette.metalness} /></mesh>)}
   </PartGroup>
 }
 
 function GPHalo() {
-  const { palette } = useGrandPrixLivery()
+  const { palette, geometry } = useGrandPrixTeam()
+  const z = geometry.cockpitOffset
   return <PartGroup id="halo" category="structure" explodeVector={[0, 1.4, 0]}>
-    <Rod start={[0, 1.48, 1.04]} end={[0, 1.98, .62]} radius={.06} color={palette.secondary} />
+    <Rod start={[0, 1.48, 1.04 + z]} end={[0, 1.98, .62 + z]} radius={.06} color={palette.secondary} />
     {/* The hoop branches around the cockpit and terminates at two rear mounts;
         it is not a transverse bar across the driver opening. */}
-    <Rod start={[0, 1.98, .62]} end={[-.55, 1.82, .15]} radius={.06} color={palette.secondary} /><Rod start={[0, 1.98, .62]} end={[.55, 1.82, .15]} radius={.06} color={palette.secondary} />
-    <Rod start={[-.55, 1.82, .15]} end={[-.48, 1.67, -.72]} radius={.06} color={palette.secondary} /><Rod start={[.55, 1.82, .15]} end={[.48, 1.67, -.72]} radius={.06} color={palette.secondary} />
-    <mesh position={[-.48, 1.64, -.72]}><cylinderGeometry args={[.09, .09, .1, 18]} /><meshStandardMaterial color="#818d92" roughness={.28} metalness={.84} /></mesh>
-    <mesh position={[.48, 1.64, -.72]}><cylinderGeometry args={[.09, .09, .1, 18]} /><meshStandardMaterial color="#818d92" roughness={.28} metalness={.84} /></mesh>
+    <Rod start={[0, 1.98, .62 + z]} end={[-.55, 1.82, .15 + z]} radius={.06} color={palette.secondary} /><Rod start={[0, 1.98, .62 + z]} end={[.55, 1.82, .15 + z]} radius={.06} color={palette.secondary} />
+    <Rod start={[-.55, 1.82, .15 + z]} end={[-.48, 1.67, -.72 + z]} radius={.06} color={palette.secondary} /><Rod start={[.55, 1.82, .15 + z]} end={[.48, 1.67, -.72 + z]} radius={.06} color={palette.secondary} />
+    <mesh position={[-.48, 1.64, -.72 + z]}><cylinderGeometry args={[.09, .09, .1, 18]} /><meshStandardMaterial color="#818d92" roughness={.28} metalness={.84} /></mesh>
+    <mesh position={[.48, 1.64, -.72 + z]}><cylinderGeometry args={[.09, .09, .1, 18]} /><meshStandardMaterial color="#818d92" roughness={.28} metalness={.84} /></mesh>
   </PartGroup>
 }
 
@@ -880,19 +900,20 @@ function GPBrakes() {
 }
 
 function GPFrontSuspension() {
+  const { geometry, palette } = useGrandPrixTeam()
   return (
     <PartGroup id="front-suspension" category="dynamics" explodeVector={[0, .72, .75]}>
       {[-1, 1].map(side => (
         <group key={side}>
-          <Rod start={[side * .48, .7, 2.25]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .6, 2.83]} radius={.035} />
-          <Rod start={[side * .48, .7, 2.25]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .6, 3.04]} radius={.035} />
-          <Rod start={[side * .42, 1.05, 2.38]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .77, 2.9]} radius={.032} color="#d14d3c" />
-          <Rod start={[side * .38, .78, 2.52]} end={[side * (GRAND_PRIX_HALF_TRACK - .12), .88, 2.95]} radius={.03} color="#66d8ec" />
-          <mesh position={[side * .24, 1.08, 2.27]} rotation={[0, 0, side * .38]}>
+          <Rod start={[side * (.48 + geometry.frontPickupOffset), .7, 2.25]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .6, 2.83]} radius={.035} />
+          <Rod start={[side * (.48 + geometry.frontPickupOffset), .7, 2.25]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .6, 3.04]} radius={.035} />
+          <Rod start={[side * (.42 + geometry.frontPickupOffset), 1.05, 2.38]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .77, 2.9]} radius={.032} color={palette.secondary} />
+          <Rod start={[side * (.38 + geometry.frontPickupOffset), .78, 2.52]} end={[side * (GRAND_PRIX_HALF_TRACK - .12), .88, 2.95]} radius={.03} color={palette.accent} />
+          <mesh position={[side * (.24 + geometry.frontPickupOffset), 1.08, 2.27]} rotation={[0, 0, side * .38]}>
             <boxGeometry args={[.34, .065, .12]} />
             <meshStandardMaterial color="#8c979d" roughness={.3} metalness={.82} />
           </mesh>
-          <Rod start={[side * .24, 1.06, 2.26]} end={[side * .04, .96, 1.78]} radius={.028} color="#6be0f5" />
+          <Rod start={[side * (.24 + geometry.frontPickupOffset), 1.06, 2.26]} end={[side * .04, .96, 1.78]} radius={.028} color={palette.pinstripe} />
         </group>
       ))}
     </PartGroup>
@@ -900,19 +921,20 @@ function GPFrontSuspension() {
 }
 
 function GPRearSuspension() {
+  const { geometry, palette } = useGrandPrixTeam()
   return (
     <PartGroup id="rear-suspension" category="dynamics" explodeVector={[0, .75, -.78]}>
       {[-1, 1].map(side => (
         <group key={side}>
           <Rod start={[side * .54, .66, -2.55]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .59, -3.15]} radius={.035} />
           <Rod start={[side * .54, .66, -2.55]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .59, -3.36]} radius={.035} />
-          <Rod start={[side * .48, 1.02, -2.58]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .78, -3.24]} radius={.032} color="#d14d3c" />
-          <Rod start={[side * .45, .78, -2.73]} end={[side * (GRAND_PRIX_HALF_TRACK - .12), .9, -3.24]} radius={.03} color="#66d8ec" />
-          <mesh position={[side * .27, 1.04, -2.46]} rotation={[0, 0, side * -.38]}>
+          <Rod start={[side * .48, geometry.rearPickupHeight, -2.58]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .78, -3.24]} radius={.032} color={palette.secondary} />
+          <Rod start={[side * .45, geometry.rearPickupHeight - .24, -2.73]} end={[side * (GRAND_PRIX_HALF_TRACK - .12), .9, -3.24]} radius={.03} color={palette.accent} />
+          <mesh position={[side * .27, geometry.rearPickupHeight + .02, -2.46]} rotation={[0, 0, side * -.38]}>
             <boxGeometry args={[.36, .065, .12]} />
             <meshStandardMaterial color="#8c979d" roughness={.3} metalness={.82} />
           </mesh>
-          <Rod start={[side * .27, 1.02, -2.47]} end={[side * .05, .92, -2.0]} radius={.028} color="#6be0f5" />
+          <Rod start={[side * .27, geometry.rearPickupHeight, -2.47]} end={[side * .05, .92, -2.0]} radius={.028} color={palette.pinstripe} />
         </group>
       ))}
     </PartGroup>
@@ -928,21 +950,21 @@ function GPSteering() {
   </PartGroup>
 }
 
-function GPLiverySurfaceDetails() {
-  const { liveryId } = useSceneState()
-  const { palette } = GRAND_PRIX_LIVERIES[liveryId]
-  if (liveryId === 'ferrari') return <group>
+function GPTeamSurfaceDetails() {
+  const { grandPrixTeamId } = useSceneState()
+  const { palette } = GRAND_PRIX_TEAMS[grandPrixTeamId]
+  if (grandPrixTeamId === 'ferrari') return <group>
     <mesh position={[0, 1.625, -1.35]}><boxGeometry args={[.46, .025, 1.82]} /><meshStandardMaterial color={palette.pinstripe} roughness={.18} /></mesh>
     {[-1, 1].map(side => <mesh key={side} position={[side * 1.397, 1.02, -.08]} rotation={[0, side * .08, 0]}><boxGeometry args={[.026, .2, 1.5]} /><meshStandardMaterial color={palette.secondary} roughness={.18} /></mesh>)}
   </group>
-  if (liveryId === 'mclaren') return <group>
+  if (grandPrixTeamId === 'mclaren') return <group>
     <mesh position={[0, 1.635, -1.08]}><boxGeometry args={[.18, .025, 2.08]} /><meshStandardMaterial color={palette.body} roughness={.2} /></mesh>
     {[-1, 1].map(side => <group key={side}>
       <mesh position={[side * 1.398, .88, -.05]} rotation={[0, side * .08, 0]}><boxGeometry args={[.026, .32, 1.56]} /><meshStandardMaterial color={palette.secondary} roughness={.24} /></mesh>
       <mesh position={[side * 1.414, 1.05, -.1]} rotation={[0, side * .08, 0]}><boxGeometry args={[.018, .035, 1.64]} /><meshStandardMaterial color={palette.accent} roughness={.18} /></mesh>
     </group>)}
   </group>
-  if (liveryId === 'mercedes') return <group>
+  if (grandPrixTeamId === 'mercedes') return <group>
     {[-1, 1].map(side => <group key={side}>
       <mesh position={[side * 1.403, .8, -.08]} rotation={[0, side * .08, 0]}><boxGeometry args={[.025, .32, 1.7]} /><meshStandardMaterial color={palette.secondary} roughness={.18} metalness={.5} /></mesh>
       <mesh position={[side * 1.42, .72, -.02]} rotation={[0, side * .08, 0]}><boxGeometry args={[.018, .045, 1.78]} /><meshStandardMaterial color={palette.accent} emissive={palette.accent} emissiveIntensity={.1} /></mesh>
@@ -960,13 +982,29 @@ function GPLiverySurfaceDetails() {
 }
 
 function GPCooling() {
-  const { palette } = useGrandPrixLivery()
+  const { palette, geometry, id } = useGrandPrixTeam()
+  const sidepodX = .73 + geometry.sidepodWidth * .52
+  const sidepodY = .86 + geometry.sidepodDrop * .25
+  const sidepodZ = geometry.sidepodOffset
   return <PartGroup id="cooling" category="power" explodeVector={[0,.6,1.1]}>
-    {[-1,1].map(side => <group key={side}><RoundedBox args={[.62,.72,2.1]} radius={.2} smoothness={4} position={[side*1.08,.8,-.15]} rotation={[0,side*.08,0]}><meshStandardMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></RoundedBox><mesh position={[side*.78,.83,.35]} rotation={[0,side*.18,0]}><boxGeometry args={[.09,.55,.85]} /><meshStandardMaterial color="#626f74" roughness={.5} metalness={.68} /></mesh><Rod start={[side*.8,.62,.2]} end={[side*.5,.65,-1.9]} radius={.035} color={palette.accent} /></group>)}
-    <RoundedBox args={[.86, .78, 2.82]} radius={.25} smoothness={5} position={[0, 1.22, -1.38]} castShadow><meshStandardMaterial color={palette.secondary} roughness={palette.roughness} metalness={palette.metalness} /></RoundedBox>
-    <mesh position={[0, 1.74, -.12]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[.24, .34, .72, 18]} /><meshStandardMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
+    {[-1,1].map(side => <group key={side}>
+      <RoundedBox args={[geometry.sidepodWidth, geometry.sidepodHeight, geometry.sidepodLength]} radius={Math.min(.22, geometry.sidepodHeight * .32)} smoothness={4} position={[side * sidepodX, sidepodY, sidepodZ]} rotation={[-geometry.sidepodDrop, side * geometry.sidepodYaw, side * -.025]} castShadow><meshStandardMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></RoundedBox>
+      <mesh position={[side * (sidepodX - geometry.sidepodWidth * .43), sidepodY + .02, geometry.inletOffset]} rotation={[0, side * (.2 + geometry.sidepodYaw), 0]}><boxGeometry args={[geometry.inletWidth, geometry.inletHeight, .78]} /><meshStandardMaterial color="#26343a" roughness={.62} metalness={.44} /></mesh>
+      <mesh position={[side * (sidepodX - geometry.sidepodWidth * .47), sidepodY + .02, geometry.inletOffset + .06]} rotation={[0, side * (.2 + geometry.sidepodYaw), 0]}><boxGeometry args={[geometry.inletWidth * .35, geometry.inletHeight * .72, .63]} /><meshStandardMaterial color="#05090b" roughness={.76} /></mesh>
+      <mesh position={[side * sidepodX, sidepodY - geometry.sidepodHeight * .34, sidepodZ - geometry.sidepodLength * .2]} rotation={[-geometry.sidepodDrop, side * geometry.sidepodYaw, 0]}><boxGeometry args={[geometry.sidepodWidth * .72, .055, geometry.sidepodLength * .72]} /><CarbonMaterial color={palette.carbon} roughness={.32} /></mesh>
+      <Rod start={[side * (sidepodX - .24), .62, .2]} end={[side * .5,.65,-1.9]} radius={.035} color={palette.accent} />
+    </group>)}
+    <RoundedBox args={[geometry.engineCoverWidth, geometry.engineCoverHeight, geometry.engineCoverLength]} radius={.25} smoothness={5} position={[0, 1.22 + (geometry.engineCoverHeight - .78) * .35, geometry.engineCoverOffset]} castShadow><meshStandardMaterial color={palette.secondary} roughness={palette.roughness} metalness={palette.metalness} /></RoundedBox>
+    <mesh position={[0, 1.72 + (geometry.airboxHeight - .72) * .25, -.12 + geometry.cockpitOffset]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[geometry.airboxWidth * .7, geometry.airboxWidth, geometry.airboxHeight, 18]} /><meshStandardMaterial color={palette.body} roughness={palette.roughness} metalness={palette.metalness} /></mesh>
     <mesh position={[0, 1.73, .18]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.19, .045, 12, 30]} /><CarbonMaterial color={palette.carbon} /></mesh>
-    <GPLiverySurfaceDetails />
+    {id === 'red-bull' && <group>
+      <mesh position={[0, 1.72, -1.18]} rotation={[-.06, 0, 0]}><boxGeometry args={[.18, .24, 2.05]} /><meshStandardMaterial color={palette.pinstripe} roughness={.2} /></mesh>
+      {[-1, 1].map(side => <mesh key={side} position={[side * .78, 1.18, -.9]} rotation={[-.34, 0, side * .2]}><boxGeometry args={[.16, .12, 1.5]} /><meshStandardMaterial color={palette.secondary} roughness={.18} /></mesh>)}
+    </group>}
+    {id === 'mclaren' && [-1, 1].map(side => <mesh key={side} position={[side * 1.18, 1.16, -.18]} rotation={[-.16, side * .12, side * -.08]}><boxGeometry args={[.12, .14, 1.92]} /><meshStandardMaterial color={palette.accent} roughness={.2} /></mesh>)}
+    {id === 'ferrari' && [-1, 1].map(side => <mesh key={side} position={[side * 1.16, 1.16, -.1]} rotation={[-.08, side * .08, 0]}><boxGeometry args={[.14, .22, 1.78]} /><meshStandardMaterial color={palette.secondary} roughness={.18} /></mesh>)}
+    {id === 'mercedes' && [-.42, -.14, .14, .42].map((z, index) => <mesh key={z} position={[index % 2 ? .17 : -.17, 1.66, -1.35 + z]} rotation={[0, Math.PI / 4, 0]}><boxGeometry args={[.14, .018, .14]} /><meshStandardMaterial color={index < 2 ? palette.body : palette.accent} roughness={.18} metalness={.5} /></mesh>)}
+    <GPTeamSurfaceDetails />
   </PartGroup>
 }
 
@@ -979,11 +1017,13 @@ function GPPowerElectronics() {
 }
 
 function GPHybridPowerUnit() {
+  const { geometry, palette, id } = useGrandPrixTeam()
   return <PartGroup id="motor" category="power" explodeVector={[0,.85,-1.2]}>
-    <mesh position={[0,.72,-2.22]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.52,.52,1.05,24]} /><meshStandardMaterial color="#4b555b" roughness={.3} metalness={.78} /></mesh>
-    {[-.32,.32].map(x=><group key={x}><mesh position={[x,.96,-2.08]}><boxGeometry args={[.42,.45,.72]} /><meshStandardMaterial color="#727c80" roughness={.34} metalness={.72} /></mesh>{[0,1,2].map(i=><Rod key={i} start={[x,.98,-1.9-i*.16]} end={[x*.75,1.28,-1.72-i*.2]} radius={.025} color="#d0b073"/>)}</group>)}
-    <mesh position={[.55,1.1,-2.62]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.24,.08,12,30]} /><meshStandardMaterial color="#b7c2c7" metalness={.88} roughness={.2} /></mesh>
-    <mesh position={[0,.72,-1.58]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.27,.27,.72,22]} /><meshStandardMaterial color="#57d9ef" emissive="#0b4653" emissiveIntensity={.35} metalness={.8} /></mesh>
+    <mesh position={[0,.72,-2.22]} rotation={[0,0,Math.PI/2]} scale={[1, geometry.powerUnitLength, geometry.powerUnitWidth]}><cylinderGeometry args={[.52,.52,1.05,24]} /><meshStandardMaterial color={palette.metal} roughness={.3} metalness={.78} /></mesh>
+    {[-.32,.32].map(x=><group key={x}><mesh position={[x * geometry.powerUnitWidth,.96,-2.08]}><boxGeometry args={[.42,.45,.72 * geometry.powerUnitLength]} /><meshStandardMaterial color={id === 'red-bull' ? '#313a43' : '#727c80'} roughness={.34} metalness={.72} /></mesh>{[0,1,2].map(i=><Rod key={i} start={[x * geometry.powerUnitWidth,.98,-1.9-i*.16]} end={[x*.75,1.28,-1.72-i*.2]} radius={.025} color={palette.powerUnitAccent}/>)}</group>)}
+    <mesh position={[geometry.turboOffset,1.1,-2.62]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.24,.08,12,30]} /><meshStandardMaterial color={palette.powerUnitAccent} metalness={.88} roughness={.2} /></mesh>
+    <mesh position={[0,.72,-1.58]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.27,.27,.72,22]} /><meshStandardMaterial color={palette.accent} emissive={palette.accent} emissiveIntensity={.28} metalness={.8} /></mesh>
+    <mesh position={[0,1.35,-2.12]}><boxGeometry args={[.64,.08,.3]} /><meshStandardMaterial color={palette.secondary} roughness={.24} metalness={.7} /></mesh>
   </PartGroup>
 }
 
@@ -1069,7 +1109,15 @@ export type CarSceneProps = SceneState & {
 
 export default function CarScene(props: CarSceneProps) {
   return (
-    <div className="scene-canvas" data-scene-vehicle={props.vehicleId} data-livery={props.vehicleId === 'grand-prix-2026' ? props.liveryId : undefined} aria-label={props.ariaLabel}>
+    <div
+      className="scene-canvas"
+      data-scene-vehicle={props.vehicleId}
+      data-grand-prix-team={props.vehicleId === 'grand-prix-2026' ? props.grandPrixTeamId : undefined}
+      data-gp-power-unit={props.vehicleId === 'grand-prix-2026' ? GRAND_PRIX_TEAMS[props.grandPrixTeamId].facts[0]!.value.en : undefined}
+      data-gp-nose-profile={props.vehicleId === 'grand-prix-2026' ? GRAND_PRIX_TEAMS[props.grandPrixTeamId].geometry.noseRearRadius : undefined}
+      data-gp-sidepod-width={props.vehicleId === 'grand-prix-2026' ? GRAND_PRIX_TEAMS[props.grandPrixTeamId].geometry.sidepodWidth : undefined}
+      aria-label={props.ariaLabel}
+    >
       <Canvas
         dpr={[1, 1.65]}
         camera={{ position: [7.4, 4.6, 8.4], fov: 36, near: 0.1, far: 100 }}

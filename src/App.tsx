@@ -3,9 +3,11 @@ import {
   ArrowRight, Check, ChevronRight, CircleDot, Compass, Eye, EyeOff, Gauge, Globe2, House,
   Languages, Layers3, LockKeyhole, Map, Maximize2, Minimize2, Pause, Play, RotateCcw, ScanLine,
   Settings, Sparkles, Wind, X, Zap, BookOpenCheck, CarFront, Music2, Repeat, Repeat1, Shuffle,
-  Volume2, Palette, ExternalLink,
+  Volume2, Palette,
 } from 'lucide-react'
 import CarScene from './CarScene'
+import GrandPrixGarage from './GrandPrixGarage'
+import { getGrandPrixTeamLens } from './grandPrixTeamLens'
 import { CATEGORIES, COURSES, COURSE_IDS, PARTS, PART_MAP, type CategoryId, type Course, type CourseId, type PartId, type ScenarioId } from './data'
 import { copy, getCategoryName, getCourse, getPart, getScenarioName, type Locale } from './i18n'
 import { readJson, readText, removeStored, writeJson, writeText } from './storage'
@@ -13,12 +15,11 @@ import { useDialogFocus } from './useDialogFocus'
 import { VEHICLES, VEHICLE_IDS, isVehicleId, type VehicleId } from './vehicles'
 import { MUSIC_MODES, MUSIC_TRACKS, type MusicMode, type MusicTrackId } from './music'
 import {
-  DEFAULT_GRAND_PRIX_LIVERY_ID,
-  GRAND_PRIX_LIVERIES,
-  GRAND_PRIX_LIVERY_IDS,
-  isGrandPrixLiveryId,
-  type GrandPrixLiveryId,
-} from './grandPrixLiveries'
+  DEFAULT_GRAND_PRIX_TEAM_ID,
+  GRAND_PRIX_TEAMS,
+  isGrandPrixTeamId,
+  type GrandPrixTeamId,
+} from './grandPrixTeams'
 
 const EngineeringDetail = lazy(() => import('./EngineeringDetail'))
 const KnowledgeCenter = lazy(() => import('./KnowledgeCenter'))
@@ -127,12 +128,19 @@ function SystemRail({ locale, visible, onToggle }: { locale: Locale; visible: Ca
   )
 }
 
-function PartPanel({ locale, vehicleId, partId, onClose, onDetails }: { locale: Locale; vehicleId: VehicleId; partId: PartId; onClose: () => void; onDetails: () => void }) {
+function PartPanel({ locale, vehicleId, grandPrixTeamId, partId, onClose, onDetails }: { locale: Locale; vehicleId: VehicleId; grandPrixTeamId?: GrandPrixTeamId; partId: PartId; onClose: () => void; onDetails: () => void }) {
   const c = copy[locale]
   const [collapsed, setCollapsed] = useState(false)
   const minimizeRef = useRef<HTMLButtonElement>(null)
   const reopenRef = useRef<HTMLButtonElement>(null)
   const part = getPart(partId, locale, vehicleId)
+  const teamLens = vehicleId === 'grand-prix-2026' && grandPrixTeamId ? getGrandPrixTeamLens(grandPrixTeamId, partId) : null
+  const team = grandPrixTeamId ? GRAND_PRIX_TEAMS[grandPrixTeamId] : null
+  const evidenceLabel = teamLens ? ({
+    'official-spec': { zh: '官方规格', en: 'Official specification' },
+    'public-observation': { zh: '公开可见', en: 'Public observation' },
+    'educational-inference': { zh: '教学推演', en: 'Teaching inference' },
+  } as const)[teamLens.evidence][locale] : ''
   useEffect(() => setCollapsed(false), [partId, vehicleId])
   const collapse = () => {
     setCollapsed(true)
@@ -161,6 +169,7 @@ function PartPanel({ locale, vehicleId, partId, onClose, onDetails }: { locale: 
         </div>
       </div>
       <h2>{part.name}</h2>
+      {teamLens && team && <div className="team-part-lens" data-team-lens={team.id} data-evidence={teamLens.evidence}><span>{team.modelName} · {evidenceLabel}</span><p>{teamLens.text[locale]}</p></div>}
       <p>{summary}</p>
       <div className="connection-row"><span>{c.related}</span><div>{part.connections.slice(0, 3).map((name) => <em key={name}>{name}</em>)}</div></div>
       <button className="button button--primary part-deep-button" onClick={onDetails}>{c.deepDive} <Maximize2 size={17} /></button>
@@ -285,19 +294,17 @@ function ScenarioDock({ locale, scenario, onScenario, explode, onExplode, xray, 
 }
 
 function SettingsModal({
-  locale, vehicleId, liveryId, musicTrackId, musicMode, musicPlaying, musicError,
-  onLocale, onVehicle, onLivery, onMusicTrack, onMusicMode, onToggleMusic, onClose, onResetProgress,
+  locale, vehicleId, musicTrackId, musicMode, musicPlaying, musicError,
+  onLocale, onVehicle, onMusicTrack, onMusicMode, onToggleMusic, onClose, onResetProgress,
 }: {
   locale: Locale
   vehicleId: VehicleId
-  liveryId: GrandPrixLiveryId
   musicTrackId: MusicTrackId
   musicMode: MusicMode
   musicPlaying: boolean
   musicError: boolean
   onLocale: (locale: Locale) => void
   onVehicle: (vehicleId: VehicleId) => void
-  onLivery: (liveryId: GrandPrixLiveryId) => void
   onMusicTrack: (trackId: MusicTrackId) => void
   onMusicMode: () => void
   onToggleMusic: () => void
@@ -325,10 +332,6 @@ function SettingsModal({
   const selectedTrack = MUSIC_TRACKS.find((track) => track.id === musicTrackId) ?? MUSIC_TRACKS[0]!
   const ModeIcon = musicMode === 'repeat-one' ? Repeat1 : musicMode === 'shuffle' ? Shuffle : Repeat
   const modeLabel = musicMode === 'repeat-one' ? c.musicRepeatOne : musicMode === 'shuffle' ? c.musicShuffle : c.musicSequence
-  const selectedLivery = GRAND_PRIX_LIVERIES[liveryId]
-  const liveryUi = locale === 'zh'
-    ? { title: 'F1 涂装系列', note: '非官方、无车队与赞助商标志的教学型外观诠释。', source: '查看官方公开参考' }
-    : { title: 'F1 livery series', note: 'Unofficial, logo-free educational interpretations without team or sponsor marks.', source: 'View official public reference' }
   return (
     <div className="overlay settings-overlay" role="dialog" aria-modal="true" aria-label={c.settingsTitle}>
       <div className="overlay-backdrop" onClick={onClose} />
@@ -341,27 +344,6 @@ function SettingsModal({
         <div className="settings-section"><h3><CarFront size={20} /> {c.vehicle}</h3><div className="language-options vehicle-options">
           {VEHICLE_IDS.map((id) => <button data-vehicle={id} key={id} className={vehicleId === id ? 'is-active' : ''} onClick={() => onVehicle(id)} aria-pressed={vehicleId === id}><CarFront size={22} /><strong>{VEHICLES[id].name[locale]}</strong>{vehicleId === id && <Check size={19} />}</button>)}
         </div></div>
-        {vehicleId === 'grand-prix-2026' && <div className="settings-section settings-section--livery">
-          <h3><Palette size={20} /> {liveryUi.title}</h3>
-          <div className="livery-options">
-            {GRAND_PRIX_LIVERY_IDS.map((id) => {
-              const livery = GRAND_PRIX_LIVERIES[id]
-              return <button
-                data-livery={id}
-                key={id}
-                className={liveryId === id ? 'is-active' : ''}
-                onClick={() => onLivery(id)}
-                aria-pressed={liveryId === id}
-                style={{ '--livery-body': livery.palette.body, '--livery-secondary': livery.palette.secondary, '--livery-accent': livery.palette.accent, '--livery-pinstripe': livery.palette.pinstripe } as React.CSSProperties}
-              >
-                <span className="livery-swatch" aria-hidden="true"><i /><i /><i /><i /></span>
-                <span><strong>{livery.name[locale]}</strong><small>{livery.signature[locale]}</small></span>
-                {liveryId === id && <Check size={18} />}
-              </button>
-            })}
-          </div>
-          <div className="livery-source"><span>{liveryUi.note}</span><a href={selectedLivery.sourceUrl} target="_blank" rel="noopener noreferrer">{liveryUi.source}<ExternalLink size={14} /></a></div>
-        </div>}
         <div className="settings-section settings-section--music">
           <div className="music-header">
             <h3><Music2 size={20} /> {c.music}</h3>
@@ -403,9 +385,9 @@ function App() {
     const saved = readText('racecar-lab-vehicle')
     return isVehicleId(saved) ? saved : 'student-ev'
   })
-  const [liveryId, setLiveryId] = useState<GrandPrixLiveryId>(() => {
-    const saved = readText('racecar-lab-grand-prix-livery')
-    return isGrandPrixLiveryId(saved) ? saved : DEFAULT_GRAND_PRIX_LIVERY_ID
+  const [grandPrixTeamId, setGrandPrixTeamId] = useState<GrandPrixTeamId>(() => {
+    const saved = readText('racecar-lab-grand-prix-team') ?? readText('racecar-lab-grand-prix-livery')
+    return isGrandPrixTeamId(saved) ? saved : DEFAULT_GRAND_PRIX_TEAM_ID
   })
   const [musicTrackId, setMusicTrackId] = useState<MusicTrackId>(() => {
     const saved = readText('racecar-lab-music-track')
@@ -424,6 +406,7 @@ function App() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [courseMapOpen, setCourseMapOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [garageOpen, setGarageOpen] = useState(false)
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const [quizOpen, setQuizOpen] = useState(false)
   const [activeCourse, setActiveCourse] = useState<Course | null>(null)
@@ -453,7 +436,7 @@ function App() {
 
   useEffect(() => { writeJson(progressKey, completed) }, [completed, progressKey])
   useEffect(() => { writeText('racecar-lab-vehicle', vehicleId) }, [vehicleId])
-  useEffect(() => { writeText('racecar-lab-grand-prix-livery', liveryId) }, [liveryId])
+  useEffect(() => { writeText('racecar-lab-grand-prix-team', grandPrixTeamId) }, [grandPrixTeamId])
   useEffect(() => { writeText('racecar-lab-music-track', musicTrackId) }, [musicTrackId])
   useEffect(() => { writeText('racecar-lab-music-mode', musicMode) }, [musicMode])
   useEffect(() => {
@@ -508,14 +491,15 @@ function App() {
       else if (quizOpen) setQuizOpen(false)
       else if (detailOpen) setDetailOpen(false)
       else if (courseMapOpen) setCourseMapOpen(false)
+      else if (garageOpen) setGarageOpen(false)
       else if (settingsOpen) setSettingsOpen(false)
       else setSelectedId(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [knowledgeOpen, quizOpen, detailOpen, courseMapOpen, settingsOpen])
+  }, [knowledgeOpen, quizOpen, detailOpen, courseMapOpen, garageOpen, settingsOpen])
 
-  const overlayOpen = detailOpen || courseMapOpen || quizOpen || settingsOpen || knowledgeOpen
+  const overlayOpen = detailOpen || courseMapOpen || quizOpen || settingsOpen || garageOpen || knowledgeOpen
   const schedule = (callback: () => void, delay: number) => {
     const timer = window.setTimeout(() => { timers.current.delete(timer); callback() }, delay)
     timers.current.add(timer)
@@ -551,7 +535,7 @@ function App() {
   }
   const returnHome = () => {
     timers.current.forEach((timer) => window.clearTimeout(timer)); timers.current.clear()
-    setIntro(true); setEntering(false); setSelectedId(null); setDetailOpen(false); setCourseMapOpen(false); setSettingsOpen(false); setKnowledgeOpen(false); setQuizOpen(false)
+    setIntro(true); setEntering(false); setSelectedId(null); setDetailOpen(false); setCourseMapOpen(false); setSettingsOpen(false); setGarageOpen(false); setKnowledgeOpen(false); setQuizOpen(false)
     setIntroPaused(prefersReducedMotion()); setActiveCourse(null); setScenario('idle'); setExplode(0); setXray(false); setVisibleCategories(CATEGORY_ORDER); setResetSignal((value) => value + 1)
   }
   const resetProgress = () => {
@@ -566,6 +550,7 @@ function App() {
     setVehicleId(next)
     setCompleted(readJson(nextProgressKey, isCourseProgress, []))
     setSelectedId(null); setDetailOpen(false); setKnowledgeOpen(false); setCourseMapOpen(false); setQuizOpen(false)
+    setGarageOpen(false)
     setActiveCourse(null); setVisitedParts([]); setScenario('idle'); setExplode(0); setXray(false); setVisibleCategories(CATEGORY_ORDER)
     setResetSignal((value) => value + 1)
   }
@@ -628,13 +613,14 @@ function App() {
   return (
     <main className={`app-shell ${intro ? 'is-intro' : 'is-lab'} ${entering ? 'is-entering' : ''} ${overlayOpen ? 'has-overlay' : ''}`}>
       <audio ref={audioRef} src={currentMusicTrack.file} preload="metadata" onEnded={advanceMusic} onCanPlay={() => setMusicError(false)} onError={() => { setMusicError(true); setMusicPlaying(false) }} />
-      <CarScene vehicleId={vehicleId} liveryId={liveryId} intro={intro && !entering} introPaused={introPaused} selectedId={selectedId} onSelect={selectPart} explode={explode} xray={xray} visibleCategories={visibleCategories} scenario={scenario} resetSignal={resetSignal} ariaLabel={VEHICLES[vehicleId].sceneLabel[locale]} partOptions={PARTS.map((part) => ({ id: part.id, label: getPart(part.id, locale, vehicleId).name, category: part.category }))} />
+      <CarScene vehicleId={vehicleId} grandPrixTeamId={grandPrixTeamId} intro={intro && !entering} introPaused={introPaused} selectedId={selectedId} onSelect={selectPart} explode={explode} xray={xray} visibleCategories={visibleCategories} scenario={scenario} resetSignal={resetSignal} ariaLabel={vehicleId === 'grand-prix-2026' ? GRAND_PRIX_TEAMS[grandPrixTeamId].name[locale] : VEHICLES[vehicleId].sceneLabel[locale]} partOptions={PARTS.map((part) => ({ id: part.id, label: getPart(part.id, locale, vehicleId).name, category: part.category }))} />
       {intro ? <IntroScreen locale={locale} paused={introPaused} onEnter={enterLab} onReset={() => setResetSignal((value) => value + 1)} onTogglePause={() => setIntroPaused((value) => !value)} onKnowledge={() => setKnowledgeOpen(true)} onSettings={() => setSettingsOpen(true)} /> : (
         <div className="lab-ui">
           <header className="lab-topbar">
             <Brand locale={locale} compact />
             <div className="lab-status"><span className="live-dot" /><strong>{activeCourse ? getCourse(activeCourse, locale, vehicleId).title : c.freeExplore}</strong></div>
             <div className="lab-spacer" />
+            {vehicleId === 'grand-prix-2026' && <button className={`top-button garage-launch ${garageOpen ? 'is-active' : ''}`} data-current-team={grandPrixTeamId} onClick={() => setGarageOpen(true)} title={GRAND_PRIX_TEAMS[grandPrixTeamId].name[locale]} aria-label={locale === 'zh' ? `打开车队技术车库，当前 ${GRAND_PRIX_TEAMS[grandPrixTeamId].modelName}` : `Open team engineering garage, current ${GRAND_PRIX_TEAMS[grandPrixTeamId].modelName}`}><Palette size={19} /><span>{GRAND_PRIX_TEAMS[grandPrixTeamId].modelName}</span></button>}
             <button className="top-button" onClick={() => setCourseMapOpen(true)}><Map size={19} /> {c.courseMap}</button>
             <button className={`top-button top-button--icon ${knowledgeOpen ? 'is-active' : ''}`} onClick={() => setKnowledgeOpen(true)} title={c.knowledge} aria-label={c.knowledge}><BookOpenCheck size={19} /></button>
             <button className="top-button top-button--icon" onClick={resetView} title={c.resetView} aria-label={c.resetView}><RotateCcw size={19} /></button>
@@ -643,7 +629,7 @@ function App() {
           </header>
 
           <SystemRail locale={locale} visible={visibleCategories} onToggle={toggleCategory} />
-          {selectedId && <PartPanel locale={locale} vehicleId={vehicleId} partId={selectedId} onClose={() => setSelectedId(null)} onDetails={() => setDetailOpen(true)} />}
+          {selectedId && <PartPanel locale={locale} vehicleId={vehicleId} grandPrixTeamId={vehicleId === 'grand-prix-2026' ? grandPrixTeamId : undefined} partId={selectedId} onClose={() => setSelectedId(null)} onDetails={() => setDetailOpen(true)} />}
           {activeCourse && <LessonPanel locale={locale} vehicleId={vehicleId} course={activeCourse} visited={visitedParts} onPart={selectPart} onQuiz={() => setQuizOpen(true)} onClose={() => setActiveCourse(null)} />}
           <ScenarioDock locale={locale} scenario={scenario} onScenario={setScenario} explode={explode} onExplode={setExplode} xray={xray} onXray={() => setXray((value) => !value)} />
           {!selectedId && !activeCourse && <div className="interaction-hint"><span className="hint-pulse" /><strong>{c.selectPart}</strong><span>{c.selectPartHint}</span></div>}
@@ -653,7 +639,8 @@ function App() {
         </div>
       )}
       {knowledgeOpen && <Suspense fallback={<LoadingOverlay locale={locale} />}><KnowledgeCenter vehicleId={vehicleId} locale={locale} profileId={profileId} initialPartId={selectedId} onClose={() => setKnowledgeOpen(false)} /></Suspense>}
-      {settingsOpen && <SettingsModal locale={locale} vehicleId={vehicleId} liveryId={liveryId} musicTrackId={musicTrackId} musicMode={musicMode} musicPlaying={musicPlaying} musicError={musicError} onLocale={setLocale} onVehicle={switchVehicle} onLivery={setLiveryId} onMusicTrack={chooseMusicTrack} onMusicMode={cycleMusicMode} onToggleMusic={toggleMusicPlayback} onClose={() => setSettingsOpen(false)} onResetProgress={resetProgress} />}
+      {garageOpen && vehicleId === 'grand-prix-2026' && <GrandPrixGarage locale={locale} teamId={grandPrixTeamId} onTeam={(id) => { setGrandPrixTeamId(id); setResetSignal((value) => value + 1) }} onClose={() => setGarageOpen(false)} />}
+      {settingsOpen && <SettingsModal locale={locale} vehicleId={vehicleId} musicTrackId={musicTrackId} musicMode={musicMode} musicPlaying={musicPlaying} musicError={musicError} onLocale={setLocale} onVehicle={switchVehicle} onMusicTrack={chooseMusicTrack} onMusicMode={cycleMusicMode} onToggleMusic={toggleMusicPlayback} onClose={() => setSettingsOpen(false)} onResetProgress={resetProgress} />}
     </main>
   )
 }

@@ -1,7 +1,7 @@
 # RaceCar Lab 全量审计报告
 
 审计日期：2026-07-16
-审计范围：全部源码、配置、双语内容、工程公式、仿真逻辑、两款整车、四套 2026 涂装、36 套零部件工作台模型、216 个子组件、全部弹窗/页面、108 张交互图片、8 首音频、构建与腾讯云部署链路。
+审计范围：全部源码、配置、双语内容、工程公式、仿真逻辑、两类教学车、四款 2026 车队研究车型、36 套零部件工作台模型、216 个子组件、全部弹窗/页面、108 张交互图片、8 首音频、构建与腾讯云部署链路。
 
 ## 1. 结论
 
@@ -16,22 +16,24 @@
 | 文件 | 审查重点 | 结果 |
 | --- | --- | --- |
 | `src/main.tsx` | React 启动、样式入口 | 通过 |
-| `src/App.tsx` | 首屏、实验室、课程、设置、音乐、涂装、最小化面板、焦点恢复 | 新增四套 GP 涂装选择、官方参考入口与安全持久化；通过 |
+| `src/App.tsx` | 首屏、实验室、课程、设置、音乐、车队车库、最小化面板、焦点恢复 | 将车型入口放到 Grand Prix 实验室右上角；切换车型时保留当前零件学习上下文；通过 |
+| `src/GrandPrixGarage.tsx` | 四车选择、横向比较、证据分层、官方来源、焦点圈定 | 桌面与 320 px 竖屏均通过无溢出和无内容重叠回归 |
 | `src/EngineeringDetail.tsx` | 五页签、公式、工作台、弹窗焦点与键盘切换 | 修复页签 ARIA、方向键/Home/End 与滚动定位；通过 |
 | `src/KnowledgeCenter.tsx` | 题库筛选、答题、评分、双语与移动端 | 通过真实浏览器回归 |
 | `src/CoolingInteractionPanels.tsx` | 五个实验、资料翻转卡、故障翻转卡 | 修复翻转焦点、状态语义和共享图域；通过 |
 | `src/PartInteractionPanels.tsx` | 其余 17 个零件的实验/卡片通用呈现 | 修复翻转状态与键盘可达性；通过 |
 | `src/useDialogFocus.ts` | 焦点圈定、Escape、关闭后恢复 | 通过 |
 | `src/storage.ts` | localStorage 不可用、损坏 JSON、车型命名空间 | 通过损坏数据与车型隔离回归 |
-| `src/styles.css` | 桌面、320–390 px 手机竖屏、英文长词、无页面级滚动、弹窗内部滚动 | 将窄屏系统栏改为横向可滑动区、底部控制改为两行，课程卡/零件卡/工具条分区不相交；通过 |
+| `src/styles.css` | 桌面、320–390 px 手机竖屏、英文长词、无页面级滚动、弹窗内部滚动 | 新车库在窄屏内部滚动；零件卡固定在顶栏与场景条之间，课程卡/零件卡/工具条分区不相交；通过 |
 | `src/uiNumber.ts` | 本地化数字与百分数 | 新增稳定格式化与测试；通过 |
 
 ### 3D 整车与零件模型
 
 | 文件 | 审查重点 | 结果 |
 | --- | --- | --- |
-| `src/CarScene.tsx` | 轮胎接地/旋转、悬架连杆、轮距、驾驶舱、Halo、前后翼、发动机盖、拆解、镜头 | 新增四套程序化无标志涂装、发动机盖和进气口；收窄前翼并保留主动襟翼/环盘/Halo/悬架逻辑；通过 |
-| `src/grandPrixLiveries.ts` | 四队公开配色、双语说明、来源、持久化 ID | 法拉利、迈凯伦、梅赛德斯、红牛四套独立调色板与官方来源完整；通过 |
+| `src/CarScene.tsx` | 轮胎接地/旋转、悬架连杆、轮距、驾驶舱、Halo、前后翼、侧箱、发动机盖、底板、动力单元、拆解、镜头 | 新增 SF-26、MCL40、W17、RB22 四套鼻锥/驾驶舱/侧箱/底板/冷却/悬架拾取点/动力封装几何；通过 |
+| `src/grandPrixTeams.ts` | 四车公开证据、几何控制、动力单元、双语事实、来源与合法 ID | 四套几何签名唯一；每车含官方规格、公开观察、教学推演三层证据；通过 |
+| `src/grandPrixTeamLens.ts` | 18 总成随车型变化的证据说明 | 4×18 共 72 个双语入口完整；未公开内部数据明确标注、不虚构；通过 |
 | `src/ComponentWorkshop.tsx` | 36 套零件模型、216 个子组件、选中、爆炸、复位 | 修复零长度连杆、资源释放、爆炸比例与 GP 传动结构；36/36 通过 |
 | `src/componentWorkshopData.ts` | Student 108 个子组件说明与模型映射 | 通过数据完整性和浏览器选择回归 |
 | `src/grandPrixWorkshopFacts.ts` | GP 108 个子组件说明与车型专属结构 | 修正气流措辞；通过 |
@@ -43,7 +45,8 @@
 - 轮胎以刚体最低点接地，不再出现轮胎下方悬空圆盘；2026 车型保留规则要求的轮辋外侧环盘，但其位于轮毂外侧，不位于地面下方。
 - 2026 Halo 为中央柱、左右分叉臂和三个安装点，没有虚构横梁。
 - 2026 前翼固定前段加活动襟翼、后翼固定主翼加活动襟翼，避免把整个翼面错误旋转。
-- GP 前翼按 3400 mm 轴距场景标尺换算后不超过 1900 mm 公开宽度基准；四涂装不含队徽或赞助商图案。
+- GP 前翼按 3400 mm 轴距场景标尺换算后不超过 1900 mm 公开宽度基准；四款研究车不含队徽或赞助商图案。
+- 四款车不是材质换色：鼻锥半径/高度、驾驶舱偏移、侧箱宽高/下切、发动机盖、地板导流板、扩散器槽、翼面扫掠、悬架拾取点与动力单元封装均由独立参数驱动。
 - 传动工作台展示八组齿轮副及对齐轴；拆解方向与子组件选择保持一致。
 
 ### 工程仿真、交互与规则逻辑
@@ -94,8 +97,8 @@
 | `vite.config.ts` | 生产分包与静态构建 | 通过，无 source map 泄漏 |
 | `vitest.config.ts` | 单元测试发现规则 | 修复测试匹配；通过 |
 | `playwright.config.ts` | 本地生产预览与线上复测 | 修复外部 URL/预览服务器切换；通过 |
-| `tests/app.spec.ts` | 桌面/横屏/320–390 px 竖屏、双语、两车型、四涂装、36 模型、弹窗、WCAG | 13/13 通过 |
-| `src/dataIntegrity.test.ts` | 内容、公式、题库、车型映射、四涂装 | 通过 |
+| `tests/app.spec.ts` | 桌面/横屏/320–390 px 竖屏、双语、两车型、四款研究车、36 模型、弹窗、WCAG | 13/13 通过 |
+| `src/dataIntegrity.test.ts` | 内容、公式、题库、车型映射、四车几何签名、证据、来源与 72 个部件视角 | 通过 |
 | `src/engineeringSimulation.test.ts` | 仿真规则与边界 | 6/6 通过 |
 | `src/ersRules.test.ts` | 2026 ERS 分段边界 | 通过 |
 | `src/modelGeometry.test.ts` | 轮胎、轮距和几何边界 | 通过 |
@@ -122,13 +125,13 @@
 
 - `npm test`：9 个测试文件，73/73 通过。
 - `npm run build`：TypeScript 与 Vite 生产构建通过。
-- `npm run test:browser`：13/13 Chromium 场景通过，包含 36 套零件模型、216 子组件、四套涂装、两种车型、双语、320 px 竖屏和 WCAG 检查。
+- `npm run test:browser`：13/13 Chromium 场景通过，包含 36 套零件模型、216 子组件、四款车队研究车型、两类教学车、双语、320 px 竖屏和 WCAG 检查。
 - `npm audit --omit=dev` 与 `npm audit`：0 个已知漏洞。
 - `git diff --check`：通过。
 - `bash -n deploy/deploy-racecar-lab.sh`：通过。
 - 腾讯云候选 Nginx 配置 `nginx -t`：通过。
 - 腾讯云 release `20260716T062053Z_70e49f7` 已原子部署，Nginx 为 active，公网首页与生产 JS 资源均返回 200。
-- 公网 Playwright 关键回归 3/3 通过：完整视口矩阵、320×568 分区布局、Grand Prix 18 个专属总成与四套涂装。
+- 公网 Playwright 关键回归 3/3 通过：完整视口矩阵、320×568 分区布局、Grand Prix 18 个专属总成与上一版四套涂装；本轮四车几何版本将在新 release 部署后重新复测。
 
 ## 5. 规则来源与边界
 
@@ -136,6 +139,6 @@
 - [FIA Formula 1 Technical Regulations](https://www.fia.com/regulation/fia-formula-1-world-championship-technical-regulations)
 - [Formula Student Germany 2026 Rules](https://www.formulastudent.de/fileadmin/user_upload/all/2026/rules/FS-Rules_2026_v1.1.pdf)
 - [Formula Student Rules Portal](https://www.formulastudent.de/fsg/rules/tid/523)
-- 四套涂装和车队公开规格来源见 [`docs/2026-grand-prix-model-and-livery-basis.md`](docs/2026-grand-prix-model-and-livery-basis.md)。
+- 四款车队研究车型的公开规格、实现差异和证据边界见 [`docs/2026-grand-prix-team-model-basis.md`](docs/2026-grand-prix-team-model-basis.md)。
 
 规则会更新；赛事合规判断必须以参赛当期官方版本和技术裁判解释为准。站内数值模型用于教学趋势与概念验证，不替代 CFD、FEA、台架标定、赛道相关性测试或认证报告。

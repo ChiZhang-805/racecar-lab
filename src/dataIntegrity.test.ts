@@ -18,7 +18,8 @@ import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngine
 import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
 import { MUSIC_TRACKS } from './music'
 import { VEHICLE_PART_ALIASES } from './vehicles'
-import { GRAND_PRIX_LIVERIES, GRAND_PRIX_LIVERY_IDS, isGrandPrixLiveryId } from './grandPrixLiveries'
+import { GRAND_PRIX_TEAMS, GRAND_PRIX_TEAM_IDS, isGrandPrixTeamId } from './grandPrixTeams'
+import { getGrandPrixTeamLens } from './grandPrixTeamLens'
 import {
   coolingExperimentsFor,
   coolingFaultCardsFor,
@@ -476,26 +477,69 @@ describe('complete grand prix hybrid curriculum', () => {
     expect(motor.concepts.map((item) => item.en).join(' ')).not.toContain('350/250')
   })
 
-  it('provides four complete, distinguishable and officially sourced logo-free livery interpretations', () => {
-    expect(GRAND_PRIX_LIVERY_IDS).toEqual(['ferrari', 'mclaren', 'mercedes', 'red-bull'])
-    expect(new Set(GRAND_PRIX_LIVERY_IDS.map(id => GRAND_PRIX_LIVERIES[id].palette.body)).size).toBe(4)
-    expect(new Set(GRAND_PRIX_LIVERY_IDS.map(id => GRAND_PRIX_LIVERIES[id].sourceUrl)).size).toBe(4)
-    for (const id of GRAND_PRIX_LIVERY_IDS) {
-      const livery = GRAND_PRIX_LIVERIES[id]
-      expect(livery.id).toBe(id)
-      expect(isGrandPrixLiveryId(id)).toBe(true)
-      expectLocalText(livery.name)
-      expectLocalText(livery.signature)
-      expectLocalText(livery.sourceLabel)
-      expect(livery.sourceUrl).toMatch(/^https:\/\//)
-      expect(Object.values(livery.palette).every(value => typeof value === 'number' || /^#[0-9a-f]{6}$/i.test(value))).toBe(true)
-      expect(livery.palette.roughness).toBeGreaterThan(0)
-      expect(livery.palette.roughness).toBeLessThan(1)
-      expect(livery.palette.metalness).toBeGreaterThanOrEqual(0)
-      expect(livery.palette.metalness).toBeLessThanOrEqual(1)
+  it('provides four distinct public-evidence team study cars instead of paint-only interpretations', () => {
+    expect(GRAND_PRIX_TEAM_IDS).toEqual(['ferrari', 'mclaren', 'mercedes', 'red-bull'])
+    expect(new Set(GRAND_PRIX_TEAM_IDS.map(id => GRAND_PRIX_TEAMS[id].modelName)).size).toBe(4)
+    expect(new Set(GRAND_PRIX_TEAM_IDS.map(id => GRAND_PRIX_TEAMS[id].palette.body)).size).toBe(4)
+
+    const geometrySignatures = new Set<string>()
+    for (const id of GRAND_PRIX_TEAM_IDS) {
+      const team = GRAND_PRIX_TEAMS[id]
+      expect(team.id).toBe(id)
+      expect(isGrandPrixTeamId(id)).toBe(true)
+      expect(team.teamName.trim()).not.toBe('')
+      expect(team.modelName.trim()).not.toBe('')
+      expectLocalText(team.name)
+      expectLocalText(team.snapshot)
+      expectLocalText(team.signature)
+      expectLocalText(team.designQuestion)
+
+      expect(Object.values(team.palette).every(value => typeof value === 'number' || /^#[0-9a-f]{6}$/i.test(value))).toBe(true)
+      expect(team.palette.roughness).toBeGreaterThan(0)
+      expect(team.palette.roughness).toBeLessThan(1)
+      expect(team.palette.metalness).toBeGreaterThanOrEqual(0)
+      expect(team.palette.metalness).toBeLessThanOrEqual(1)
+
+      const geometryValues = Object.values(team.geometry)
+      expect(geometryValues.every(Number.isFinite)).toBe(true)
+      expect(team.geometry.floorBoardCount).toBeGreaterThanOrEqual(2)
+      expect(team.geometry.floorBoardCount).toBeLessThanOrEqual(4)
+      expect(team.geometry.sidepodWidth).toBeGreaterThan(0.45)
+      expect(team.geometry.sidepodWidth).toBeLessThan(0.8)
+      geometrySignatures.add(JSON.stringify([
+        team.geometry.noseRearRadius,
+        team.geometry.cockpitOffset,
+        team.geometry.sidepodWidth,
+        team.geometry.engineCoverHeight,
+        team.geometry.powerUnitWidth,
+      ]))
+
+      expect(team.facts).toHaveLength(4)
+      expect(new Set(team.facts.map(fact => fact.evidence))).toEqual(new Set(['official-spec', 'public-observation', 'educational-inference']))
+      team.facts.forEach((fact) => {
+        expectLocalText(fact.label)
+        expectLocalText(fact.value)
+        expectLocalText(fact.detail)
+      })
+
+      expect(team.sources.length).toBeGreaterThanOrEqual(3)
+      expect(team.sources.some(source => source.kind === 'regulation')).toBe(true)
+      expect(team.sources.some(source => source.kind === 'team')).toBe(true)
+      team.sources.forEach((source) => {
+        expectLocalText(source.label)
+        expect(source.url).toMatch(/^https:\/\//)
+      })
+      PART_IDS.forEach((partId) => {
+        const lens = getGrandPrixTeamLens(id, partId)
+        expect(['official-spec', 'public-observation', 'educational-inference']).toContain(lens.evidence)
+        expectLocalText(lens.text)
+      })
     }
-    expect(isGrandPrixLiveryId('unknown')).toBe(false)
-    expect(isGrandPrixLiveryId(null)).toBe(false)
+    expect(geometrySignatures.size).toBe(4)
+    expect(GRAND_PRIX_TEAMS.mclaren.facts[0]!.value.en).toBe(GRAND_PRIX_TEAMS.mercedes.facts[0]!.value.en)
+    expect(GRAND_PRIX_TEAMS.ferrari.facts[0]!.value.en).not.toBe(GRAND_PRIX_TEAMS['red-bull'].facts[0]!.value.en)
+    expect(isGrandPrixTeamId('unknown')).toBe(false)
+    expect(isGrandPrixTeamId(null)).toBe(false)
   })
 })
 

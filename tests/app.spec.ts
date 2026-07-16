@@ -130,7 +130,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
         await assertNoHorizontalOverflow(settings)
         await expect(settings.locator('[data-locale]')).toHaveCount(2)
         await expect(settings.locator('[data-vehicle]')).toHaveCount(2)
-        await expect(settings.locator('[data-livery]')).toHaveCount(vehicle === 'grand-prix-2026' ? 4 : 0)
+        await expect(settings.locator('[data-livery], [data-grand-prix-team]')).toHaveCount(0)
         await expect(settings.locator('.music-track-list button')).toHaveCount(8)
         await settings.locator('.music-track-list button').last().scrollIntoViewIfNeeded()
         await expect(settings.locator('.music-track-list button').last()).toBeVisible()
@@ -170,8 +170,10 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
           expect(label.clientHeight).toBeLessThanOrEqual(label.lineHeight + 2)
         }
 
+        const courseButton = page.locator('.lab-topbar .top-button').filter({ has: page.locator('svg.lucide-map') })
+        const knowledgeButton = page.locator('.lab-topbar .top-button').filter({ has: page.locator('svg.lucide-book-open-check') })
         if (viewport.width < 680) {
-          const courseIconAlignment = await page.locator('.lab-topbar .top-button').first().evaluate((button) => {
+          const courseIconAlignment = await courseButton.evaluate((button) => {
             const buttonBox = button.getBoundingClientRect()
             const iconBox = button.querySelector('svg')!.getBoundingClientRect()
             return {
@@ -183,7 +185,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
           expect(courseIconAlignment.y).toBeLessThanOrEqual(1.6)
         }
 
-        await page.locator('.lab-topbar .top-button').first().click()
+        await courseButton.click()
         const courseMap = page.locator('.course-modal')
         await expect(courseMap).toBeVisible()
         await expect(courseMap.locator('.course-node')).toHaveCount(8)
@@ -192,7 +194,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
         if (viewport.width < 680) await courseMap.screenshot({ path: testInfo.outputPath(`course-${locale}-${vehicle}.png`) })
         await courseMap.locator('.settings-close').click()
 
-        await page.locator('.lab-topbar .top-button').nth(1).click()
+        await knowledgeButton.click()
         const knowledge = page.locator('.knowledge-modal')
         await expect(knowledge).toBeVisible()
         await expect(knowledge.locator('.knowledge-categories button')).toHaveCount(5)
@@ -290,16 +292,27 @@ test('320px portrait keeps navigation, lesson, part and scene controls in separa
 
   await page.getByRole('button', { name: 'Settings' }).click()
   const settings = page.locator('.settings-modal')
-  await expect(settings.locator('[data-livery]')).toHaveCount(4)
-  await settings.locator('[data-livery="red-bull"]').scrollIntoViewIfNeeded()
-  await settings.locator('[data-livery="red-bull"]').click()
-  await expect(page.locator('.scene-canvas')).toHaveAttribute('data-livery', 'red-bull')
-  await settings.locator('.livery-source a').scrollIntoViewIfNeeded()
-  await expect(settings.locator('.livery-source a')).toBeVisible()
+  await expect(settings.locator('[data-livery], [data-grand-prix-team]')).toHaveCount(0)
   await assertNoHorizontalOverflow(settings)
   await settings.locator('.settings-close').click()
 
   await page.locator('.intro-actions .button--primary').click()
+  await page.locator('button.garage-launch').click()
+  const garage = page.locator('.garage-modal')
+  await expect(garage.locator('[data-grand-prix-team]')).toHaveCount(4)
+  await garage.locator('[data-grand-prix-team="red-bull"]').click()
+  await expect(page.locator('.scene-canvas')).toHaveAttribute('data-grand-prix-team', 'red-bull')
+  await assertNoHorizontalOverflow(garage)
+  const profileBlocks = await garage.locator('.garage-profile-hero, .garage-question, .garage-facts, .garage-sources').evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect()
+    return { top: box.top, bottom: box.bottom }
+  }))
+  for (let index = 1; index < profileBlocks.length; index += 1) {
+    expect(profileBlocks[index]!.top).toBeGreaterThanOrEqual(profileBlocks[index - 1]!.bottom - 1)
+  }
+  await garage.screenshot({ path: testInfo.outputPath('grand-prix-garage-320x568.png') })
+  await garage.locator('.garage-close').click()
+
   const rail = page.locator('.system-rail')
   const lesson = page.locator('.lesson-panel')
   const part = page.locator('.part-panel')
@@ -635,17 +648,7 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
   await page.screenshot({ path: testInfo.outputPath('grand-prix-intro.png') })
   await page.getByRole('button', { name: 'Settings' }).click()
   await expect(page.locator('[data-vehicle="grand-prix-2026"]')).toHaveAttribute('aria-pressed', 'true')
-  const liveryOptions = page.locator('.settings-modal [data-livery]')
-  await expect(liveryOptions).toHaveCount(4)
-  for (const id of ['ferrari', 'mclaren', 'mercedes', 'red-bull']) {
-    await page.locator(`.settings-modal [data-livery="${id}"]`).click()
-    await expect(page.locator('.scene-canvas')).toHaveAttribute('data-livery', id)
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('racecar-lab-grand-prix-livery'))).toBe(id)
-    await page.getByRole('button', { name: 'Close' }).click()
-    await page.waitForTimeout(180)
-    await page.locator('.scene-canvas').screenshot({ path: testInfo.outputPath(`grand-prix-livery-${id}.png`) })
-    await page.getByRole('button', { name: 'Settings' }).click()
-  }
+  await expect(page.locator('.settings-modal [data-livery], .settings-modal [data-grand-prix-team]')).toHaveCount(0)
   const settingsWithoutNativeLocaleNames = await page.locator('.settings-modal').evaluate((element) => {
     const clone = element.cloneNode(true) as HTMLElement
     clone.querySelector('[data-locale="zh"]')?.remove()
@@ -654,6 +657,40 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
   expect(settingsWithoutNativeLocaleNames).not.toMatch(/[\u3400-\u9fff]/)
   await page.getByRole('button', { name: 'Close' }).click()
   await enterLab(page)
+
+  const geometrySignatures = new Set<string>()
+  for (const id of ['ferrari', 'mclaren', 'mercedes', 'red-bull']) {
+    await page.locator('button.garage-launch').click()
+    const garage = page.locator('.garage-modal')
+    await expect(garage).toBeVisible()
+    await expect(garage).not.toContainText(/[\u3400-\u9fff]/)
+    await expect(garage.locator('[data-grand-prix-team]')).toHaveCount(4)
+    await garage.locator(`[data-grand-prix-team="${id}"]`).click()
+    const scene = page.locator('.scene-canvas')
+    await expect(scene).toHaveAttribute('data-grand-prix-team', id)
+    await expect(scene).toHaveAttribute('data-gp-power-unit', /.+/)
+    await expect(scene).toHaveAttribute('data-gp-nose-profile', /.+/)
+    await expect(scene).toHaveAttribute('data-gp-sidepod-width', /.+/)
+    const signature = await scene.evaluate(element => JSON.stringify([
+      element.getAttribute('data-gp-power-unit'),
+      element.getAttribute('data-gp-nose-profile'),
+      element.getAttribute('data-gp-sidepod-width'),
+    ]))
+    geometrySignatures.add(signature)
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('racecar-lab-grand-prix-team'))).toBe(id)
+    await expect(garage.locator(`[data-grand-prix-team="${id}"]`)).toHaveAttribute('aria-pressed', 'true')
+    await assertNoHorizontalOverflow(garage)
+    if (id === 'ferrari') {
+      await garage.getByRole('tab', { name: 'Compare four' }).click()
+      await expect(garage.locator('[data-compare-team]')).toHaveCount(4)
+      await assertNoHorizontalOverflow(garage)
+      await garage.screenshot({ path: testInfo.outputPath('grand-prix-team-comparison.png') })
+    }
+    await garage.locator('.garage-close').click()
+    await page.waitForTimeout(180)
+    await scene.screenshot({ path: testInfo.outputPath(`grand-prix-team-${id}.png`) })
+  }
+  expect(geometrySignatures.size).toBe(4)
   await page.screenshot({ path: testInfo.outputPath('grand-prix-lab.png') })
 
   for (let scenarioIndex = 1; scenarioIndex < 5; scenarioIndex += 1) {
@@ -684,6 +721,9 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
     const panel = page.locator('.part-panel')
     await expect(panel).toBeVisible()
     await expect(panel).not.toContainText(/[\u3400-\u9fff]/)
+    await panel.locator('.part-deep-button').scrollIntoViewIfNeeded()
+    const panelAndDock = await Promise.all([panel.boundingBox(), page.locator('.scenario-dock').boundingBox()])
+    expect(panelAndDock[0]!.y + panelAndDock[0]!.height).toBeLessThanOrEqual(panelAndDock[1]!.y + 1)
     await panel.locator('.part-deep-button').click()
     const detail = page.locator('.engineering-detail')
     await expect(detail).toBeVisible()
@@ -725,9 +765,11 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
   }
 
   await page.reload()
-  await page.getByRole('button', { name: 'Settings' }).click()
-  await expect(page.locator('[data-vehicle="grand-prix-2026"]')).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.locator('.settings-modal [data-livery="red-bull"]')).toHaveAttribute('aria-pressed', 'true')
+  await enterLab(page)
+  await expect(page.locator('.scene-canvas')).toHaveAttribute('data-grand-prix-team', 'red-bull')
+  await expect(page.locator('button.garage-launch')).toHaveAttribute('data-current-team', 'red-bull')
+  await page.locator('button.garage-launch').click()
+  await expect(page.locator('.garage-modal [data-grand-prix-team="red-bull"]')).toHaveAttribute('aria-pressed', 'true')
   expect(errors).toEqual([])
 })
 
@@ -808,8 +850,15 @@ test('intro, lab and learning dialogs satisfy automated WCAG checks', async ({ p
   await expectAccessible(page)
 
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.locator('[data-vehicle="grand-prix-2026"]').click()
   await expectAccessible(page)
   await page.getByRole('button', { name: 'Close' }).click()
+
+  await page.locator('button.garage-launch').click()
+  await expectAccessible(page)
+  await page.getByRole('tab', { name: 'Compare four' }).click()
+  await expectAccessible(page)
+  await page.locator('.garage-close').click()
 
   await page.getByRole('button', { name: 'Knowledge centre' }).click()
   await expectAccessible(page)
