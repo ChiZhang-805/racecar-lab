@@ -205,6 +205,31 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
         if (locale === 'en') await expect(knowledge).not.toContainText(/[\u3400-\u9fff]/)
         if (viewport.width < 680) await knowledge.screenshot({ path: testInfo.outputPath(`knowledge-${locale}-${vehicle}.png`) })
         await knowledge.locator('.settings-close').click()
+
+        if (viewport.width >= 1200 && vehicle === 'grand-prix-2026') {
+          await page.locator('button.garage-launch').click()
+          const garage = page.locator('.garage-modal')
+          await garage.getByRole('tab', { name: locale === 'zh' ? '当家车手' : 'Driver line-up' }).click()
+          await page.waitForTimeout(320)
+          const layout = await garage.locator('.garage-drivers').evaluate((panel) => {
+            const panelBox = panel.getBoundingClientRect()
+            const teams = [...panel.querySelectorAll<HTMLElement>('[data-driver-team]')]
+            return {
+              panelBottom: panelBox.bottom,
+              teamHeights: teams.map(team => team.getBoundingClientRect().height),
+              teamBottoms: teams.map(team => team.getBoundingClientRect().bottom),
+              driverHeights: teams.map(team => [...team.querySelectorAll<HTMLElement>('[data-driver-id]')].map(driver => driver.getBoundingClientRect().height)),
+            }
+          })
+          expect(Math.max(...layout.teamHeights) - Math.min(...layout.teamHeights)).toBeLessThanOrEqual(1)
+          expect(Math.max(...layout.teamBottoms.map(bottom => Math.abs(layout.panelBottom - 5 - bottom)))).toBeLessThanOrEqual(2)
+          layout.driverHeights.forEach((heights) => {
+            expect(heights).toHaveLength(2)
+            expect(Math.abs(heights[0]! - heights[1]!)).toBeLessThanOrEqual(1)
+          })
+          await garage.screenshot({ path: testInfo.outputPath(`grand-prix-driver-line-up-${locale}.png`) })
+          await garage.locator('.garage-close').click()
+        }
         await assertPageFits(page)
       }
     }

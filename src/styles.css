@@ -2959,13 +2959,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
 
 .garage-drivers { min-height: 0; padding: 1px 3px 5px; overflow-y: auto; scrollbar-width: thin; }
 .garage-driver-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; }
-.garage-driver-team { min-width: 0; overflow: hidden; border: 1px solid color-mix(in srgb, var(--team-accent) 27%, rgba(255,255,255,.08)); background: linear-gradient(145deg, color-mix(in srgb, var(--team-body) 6%, rgba(255,255,255,.025)), rgba(255,255,255,.012)); }
+.garage-driver-team { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid color-mix(in srgb, var(--team-accent) 27%, rgba(255,255,255,.08)); background: linear-gradient(145deg, color-mix(in srgb, var(--team-body) 6%, rgba(255,255,255,.025)), rgba(255,255,255,.012)); }
 .garage-driver-team > header { min-height: 64px; padding: 5px 10px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.075); background: color-mix(in srgb, var(--team-body) 5%, rgba(4,9,12,.5)); }
 .garage-driver-team > header .garage-car-art-shell { flex: 0 0 92px; width: 92px; height: 52px; border: 0; background: transparent; }
 .garage-driver-team > header div { min-width: 0; }
 .garage-driver-team > header small { color: var(--team-accent); font-size: 11px; font-weight: 760; letter-spacing: .08em; }
 .garage-driver-team > header h3 { margin: 4px 0 0; overflow: hidden; color: #edf4f6; font-size: 17px; line-height: 1.08; text-overflow: ellipsis; white-space: nowrap; }
-.garage-driver-pair { display: grid; }
+.garage-driver-pair { flex: 1 1 auto; display: grid; grid-template-rows: repeat(2, minmax(min-content, 1fr)); }
 .garage-driver { min-width: 0; min-height: 150px; padding: 9px; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; border-top: 1px solid rgba(255,255,255,.065); }
 .garage-driver:first-child { border-top: 0; }
 .garage-driver-photo { position: relative; min-width: 0; height: 134px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--team-accent) 35%, rgba(255,255,255,.12)); background: #0a0f13; }
@@ -2989,6 +2989,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
 .garage-disclaimer p { margin: 0; font-size: 10px; letter-spacing: .03em; }
 
 .garage-modal button:focus-visible, .garage-modal a:focus-visible { outline: 2px solid #6ce0f8; outline-offset: 2px; }
+
+@media (min-width: 1201px) {
+  .garage-driver-grid { min-height: 100%; align-content: stretch; }
+}
 
 @media (max-width: 1200px) {
   .garage-driver-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
