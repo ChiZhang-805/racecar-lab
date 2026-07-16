@@ -228,6 +228,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
           await page.locator('button.garage-launch').click()
           const garage = page.locator('.garage-modal')
           await garage.locator('[data-grand-prix-team="mercedes"]').click()
+          await page.waitForTimeout(400)
           const profileHero = await garage.locator('.garage-profile-hero').evaluate((hero) => {
             const heroBox = hero.getBoundingClientRect()
             const carBox = hero.querySelector('.garage-car-hero')!.getBoundingClientRect()
