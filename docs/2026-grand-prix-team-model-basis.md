@@ -98,3 +98,16 @@ Core learning question: how can narrow falling sidepods expose more floor while 
 - Browser tests switch and screenshot all four cars, verify geometry attributes and persistence, exercise the comparison view, and check desktop plus 320 px portrait overlap boundaries.
 
 Launch images are snapshots, not a promise that the racing car will remain unchanged. Future updates must re-check the [official Formula 1 launch-car guidance](https://www.formula1.com/en/latest/article/the-beginners-guide-to-f1-car-launches.5njwLoM1KId9QBthP9PAOH), current FIA issue, and team sources before changing a profile.
+
+## 2026 race-driver line-ups and portrait licensing
+
+The driver panel was checked on 2026-07-16 against the [official Formula 1 teams index](https://www.formula1.com/en/teams), the [official 2026 line-up summary](https://www.formula1.com/en/latest/article/2026-line-ups-confirmed-in-full-who-is-on-the-grid-for-next-season.3TyLfOUjOwpBKOp3KX1PiS), and the individual official driver profiles linked from `src/grandPrixDrivers.ts`.
+
+- Ferrari: Charles Leclerc and Lewis Hamilton.
+- McLaren: Lando Norris and Oscar Piastri.
+- Mercedes: George Russell and Kimi Antonelli.
+- Red Bull: Max Verstappen and Isack Hadjar.
+
+The panel intentionally does not copy Formula 1's official profile photographs. Formula 1's [legal notices](https://www.formula1.com/en/information/legal-notices.7egvZU48hzrypubGBNcQKt) restrict reuse of site material, including photographs. RaceCar Lab instead uses eight locally hosted Wikimedia Commons photographs under CC BY, CC BY-SA, or Open Government Licence terms. Exact authors, source pages, licence links, and retrieval date are recorded in `public/images/drivers/README.md` and repeated in the typed UI data so attribution remains visible in the product.
+
+The line-up is time-sensitive. Any future season update must change the typed data, official profile links, introductions, tests, and image provenance together; replacing a portrait without replacing its attribution record is a release-blocking error.

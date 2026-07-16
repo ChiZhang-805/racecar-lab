@@ -19,6 +19,7 @@ import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
 import { MUSIC_TRACKS } from './music'
 import { VEHICLE_PART_ALIASES } from './vehicles'
 import { GRAND_PRIX_TEAMS, GRAND_PRIX_TEAM_IDS, isGrandPrixTeamId } from './grandPrixTeams'
+import { GRAND_PRIX_DRIVERS } from './grandPrixDrivers'
 import { getGrandPrixTeamLens } from './grandPrixTeamLens'
 import {
   coolingExperimentsFor,
@@ -483,6 +484,7 @@ describe('complete grand prix hybrid curriculum', () => {
     expect(new Set(GRAND_PRIX_TEAM_IDS.map(id => GRAND_PRIX_TEAMS[id].palette.body)).size).toBe(4)
 
     const geometrySignatures = new Set<string>()
+    const driverIds = new Set<string>()
     for (const id of GRAND_PRIX_TEAM_IDS) {
       const team = GRAND_PRIX_TEAMS[id]
       expect(team.id).toBe(id)
@@ -529,12 +531,36 @@ describe('complete grand prix hybrid curriculum', () => {
         expectLocalText(source.label)
         expect(source.url).toMatch(/^https:\/\//)
       })
+      const drivers = GRAND_PRIX_DRIVERS[id]
+      expect(drivers).toHaveLength(2)
+      drivers.forEach((driver) => {
+        expect(driver.teamId).toBe(id)
+        expect(driverIds.has(driver.id)).toBe(false)
+        driverIds.add(driver.id)
+        expect(driver.number).toBeGreaterThan(0)
+        expect(driver.number).toBeLessThan(100)
+        expect(driver.name.trim()).not.toBe('')
+        expectLocalText(driver.nationality)
+        expectLocalText(driver.intro)
+        expect(driver.intro.zh.length).toBeGreaterThan(65)
+        expect(driver.intro.en.length).toBeGreaterThan(180)
+        expect(driver.image).toMatch(/^\/images\/drivers\/.+\.jpg$/)
+        const imagePath = join(process.cwd(), 'public', driver.image.replace(/^\//, ''))
+        expect(existsSync(imagePath), `missing driver photo: ${driver.image}`).toBe(true)
+        expect(statSync(imagePath).size).toBeGreaterThan(100_000)
+        expect(driver.profileUrl).toMatch(/^https:\/\/www\.formula1\.com\/en\/drivers\//)
+        expect(driver.photo.author.trim()).not.toBe('')
+        expect(driver.photo.sourceUrl).toMatch(/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/)
+        expect(driver.photo.license.trim()).not.toBe('')
+        expect(driver.photo.licenseUrl).toMatch(/^https:\/\//)
+      })
       PART_IDS.forEach((partId) => {
         const lens = getGrandPrixTeamLens(id, partId)
         expect(['official-spec', 'public-observation', 'educational-inference']).toContain(lens.evidence)
         expectLocalText(lens.text)
       })
     }
+    expect(driverIds.size).toBe(8)
     expect(geometrySignatures.size).toBe(4)
     expect(GRAND_PRIX_TEAMS.mclaren.facts[0]!.value.en).toBe(GRAND_PRIX_TEAMS.mercedes.facts[0]!.value.en)
     expect(GRAND_PRIX_TEAMS.ferrari.facts[0]!.value.en).not.toBe(GRAND_PRIX_TEAMS['red-bull'].facts[0]!.value.en)

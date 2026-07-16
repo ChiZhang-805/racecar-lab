@@ -299,6 +299,8 @@ test('320px portrait keeps navigation, lesson, part and scene controls in separa
   await page.locator('.intro-actions .button--primary').click()
   await page.locator('button.garage-launch').click()
   const garage = page.locator('.garage-modal')
+  await expect(garage.getByRole('tab')).toHaveCount(3)
+  await expect(garage.locator('.garage-header p')).toHaveCount(0)
   await expect(garage.locator('[data-grand-prix-team]')).toHaveCount(4)
   await garage.locator('[data-grand-prix-team="red-bull"]').click()
   await expect(page.locator('.scene-canvas')).toHaveAttribute('data-grand-prix-team', 'red-bull')
@@ -311,6 +313,21 @@ test('320px portrait keeps navigation, lesson, part and scene controls in separa
     expect(profileBlocks[index]!.top).toBeGreaterThanOrEqual(profileBlocks[index - 1]!.bottom - 1)
   }
   await garage.screenshot({ path: testInfo.outputPath('grand-prix-garage-320x568.png') })
+  await garage.getByRole('tab', { name: 'Driver line-up' }).click()
+  await expect(garage.locator('[data-driver-team]')).toHaveCount(4)
+  await expect(garage.locator('[data-driver-id]')).toHaveCount(8)
+  await expect(garage.locator('.garage-driver-photo img')).toHaveCount(8)
+  await garage.screenshot({ path: testInfo.outputPath('grand-prix-drivers-320x568.png') })
+  await garage.locator('[data-driver-id="isack-hadjar"]').scrollIntoViewIfNeeded()
+  await expect.poll(() => garage.locator('[data-driver-id="isack-hadjar"] img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+  await assertNoHorizontalOverflow(garage)
+  const driverRow = garage.locator('[data-driver-id="isack-hadjar"]')
+  const driverColumns = await driverRow.locator('.garage-driver-photo, .garage-driver-copy').evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect()
+    return { left: box.left, right: box.right }
+  }))
+  expect(driverColumns[1]!.left).toBeGreaterThanOrEqual(driverColumns[0]!.right - 1)
+  await garage.screenshot({ path: testInfo.outputPath('grand-prix-drivers-320x568-bottom.png') })
   await garage.locator('.garage-close').click()
 
   const rail = page.locator('.system-rail')
@@ -664,6 +681,8 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
     const garage = page.locator('.garage-modal')
     await expect(garage).toBeVisible()
     await expect(garage).not.toContainText(/[\u3400-\u9fff]/)
+    await expect(garage.getByRole('tab')).toHaveCount(3)
+    await expect(garage.locator('.garage-header p')).toHaveCount(0)
     await expect(garage.locator('[data-grand-prix-team]')).toHaveCount(4)
     await garage.locator(`[data-grand-prix-team="${id}"]`).click()
     const scene = page.locator('.scene-canvas')
@@ -681,10 +700,34 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
     await expect(garage.locator(`[data-grand-prix-team="${id}"]`)).toHaveAttribute('aria-pressed', 'true')
     await assertNoHorizontalOverflow(garage)
     if (id === 'ferrari') {
+      const tabBoxes = await garage.getByRole('tab').evaluateAll(elements => elements.map(element => {
+        const box = element.getBoundingClientRect()
+        return { left: box.left, right: box.right, width: box.width }
+      }))
+      const tabsWidth = tabBoxes.at(-1)!.right - tabBoxes[0]!.left
+      const tabListWidth = (await garage.locator('.garage-tabs').boundingBox())!.width
+      expect(tabsWidth).toBeGreaterThanOrEqual(tabListWidth - 2)
+      expect(Math.max(...tabBoxes.map(box => box.width)) - Math.min(...tabBoxes.map(box => box.width))).toBeLessThan(2)
       await garage.getByRole('tab', { name: 'Compare four' }).click()
+      await page.waitForTimeout(320)
       await expect(garage.locator('[data-compare-team]')).toHaveCount(4)
+      await expect(garage.locator('.garage-compare-lead')).toHaveCount(0)
+      await expect(garage.locator('[data-car-art-team]')).toHaveCount(4)
+      expect(await garage.locator('[data-car-art-team]').first().locator('path, circle, ellipse').count()).toBeGreaterThan(16)
+      const compareSizes = await garage.locator('.garage-compare-grid dt, .garage-compare-grid dd').evaluateAll(elements => elements.map(element => Number.parseFloat(getComputedStyle(element).fontSize)))
+      expect(Math.min(...compareSizes)).toBeGreaterThanOrEqual(11)
+      expect(Math.max(...compareSizes)).toBeGreaterThanOrEqual(15)
       await assertNoHorizontalOverflow(garage)
       await garage.screenshot({ path: testInfo.outputPath('grand-prix-team-comparison.png') })
+      await garage.getByRole('tab', { name: 'Driver line-up' }).click()
+      await expect(garage.locator('[data-driver-team]')).toHaveCount(4)
+      await expect(garage.locator('[data-driver-id]')).toHaveCount(8)
+      await expect(garage.locator('.garage-driver-photo img')).toHaveCount(8)
+      await expect.poll(() => garage.locator('[data-driver-id="charles-leclerc"] img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+      const introSize = await garage.locator('.garage-driver-copy > p').first().evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))
+      expect(introSize).toBeGreaterThanOrEqual(13)
+      await assertNoHorizontalOverflow(garage)
+      await garage.screenshot({ path: testInfo.outputPath('grand-prix-driver-line-up.png') })
     }
     await garage.locator('.garage-close').click()
     await page.waitForTimeout(180)
@@ -857,6 +900,8 @@ test('intro, lab and learning dialogs satisfy automated WCAG checks', async ({ p
   await page.locator('button.garage-launch').click()
   await expectAccessible(page)
   await page.getByRole('tab', { name: 'Compare four' }).click()
+  await expectAccessible(page)
+  await page.getByRole('tab', { name: 'Driver line-up' }).click()
   await expectAccessible(page)
   await page.locator('.garage-close').click()
 

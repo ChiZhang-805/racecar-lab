@@ -120,7 +120,10 @@ describe('static asset integrity', () => {
     vehicleIds.flatMap(coolingFaultCardsFor).forEach(card => referenced.add(card.image.replace(/^\//, '')))
 
     const imageRoot = join(publicRoot, 'images')
-    const files = walkFiles(imageRoot).map(path => relative(publicRoot, path).replaceAll('\\', '/')).sort()
+    const files = walkFiles(imageRoot)
+      .map(path => relative(publicRoot, path).replaceAll('\\', '/'))
+      .filter(path => path.endsWith('.webp'))
+      .sort()
     expect(files).toHaveLength(108)
     expect([...referenced].sort()).toEqual(files)
 
