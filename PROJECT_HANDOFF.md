@@ -6,9 +6,9 @@
 
 当前线上地址：<http://124.221.220.60/>
 
-当前应用基线提交：`70e49f7`
+当前应用基线提交：`1a65f16`
 
-当前线上 release：`20260716T062053Z_70e49f7`
+当前线上 release：`20260716T084336Z_1a65f16`
 
 ## 1. 项目定位
 
@@ -224,8 +224,8 @@ npm run test:browser
 - 当前软链接：`/var/www/racecar-lab/current`
 - 发布目录：`/var/www/racecar-lab/releases/`
 - Nginx 配置：`/etc/nginx/conf.d/racecar-lab.conf`
-- 已部署 release：`/var/www/racecar-lab/releases/20260716T062053Z_70e49f7`
-- 上一版回滚 release：`/var/www/racecar-lab/releases/20260716T015146Z_d6e2e45`
+- 已部署 release：`/var/www/racecar-lab/releases/20260716T084336Z_1a65f16`
+- 上一版回滚 release：`/var/www/racecar-lab/releases/20260716T062053Z_70e49f7`
 
 部署脚本：
 
