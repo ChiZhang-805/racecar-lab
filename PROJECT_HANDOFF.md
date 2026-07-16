@@ -2,387 +2,171 @@
 
 更新时间：2026-07-16
 
-当前仓库：<https://github.com/ChiZhang-805/racecar-lab>
+## 0. 当前可核验状态
 
-当前线上地址：<http://124.221.220.60/>
+- GitHub：<https://github.com/ChiZhang-805/racecar-lab>
+- 线上地址：<http://124.221.220.60/>
+- 当前线上应用提交：`4241607`（`feat: improve garage and add driver lineups`）
+- 当前线上 release：`20260716T095634Z_4241607`
+- 上一回滚 release：`20260716T084336Z_1a65f16`
+- 最终验证：Vitest `73/73`、Playwright `13/13`、TypeScript 与 Vite 生产构建通过
+- 公网冒烟：3 个车库页签、4 张车队卡、8 位车手、8 张图片全部加载，横向溢出 `0`，浏览器错误 `0`
+- 本轮完整备份：`C:\Users\zju20\Documents\Codex\2026-07-16\yue\outputs\racecar-lab-garage-drivers-2026-07-16`
 
-当前应用基线提交：`1a65f16`
-
-当前线上 release：`20260716T084336Z_1a65f16`
+本文件之后如果仅有交接/备份类文档提交，线上应用仍对应 `4241607`；不要把纯文档提交误报为已重新部署的页面版本。
 
 ## 1. 项目定位
 
-RaceCar Lab 是一个交互式方程式赛车工程学习网站。目标不是做传统视频课程，而是让用户通过 3D 赛车、零部件拆解、工程卡片、公式实验、问答练习和课程地图，从小白逐步建立赛车工程知识体系。
+RaceCar Lab 是一个全屏交互式方程式赛车工程学习网站。用户通过代码生成的 3D 赛车、零部件拆解、工程卡片、公式实验、故障诊断、问答练习和课程地图建立赛车工程知识体系，而不是观看普通视频课程。
 
-当前项目是一个纯前端静态应用，没有数据库、账号系统、后端 API 或服务端业务逻辑。所有核心交互都在浏览器中完成，学习进度、语言、车型、音乐设置等状态保存在浏览器本地存储中。
+当前应用是纯前端静态站点：没有后端、数据库、账号、云同步、支付或 AI 接口。语言、车型、课程进度、答题记录和音乐设置保存在浏览器 `localStorage`。
 
-## 2. 当前功能状态
+## 2. 当前功能
 
-已完成的主要功能：
+- 两类教学车辆：基础电动方程式教学车、2026 顶级混动单座赛车。
+- 每类车辆覆盖 18 个核心总成，共 36 套独立 3D 工作台、216 个可选子组件。
+- 整车支持旋转、缩放、聚焦、暂停、复位、高亮、分层拆解和透视。
+- 零件详情包含快速认识、工作原理、观察指南、工程师视角、常见问题、公式、实时曲线和计算案例。
+- 题库共 180 道双语题；课程地图每类车辆各 8 关。
+- Grand Prix 实验室右上角进入“车队技术车库”，而不是把车型入口塞回设置页。
+- 四款独立研究车：Ferrari SF-26、McLaren MCL40、Mercedes W17、Red Bull RB22。
+- 四车不是换色：鼻锥、驾驶舱、侧箱、进气口、发动机盖、地板导流板、扩散器、翼面、悬架拾取点和动力单元封装均由不同参数驱动。
+- 车库含三个整行等宽页签：车型研究、四车对比、当家车手。
+- 四车对比正文已放大到 16 px、标签 12 px、车型标题 30 px；标题下两段重复说明已移除。
+- 车库赛车缩略图是代码原生 SVG，包含车轮、悬架、底板、侧箱、发动机盖、驾驶舱、Halo 和前后翼，不再是简单方块堆叠。
+- 2026 现役车手：Leclerc/Hamilton、Norris/Piastri、Russell/Antonelli、Verstappen/Hadjar。
+- 桌面端四张车队卡同排，每卡上下两位车手；平板两列，手机单列并在弹窗内部滚动。
+- 8 张车手照片均为本地静态资源，不依赖外站热链；作者、源页和开放许可证在界面及素材 README 中可见。
+- 中英文内容完全隔离；桌面与 320–390 px 手机竖屏均有回归覆盖。
 
-- 首屏 3D 赛车入口，支持中文和英文界面。
-- 两种车型切换：基础电动方程式教学车、顶级混动方程式赛车。
-- Grand Prix 实验室右上角提供车队技术车库，可切换 Ferrari SF-26、McLaren MCL40、Mercedes W17、Red Bull RB22 四款独立研究车型并横向比较。
-- 四车不仅配色不同：鼻锥、驾驶舱、单体壳、侧箱、进气口、发动机盖、地板导流板、扩散器、翼面扫掠、悬架拾取点和动力单元封装均由独立几何参数驱动。
-- 每个车型事实标注“官方规格 / 公开可见 / 教学推演”，每个车型×18 总成均提供证据视角；保密或未公开的数据明确说明，不虚构车队内部结构。
-- 四车是基于公开资料的无标志独立教学演绎，不含车队标志或赞助商素材。
-- 整车 3D 交互：旋转、暂停、复原、车型切换、部件高亮、分层拆解、透视。
-- 每款车型覆盖 18 个核心零部件。
-- 每个零部件有摘要卡片，可进入详细资料。
-- 每个零部件详情包含五个板块：快速认识、工作原理、观察指南、工程师视角、常见问题。
-- 每个零部件都有独立 3D 子模型工作台，支持子结构点击、拆解和复原。
-- 每个零部件有公式、参数滑块、实时曲线、计算案例和工程解释。
-- 知识问答中心，按车型、系统、零部件组织题目。
-- 课程地图，包含 8 个学习关卡。
-- 设置面板，包含语言、车型、音乐和清空学习进度。
-- 背景音乐支持 8 首 MP3，支持播放、暂停、顺序播放、单曲循环、随机播放。
-- 桌面端和手机竖屏均做过专项适配；320×568 下导航、课程、零件信息和场景控制分区可达，不再互相覆盖。
-- 部署在腾讯云轻量服务器，通过 Nginx 提供静态文件。
+## 3. 关键文件
 
-## 3. 技术架构
+### 应用与界面
 
-技术栈：
+- `src/App.tsx`：全局状态、首屏、实验室、课程、设置、音乐和弹窗入口。
+- `src/GrandPrixGarage.tsx`：四车选择、横向对比、车手页、车型 SVG、资料链接。
+- `src/styles.css`：全站桌面/移动端样式和车库响应式规则。
+- `src/useDialogFocus.ts`：弹窗焦点圈定、Escape 和关闭后焦点恢复。
+- `src/storage.ts`：安全读写 `localStorage`。
 
-- React 19
-- TypeScript
-- Vite
-- Three.js
-- React Three Fiber
-- Drei
-- KaTeX
-- Lucide React
-- Vitest
-- Playwright
-- Nginx
+### 车型、3D 与工程数据
 
-应用结构：
+- `src/CarScene.tsx`：两台整车与四款研究车的代码生成几何、镜头、拆解和高亮。
+- `src/grandPrixTeams.ts`：四车公开证据、几何控制、动力单元、双语事实与来源。
+- `src/grandPrixTeamLens.ts`：4×18 总成的车型证据视角和未公开边界。
+- `src/grandPrixDrivers.ts`：四队八位车手、双语简介、官方资料链接、照片许可证。
+- `src/ComponentWorkshop.tsx`：36 套零件 3D 工作台。
+- `src/EngineeringDetail.tsx`：零件五页签课程、公式、仿真与交互容器。
+- `src/data.ts`、`src/grandPrixContent.ts`：两类车辆基础内容。
+- `src/engineeringData.ts`、`src/grandPrixEngineeringData.ts`：工程课程。
+- `src/engineeringSim.ts`、`src/grandPrixEngineeringSim.ts`：工程仿真。
+- `src/formulaExamples.ts`、`src/grandPrixFormulaExamples.ts`：108 个公式案例。
+- `src/questionBank.ts`、`src/grandPrixQuestionBank.ts`：180 道题。
 
-```text
-浏览器
-  -> 加载 HTML/CSS/JS
-  -> 加载图片、音频和代码生成的 3D 几何
-  -> React 管理界面状态
-  -> Three.js 渲染整车和零部件模型
-  -> localStorage 保存语言、车型、学习进度和音乐设置
-```
+### 素材与依据
 
-当前没有：
+- `public/images/interactions/`、`public/images/cooling/`：108 张工程/故障 WebP。
+- `public/images/drivers/`：8 张开放许可车手 JPG 及 `README.md` 署名表。
+- `public/audio/`：8 首 MP3 及清单。
+- `docs/2026-grand-prix-team-model-basis.md`：FIA 锚点、四车公开证据、车手阵容和照片许可策略。
+- `AUDIT_REPORT.md`：全量工程、内容、响应式、素材和部署审计。
 
-- 后端服务
-- 数据库
-- 用户注册或登录
-- 云端进度同步
-- 后台管理系统
-- 支付、会员、权限系统
-- AI 问答接口
+## 4. 工程准确性边界
 
-如果后续要做账号、云端学习记录、后台题库、AI 问答、用户成绩统计，应新增后端，建议独立设计 API 和数据库，不要硬塞进当前纯前端结构。
+- 3D 模型是代码生成的教学模型，不是制造级、认证级或车队 CAD。
+- 四款研究车是基于公开资料的独立教学演绎，不是官方授权复制品。
+- 公开资料没有车队内部冷却器、电芯/逆变器拓扑、完整悬架运动学、层压和控制软件；这些内容必须继续标注为“教学推演”或“未公开”，不得伪装成事实。
+- 公式和仿真用于解释趋势，不替代 CFD、FEA、台架、赛道关联或赛事合规申报。
+- 车手阵容和规则会变化；更新赛季时必须同步更新数据、官方链接、照片、署名、测试和本文档。
+- 3D 研究车不含官方队徽或赞助商图案。开放许可纪实照片中自然出现的标志只用于识别被摄人物，不表示官方背书。
 
-## 4. 关键目录和文件
+## 5. 运行、测试与构建
 
-根目录重要文件：
-
-- `README.md`：项目功能、运行、构建、部署说明。
-- `AUDIT_REPORT.md`：最近一轮全量审计报告。
-- `PROJECT_HANDOFF.md`：当前交接文档。
-- `package.json`：脚本和依赖。
-- `vite.config.ts`：Vite 构建配置。
-- `playwright.config.ts`：浏览器回归测试配置。
-- `deploy/deploy-racecar-lab.sh`：服务器部署脚本。
-- `deploy/racecar-lab.nginx.conf`：Nginx 站点配置。
-
-核心源码：
-
-- `src/App.tsx`：主应用状态、首屏、实验室、车队技术车库、课程地图、设置、音乐和弹窗入口。
-- `src/CarScene.tsx`：整车 3D 场景、车型几何、零件高亮、拆解、透视、镜头。
-- `src/GrandPrixGarage.tsx`：四车选择、证据卡、公开来源与横向对比界面。
-- `src/grandPrixTeams.ts`：SF-26、MCL40、W17、RB22 的双语资料、几何控制、动力单元、证据分层和来源。
-- `src/grandPrixTeamLens.ts`：四车在全部 18 个总成上的当前证据视角和未公开边界。
-- `src/ComponentWorkshop.tsx`：零部件详情中的独立 3D 工作台。
-- `src/EngineeringDetail.tsx`：零部件五个学习板块的主容器。
-- `src/CoolingInteractionPanels.tsx`：冷却系统专门交互面板，目前是观察指南、工程师视角、常见问题的质量标杆。
-- `src/PartInteractionPanels.tsx`：其他零部件复用的交互面板。
-- `src/KnowledgeCenter.tsx`：知识问答中心。
-- `src/styles.css`：全站视觉、桌面端、手机端、弹窗、卡片和响应式规则。
-
-数据和模型：
-
-- `src/data.ts`：基础教学车零部件、系统、课程等主数据。
-- `src/grandPrixContent.ts`：顶级混动方程式赛车内容。
-- `src/engineeringData.ts`：基础教学车工程详情数据。
-- `src/grandPrixEngineeringData.ts`：顶级混动车型工程详情数据。
-- `src/engineeringSim.ts`：基础教学车工程仿真。
-- `src/grandPrixEngineeringSim.ts`：顶级混动车型工程仿真。
-- `src/formulaExamples.ts`：基础教学车公式计算案例。
-- `src/grandPrixFormulaExamples.ts`：顶级混动车型公式计算案例。
-- `src/questionBank.ts`：基础教学车题库。
-- `src/grandPrixQuestionBank.ts`：顶级混动车型题库。
-- `src/componentWorkshopData.ts`：基础教学车零部件子结构解释。
-- `src/grandPrixWorkshopFacts.ts`：顶级混动车型零部件子结构解释。
-- `src/aeroStructureInteractions.ts`：空气动力学和结构类交互数据。
-- `src/dynamicsInteractions.ts`：车辆动力学类交互数据。
-- `src/powerElectronicsInteractions.ts`：动力、电驱、电子类交互数据。
-- `src/coolingInteractions.ts`：冷却系统交互数据。
-- `src/partInteractionRegistry.ts`：零部件交互注册表。
-- `src/interactionTypes.ts`：交互数据类型。
-- `src/modelGeometry.ts`：3D 模型通用几何常量和工具。
-- `docs/2026-grand-prix-team-model-basis.md`：2026 FIA 尺寸锚点、四支车队公开资料、车型差异、证据分层与知识产权边界。
-
-本地状态和可访问性：
-
-- `src/storage.ts`：localStorage 安全读写。
-- `src/useDialogFocus.ts`：弹窗焦点圈定和关闭后焦点恢复。
-- `src/uiNumber.ts`：中英文数字格式化。
-- `src/i18n.ts`：界面语言文案。
-- `src/music.ts`：音乐列表和音频路径。
-- `src/vehicles.ts`：车型注册、车型 ID 和本地存储命名空间。
-- Grand Prix 研究车型使用独立键 `racecar-lab-grand-prix-team`，读取时会校验并回退到默认值；旧键 `racecar-lab-grand-prix-livery` 仅作为兼容迁移输入读取。
-
-资源：
-
-- `public/audio/`：8 首 MP3 和 `manifest.json`。
-- `public/images/cooling/`：冷却系统工程资料和故障图片。
-- `public/images/interactions/`：其他零部件资料和故障图片。
-- `public/favicon.svg`：站点图标。
-
-测试：
-
-- `src/dataIntegrity.test.ts`
-- `src/engineeringSimulation.test.ts`
-- `src/interactionPhysics.test.ts`
-- `src/modelGeometry.test.ts`
-- `src/staticAssets.test.ts`
-- `src/coolingVisualization.test.ts`
-- `src/simulationMath.test.ts`
-- `src/uiNumber.test.ts`
-- `tests/app.spec.ts`
-
-## 5. 运行、测试和构建
-
-推荐 Node 版本：`22.12.0`，仓库内有 `.nvmrc`。
-
-安装依赖：
+推荐 Node `22.12.0`，仓库有 `.nvmrc`。
 
 ```bash
 npm install
-```
-
-开发运行：
-
-```bash
 npm run dev
-```
-
-构建：
-
-```bash
-npm run build
-```
-
-单元测试：
-
-```bash
 npm test
-```
-
-浏览器回归测试：
-
-```bash
+npm run build
 npm run test:browser
-```
-
-全量验证：
-
-```bash
 npm run verify
 ```
 
-2026-07-16 完整基线：Vitest 73/73，Playwright 13/13；浏览器矩阵覆盖 1920×1080、1366×768、844×390、390×844、360×800、320×568。
+最终基线：
 
-如果只改文档，通常不需要重新构建线上页面；如果改了 `src/`、`public/`、`index.html`、配置或部署文件，必须至少运行：
+- Vitest：9 个文件、73 个测试全部通过。
+- Playwright：13 个测试全部通过。
+- 浏览器矩阵覆盖 1920×1080、1366×768、844×390、390×844、360×800、320×568。
+- 车库额外断言三页签等宽、两段说明已移除、字号下限、SVG 结构、8 张图片解码、桌面/手机无横向溢出和左右区域不重叠。
+- 自动 WCAG 检查覆盖首屏、实验室、设置、车库三个页签、知识中心和工程详情。
 
-```bash
-npm test
-npm run build
-```
+页面、布局、3D、素材或响应式变化必须运行 `npm run verify`。纯文档变化至少运行 `git diff --check`。
 
-影响布局、交互、3D、手机端或弹窗时，还必须运行：
+## 6. 部署
 
-```bash
-npm run test:browser
-```
-
-## 6. 部署信息
-
-当前服务器：
-
-- 云厂商：腾讯云轻量应用服务器
-- 公网 IP：`124.221.220.60`
+- 服务器：腾讯云轻量应用服务器
 - SSH 别名：`lawcase-tencent`
-- Web 服务：Nginx
-- 站点根目录：`/var/www/racecar-lab`
+- Nginx 站点：`/etc/nginx/conf.d/racecar-lab.conf`
+- 站点根：`/var/www/racecar-lab`
 - 当前软链接：`/var/www/racecar-lab/current`
-- 发布目录：`/var/www/racecar-lab/releases/`
-- Nginx 配置：`/etc/nginx/conf.d/racecar-lab.conf`
-- 已部署 release：`/var/www/racecar-lab/releases/20260716T084336Z_1a65f16`
-- 上一版回滚 release：`/var/www/racecar-lab/releases/20260716T062053Z_70e49f7`
+- 版本目录：`/var/www/racecar-lab/releases/`
+- 部署脚本：`deploy/deploy-racecar-lab.sh`
+- Nginx 模板：`deploy/racecar-lab.nginx.conf`
 
-部署脚本：
+部署脚本创建独立 release、校验归档路径和文件类型、执行 `nginx -t`、原子切换 `current`、本机健康检查、失败自动回滚，并保留最近 5 个 release。
 
-```text
-deploy/deploy-racecar-lab.sh
-```
+本轮因 SSH 带宽较慢，完整 56 MB 包上传超时；最终采用经 SHA-256 校验的 4 MB 增量包，在服务器 `/tmp` 以旧健康 release 为基底复制未变化音频/工程图片，删除并替换全部 `assets/` 与 `images/drivers/`，重新打成完整归档后交给原部署脚本。合成归档通过 `tar -tzf`，线上 release 完整且可独立回滚。
 
-脚本特性：
+## 7. GitHub 与发布规则
 
-- 使用压缩包发布 `dist/`。
-- 每次发布创建独立 release 目录。
-- 原子切换 `current` 软链接。
-- 部署前执行 `nginx -t`。
-- 部署后访问本机 `http://127.0.0.1/` 做健康检查。
-- 失败时自动回滚 Nginx 配置和上一版 release。
-- 默认保留最近 5 个 release。
+用户已明确要求每轮改动都提交到 GitHub；页面变化还必须部署。
 
-如果后续绑定域名，需要改：
+1. 修改前执行 `git status --short --branch`。
+2. 不覆盖用户或其他工作的未提交内容。
+3. 只暂存本轮相关文件。
+4. 运行与风险相称的测试；页面改动必须完整验证。
+5. 提交并直接推送 `origin/main`（这是项目既定规则）。
+6. 构建并用版本化 release 部署。
+7. 公网确认首页新哈希、关键静态资源和真实浏览器交互。
+8. 更新本交接文档和本轮备份。
 
-- `deploy/racecar-lab.nginx.conf` 里的 `server_name`
-- 服务器上的 DNS 解析
-- HTTPS 证书和 HTTP 到 HTTPS 重定向
-- 页面或页脚中的备案号信息，前提是 ICP 备案已完成
+注意：`.gitignore` 全局忽略 `*.jpg`。新增或替换车手照片时必须用明确路径 `git add -f`，并在提交后用 `git show --stat` 确认 8 个二进制文件确实进入提交；不要只看到本地构建通过就推送。
 
-## 7. GitHub 和发布规则
+## 8. 已知风险与所有者待办
 
-用户已明确要求：每一次改动都要提交到 GitHub，并且涉及线上页面的改动要部署到服务器。
+- 当前公网只有 HTTP 和 IP 地址；正式域名需要 DNS、ICP（如适用）和 HTTPS。
+- 项目尚无根目录 LICENSE 与完整第三方 NOTICE。
+- 8 首音频中仍有 7 首缺少完整一手下载页、作者、许可版本、下载日期和 Content ID 档案；长期公开运营前必须补齐。
+- `localStorage` 进度不跨设备；清缓存或换设备会丢失。
+- 无后端、账号、云同步、运营后台和 AI 接口；需要这些能力时应单独设计服务端，不要硬塞进当前纯前端结构。
 
-执行规则：
+## 9. 后续优先级
 
-- 修改前先看 `git status --short --branch`。
-- 不要覆盖用户或其他 agent 的未提交改动。
-- 只 stage 本次任务相关文件。
-- 提交信息简洁说明本次改动。
-- 推送到 `origin/main`。
-- 如果改动影响线上页面，构建并部署到腾讯云。
-- 部署后访问 `http://124.221.220.60/` 做基本验证。
+1. 随 FIA issue、车队公开技术图和赛季阵容更新证据文档，再调整模型/车手数据，禁止凭外观猜测保密结构。
+2. 将冷却系统的高交互标准继续扩展到其他零件，并让更多实验读取当前车队公开参数。
+3. 持续审查轮胎接地、悬架连杆、翼面、Halo、动力单元、冷却回路、制动和传动结构。
+4. 补齐音频版权链、项目 LICENSE、第三方 NOTICE、域名和 HTTPS。
+5. 如需账号和云进度，再独立设计 API、数据库与迁移方案。
 
-当前远程仓库：
+## 10. 新任务接手清单
 
-```text
-origin https://github.com/ChiZhang-805/racecar-lab.git
-```
-
-GitHub 仓库右侧 About 区域建议填写网站地址：
-
-```text
-http://124.221.220.60/
-```
-
-## 8. 产品和设计要求
-
-用户偏好非常明确，后续接手时要遵守：
-
-- 主打交互式学习，不做普通视频课页面。
-- 尽量一屏式体验，桌面端避免页面级滚动条。
-- 手机竖屏允许弹窗内部滚动，但不要横向溢出。
-- 不要添加不必要的小字说明。
-- 能用图标表达的地方优先用图标。
-- 中文和英文必须完全隔离，不要同屏混用。
-- 英文长词不能挤出卡片或换成奇怪的两行。
-- 设置、关闭、首页、复原、暂停等按钮尽量用图标，hover tooltip 可以保留。
-- 桌面端布局稳定后，手机端改动必须用 media query 或局部响应式规则隔离，不要破坏桌面端。
-- 所有卡片要减少空白，优先用图形、图表、翻转卡、参数实验、3D 子模型提升交互性。
-- 3D 模型不能只是好看，要符合基本物理常识和赛车工程逻辑。
-- 任何新增赛车知识、公式、规则，都要尽量对照官方规则或专业资料。
-
-## 9. 当前内容标准
-
-目前冷却系统的三个后续板块是用户认可的参考标准：
-
-- 观察指南：多个实验入口、可调参数、系统图变化、数据和工程结论联动。
-- 工程师视角：用工程资料卡片、取舍图、验证链路和指标图表达，而不是堆文字。
-- 常见问题：用故障情境、诊断图、根因选择、排查步骤和诊断结论表达。
-
-后续如果要继续提升其他零部件，应以冷却系统这一套交互密度为参考，而不是只增加文字。
-
-## 10. 已知边界和风险
-
-工程模型边界：
-
-- 当前 3D 模型是代码生成的教学模型，不是制造级 CAD。
-- 四款车队研究车型是基于公开资料的无标志原创教学演绎，不是官方车队资产、一比一复制品或制造 CAD。
-- 车队内部冷却器、电芯/逆变器拓扑、完整悬架运动学、层压、控制软件和遥测通道通常未公开；对应部件卡必须继续标记边界，不得把教学推演改写成官方事实。
-- 公开资料不包含车队保密 CAD、完整内部布局或制造数据；不得将当前模型描述为官方、授权或制造级复刻。
-- 公式、仿真和参数用于教学趋势展示，不替代 CFD、FEA、台架标定、赛道测试或赛事合规报告。
-- F1/方程式规则会更新，涉及规则限值时必须重新核对官方最新版。
-
-音频风险：
-
-- 8 首 MP3 已放入 `public/audio/`。
-- 其中部分音频的一手下载页和许可证记录尚未完全补齐。
-- 正式公开长期运营前，应补全每首音频的来源 URL、作者、许可证、下载日期和再分发权限。
-
-部署风险：
-
-- 当前是 HTTP 和公网 IP 访问。
-- 绑定中国大陆服务器域名后，必须走 ICP 备案。
-- 正式域名上线应启用 HTTPS。
-- 如果改 CSP、资源路径、缓存策略，必须做线上回归。
-
-前端状态风险：
-
-- 进度和设置保存在本地浏览器中，不跨设备同步。
-- 清浏览器缓存或换设备会丢失本地学习进度。
-- 如果未来做账号系统，需要迁移 localStorage 数据模型。
-
-## 11. 后续优先级建议
-
-建议按这个顺序继续：
-
-1. 随 FIA issue 和车队后续公开技术图更新四款车型；先更新证据文档，再调整 `grandPrixTeams.ts`，不要凭外观猜测保密结构。
-2. 继续把冷却系统的高交互标准推广到所有零部件，并让更多实验读入当前车队公开参数。
-3. 每完成一批零部件，跑单元测试和浏览器截图，重点看手机竖屏、右侧零件卡与底部场景条是否重叠。
-4. 继续审查 3D 模型，尤其是轮胎接地、悬架连杆、翼面角度、Halo、动力单元、冷却回路、制动和传动结构。
-5. 补齐音频版权记录；购买并备案域名，绑定 Nginx，配置 HTTPS。
-6. 如需要用户系统，再单独设计后端，不要在当前纯前端里临时拼接。
-
-## 12. 新聊天框接手建议
-
-新聊天框开始工作时，建议先执行：
-
-```bash
+```powershell
 cd C:\Users\zju20\Documents\Codex\2026-07-13\f1\outputs\racecar-lab
 git status --short --branch
+git log -3 --oneline
 npm test
 ```
 
-如果要改界面或 3D：
+继续改页面或 3D 前先读：
 
-```bash
-npm run build
-npm run test:browser
-```
+- `PROJECT_HANDOFF.md`
+- `AUDIT_REPORT.md`
+- `docs/2026-grand-prix-team-model-basis.md`
+- 本轮备份目录中的 `MANIFEST.sha256` 与关键截图
 
-如果要部署：
+接手时不要只看截图；必须同时核对双语隔离、车型数据、证据等级、`localStorage` 命名空间、手机竖屏、3D 几何、静态资源许可、完整测试和线上 release 指向。
 
-1. 确认本地构建通过。
-2. 提交并推送 GitHub。
-3. 生成 `dist/` 压缩包。
-4. 上传压缩包和 Nginx 配置到服务器。
-5. 运行 `deploy/deploy-racecar-lab.sh`。
-6. 验证线上 `http://124.221.220.60/`。
+## 11. 一句话总结
 
-接手时不要只看页面截图。需要同时检查：
-
-- 数据文件是否双语完整。
-- 车型隔离是否正确。
-- localStorage key 是否带车型或功能命名空间。
-- 手机竖屏是否溢出。
-- 桌面端是否仍是一屏式体验。
-- 3D 几何是否符合基本工程常识。
-- 四车切换是否真正改变 `data-gp-*` 几何签名，而不是只换材质。
-- 新增车队事实是否标明官方规格、公开观察或教学推演，且来源链接仍可访问。
-- 公式是否用 KaTeX 表达上下标、分式和希腊字母。
-- 测试是否覆盖新增数据和边界。
-
-## 13. 一句话总结
-
-RaceCar Lab 当前是一个已上线的纯前端交互式赛车工程学习站，核心价值在 3D 拆解、零部件深度卡片、公式实验和问答训练。后续工作重点不是重新搭架构，而是在现有架构内继续提高每个零部件的交互深度、工程准确性、手机适配和长期上线合规性。
+RaceCar Lab 当前是一个已上线、可回滚、经过 73 个单元测试和 13 个真实浏览器测试验证的互动赛车工程学习站；本轮重点把车队技术车库改成大字号、三栏全宽、复杂车型 SVG 和四队八位车手的完整桌面/手机体验，后续应继续提高公开证据质量、工程交互深度与长期发布合规性。
