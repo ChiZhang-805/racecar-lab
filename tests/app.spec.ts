@@ -172,7 +172,10 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
           const hint = await page.locator('.interaction-hint').boundingBox()
           expect(hint).not.toBeNull()
           expect(hint!.x + hint!.width / 2).toBeGreaterThan(viewport.width / 2 + 10)
-          if (locale === 'en' && vehicle === 'student-ev') await page.screenshot({ path: testInfo.outputPath('student-en-390x844-lab.png') })
+          if (locale === 'en' && vehicle === 'student-ev') {
+            await page.waitForTimeout(700)
+            await page.screenshot({ path: testInfo.outputPath('student-en-390x844-lab.png') })
+          }
         }
         const railLabels = await page.locator('.system-name strong').evaluateAll((elements) => elements.map((element) => ({
           clientWidth: element.clientWidth,
