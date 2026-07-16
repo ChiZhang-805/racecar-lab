@@ -159,6 +159,21 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
         await enterLab(page)
         await assertPageFits(page)
         await expect(page.locator('.system-button')).toHaveCount(5)
+        if (viewport.width < 680) {
+          const railButtons = await page.locator('.system-button').evaluateAll((elements) => elements.map((element) => {
+            const box = element.getBoundingClientRect()
+            return { left: box.left, top: box.top, bottom: box.bottom, width: box.width }
+          }))
+          for (let index = 1; index < railButtons.length; index += 1) {
+            expect(Math.abs(railButtons[index]!.left - railButtons[0]!.left)).toBeLessThanOrEqual(1)
+            expect(railButtons[index]!.top).toBeGreaterThanOrEqual(railButtons[index - 1]!.bottom - 1)
+            expect(Math.abs(railButtons[index]!.width - railButtons[0]!.width)).toBeLessThanOrEqual(1)
+          }
+          const hint = await page.locator('.interaction-hint').boundingBox()
+          expect(hint).not.toBeNull()
+          expect(hint!.x + hint!.width / 2).toBeGreaterThan(viewport.width / 2 + 10)
+          if (locale === 'en' && vehicle === 'student-ev') await page.screenshot({ path: testInfo.outputPath('student-en-390x844-lab.png') })
+        }
         const railLabels = await page.locator('.system-name strong').evaluateAll((elements) => elements.map((element) => ({
           clientWidth: element.clientWidth,
           scrollWidth: element.scrollWidth,

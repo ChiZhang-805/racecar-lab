@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { CameraControls, ContactShadows, Grid, RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { PART_MAP, type CategoryId, type PartId, type ScenarioId } from './data'
-import { GRAND_PRIX_PART_VIEWS, GRAND_PRIX_SCENE_ENVELOPE, grandPrixFrontWingIncidence, grandPrixRearWingIncidence, MOBILE_SCENE_CAMERAS, rodTransform, SCENE_CAMERA_FOV, SCENE_CAMERA_MAX_DISTANCE, WHEEL_GEOMETRY } from './modelGeometry'
+import { GRAND_PRIX_PART_VIEWS, GRAND_PRIX_SCENE_ENVELOPE, grandPrixFrontWingIncidence, grandPrixRearWingIncidence, MOBILE_SCENE_CAMERAS, MOBILE_SCENE_OVERVIEW_TARGET_Y, rodTransform, SCENE_CAMERA_FOV, SCENE_CAMERA_MAX_DISTANCE, WHEEL_GEOMETRY } from './modelGeometry'
 import { GRAND_PRIX_TEAMS, type GrandPrixTeamId } from './grandPrixTeams'
 import type { VehicleId } from './vehicles'
 
@@ -1351,7 +1351,7 @@ function CameraRig({ vehicleId, intro, selectedId, resetSignal }: { vehicleId: V
       const cameraPosition: [number, number, number] = mobilePortrait
         ? vehicleId === 'grand-prix-2026' ? MOBILE_SCENE_CAMERAS.grandPrixOverview : MOBILE_SCENE_CAMERAS.studentOverview
         : vehicleId === 'grand-prix-2026' ? [9.1, 5.3, 10.2] : [7.4, 4.6, 8.4]
-      controls.current.setLookAt(...cameraPosition, 0, 0.72, 0.05, true)
+      controls.current.setLookAt(...cameraPosition, 0, mobilePortrait ? MOBILE_SCENE_OVERVIEW_TARGET_Y : 0.72, 0.05, true)
       return
     }
     const part = PART_MAP[selectedId]

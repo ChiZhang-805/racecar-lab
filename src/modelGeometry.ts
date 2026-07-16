@@ -5,6 +5,7 @@ export type V3 = [number, number, number]
 
 export const SCENE_CAMERA_MAX_DISTANCE = 24
 export const SCENE_CAMERA_FOV = { desktop: 36, mobilePortrait: 58 } as const
+export const MOBILE_SCENE_OVERVIEW_TARGET_Y = 1.05
 export const MOBILE_SCENE_CAMERAS = {
   grandPrixIntro: [11.2, 5.9, 13.1],
   studentIntro: [9.7, 5.15, 11.55],

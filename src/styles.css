@@ -4338,8 +4338,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
   .cooling-fault-card .cooling-flip-card__back > p { flex: 0 0 auto; min-height: 108px; }
 }
 
-/* Narrow portrait: reserve separate, scrollable regions for navigation,
-   learning cards and scene controls instead of stacking fixed panels. */
+/* Narrow portrait: keep the five engineering systems in the original
+   vertical rail while preserving independent learning and scene controls. */
 @media (max-width: 680px) and (orientation: portrait) {
   .lab-topbar {
     top: max(8px, env(safe-area-inset-top));
@@ -4350,24 +4350,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
   .system-rail {
     top: calc(max(8px, env(safe-area-inset-top)) + 64px);
     left: max(8px, env(safe-area-inset-left));
-    right: max(8px, env(safe-area-inset-right));
-    width: auto;
-    height: 58px;
+    right: auto;
+    width: clamp(188px, 55vw, 210px);
+    height: auto;
     padding: 6px;
-    display: flex;
-    gap: 5px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
+    display: block;
+    overflow: visible;
   }
-  .system-rail::-webkit-scrollbar { display: none; }
-  .system-button { flex: 0 0 112px; height: 44px; grid-template-columns: 8px minmax(0, 1fr); padding: 0 9px; }
+  .system-button { width: 100%; height: 42px; grid-template-columns: 8px minmax(0, 1fr); padding: 0 9px; }
   .system-name strong { font-size: 11px; text-overflow: ellipsis; }
 
   .lesson-panel {
-    top: calc(max(8px, env(safe-area-inset-top)) + 130px);
-    left: max(8px, env(safe-area-inset-left));
+    top: calc(max(8px, env(safe-area-inset-top)) + 64px);
+    left: calc(max(8px, env(safe-area-inset-left)) + clamp(188px, 55vw, 210px) + 10px);
     right: max(8px, env(safe-area-inset-right));
     width: auto;
     max-height: min(22dvh, 190px);
@@ -4377,7 +4372,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
     overscroll-behavior: contain;
     scrollbar-width: thin;
   }
-  .panel-minibutton--lesson { top: calc(max(8px, env(safe-area-inset-top)) + 132px); right: max(18px, env(safe-area-inset-right)); }
+  .panel-minibutton--lesson { top: calc(max(8px, env(safe-area-inset-top)) + 66px); right: max(18px, env(safe-area-inset-right)); }
 
   .scenario-dock {
     left: max(8px, env(safe-area-inset-left));
@@ -4415,14 +4410,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
   .part-panel > p { max-height: none; overflow: visible; }
   .panel-minibutton--part { left: max(20px, env(safe-area-inset-left)); bottom: calc(max(8px, env(safe-area-inset-bottom)) + 112px); }
 
-  .interaction-hint { top: 54%; grid-template-columns: 12px minmax(0, auto); width: max-content; max-width: calc(100vw - 28px); }
+  .interaction-hint { top: 54%; left: calc(50% + 18px); grid-template-columns: 12px minmax(0, auto); width: max-content; max-width: calc(100vw - 28px); }
   .interaction-hint > span:last-child { display: none; }
 }
 
 @media (max-width: 360px) and (orientation: portrait) {
   .brand--compact { display: none; }
   .lab-topbar { justify-content: flex-end; }
-  .system-button { flex-basis: 104px; }
+  .system-button { flex-basis: auto; }
   .knowledge-parts { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; }
   .knowledge-parts button { flex: 0 0 132px; }
   .engineering-detail__header h2 { font-size: 23px; }

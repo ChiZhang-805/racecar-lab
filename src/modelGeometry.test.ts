@@ -8,6 +8,7 @@ import {
   grandPrixFrontWingIncidence,
   grandPrixRearWingIncidence,
   MOBILE_SCENE_CAMERAS,
+  MOBILE_SCENE_OVERVIEW_TARGET_Y,
   rodTransform,
   SCENE_CAMERA_FOV,
   SCENE_CAMERA_MAX_DISTANCE,
@@ -25,6 +26,8 @@ describe('3D model geometry integrity', () => {
       expect(Math.hypot(...position)).toBeLessThanOrEqual(SCENE_CAMERA_MAX_DISTANCE)
     }
     expect(SCENE_CAMERA_FOV.mobilePortrait).toBeGreaterThan(SCENE_CAMERA_FOV.desktop)
+    expect(MOBILE_SCENE_OVERVIEW_TARGET_Y).toBeGreaterThan(0.72)
+    expect(MOBILE_SCENE_OVERVIEW_TARGET_Y).toBeLessThanOrEqual(1.1)
   })
 
   it('records the governing 2026 Grand Prix geometry and control anchors', () => {
