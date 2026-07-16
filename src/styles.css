@@ -2912,34 +2912,38 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
 .garage-model-list > button > svg { color: var(--team-accent); }
 .garage-model-index { color: #63757c; font-size: 11px; }
 
-.garage-profile { min-height: 0; padding: 15px; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 11px; overflow-y: auto; border: 1px solid color-mix(in srgb, var(--team-accent) 24%, rgba(255,255,255,.08)); background: linear-gradient(145deg, color-mix(in srgb, var(--team-body) 5%, rgba(255,255,255,.025)), rgba(255,255,255,.012)); scrollbar-width: thin; }
-.garage-profile-hero { min-height: 128px; padding: 12px 18px; display: grid; grid-template-columns: minmax(280px, .85fr) 1.15fr; align-items: center; gap: 24px; border: 1px solid rgba(255,255,255,.07); background: linear-gradient(115deg, rgba(5, 10, 13, .6), color-mix(in srgb, var(--team-body) 8%, transparent)); }
-.garage-profile-hero > div:last-child > span { color: var(--team-accent); font-size: 11px; font-weight: 760; letter-spacing: .12em; text-transform: uppercase; }
-.garage-profile-hero h3 { margin: 6px 0 0; color: #f0f6f7; font-size: clamp(28px, 2.2vw, 36px); }
-.garage-profile-hero p { margin: 9px 0 0; color: #b3c2c7; font-size: 15px; line-height: 1.5; }
-.garage-car-hero { min-width: 0; height: 112px; display: grid; place-items: center; overflow: hidden; background: radial-gradient(ellipse at 52% 72%, color-mix(in srgb, var(--team-accent) 15%, transparent), transparent 63%); }
-.garage-car-hero .garage-car-art { width: min(100%, 390px); }
+.garage-profile { min-height: 0; padding: 12px; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; overflow-y: auto; border: 1px solid color-mix(in srgb, var(--team-accent) 24%, rgba(255,255,255,.08)); background: linear-gradient(145deg, color-mix(in srgb, var(--team-body) 5%, rgba(255,255,255,.025)), rgba(255,255,255,.012)); scrollbar-width: thin; }
+.garage-profile-hero { min-height: 160px; padding: 10px 18px; display: grid; grid-template-columns: minmax(280px, .85fr) 1.15fr; align-items: center; gap: 24px; border: 1px solid rgba(255,255,255,.07); background: linear-gradient(115deg, rgba(5, 10, 13, .6), color-mix(in srgb, var(--team-body) 8%, transparent)); }
+.garage-profile-hero > div:last-child > span { color: var(--team-accent); font-size: 13px; font-weight: 760; letter-spacing: .12em; text-transform: uppercase; }
+.garage-profile-hero h3 { margin: 6px 0 0; color: #f0f6f7; font-size: clamp(32px, 2.5vw, 42px); line-height: 1.08; }
+.garage-profile-hero p { margin: 9px 0 0; color: #b3c2c7; font-size: 17px; line-height: 1.48; }
+.garage-car-hero { min-width: 0; height: 138px; display: grid; place-items: center; overflow: hidden; background: radial-gradient(ellipse at 52% 72%, color-mix(in srgb, var(--team-accent) 15%, transparent), transparent 63%); }
+.garage-car-hero .garage-car-art { width: min(100%, 390px); height: 100%; }
 
-.garage-question { min-height: 72px; padding: 11px 14px; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 11px; border-left: 3px solid var(--team-accent); background: color-mix(in srgb, var(--team-accent) 6%, rgba(255,255,255,.015)); }
+@media (min-width: 981px) {
+  .garage-car-hero .garage-car-art { transform: translateY(-8px); }
+}
+
+.garage-question { min-height: 60px; padding: 8px 14px; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 11px; border-left: 3px solid var(--team-accent); background: color-mix(in srgb, var(--team-accent) 6%, rgba(255,255,255,.015)); }
 .garage-question > svg { color: var(--team-accent); }
 .garage-question div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .garage-question span { color: #83979e; font-size: 11px; letter-spacing: .1em; }
 .garage-question strong { color: #e2ecef; font-size: 15px; line-height: 1.45; }
 
 .garage-facts { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.garage-facts article { position: relative; min-height: 138px; padding: 14px 15px 31px; overflow: hidden; border: 1px solid rgba(255,255,255,.075); background: rgba(255,255,255,.018); }
+.garage-facts article { position: relative; min-height: 122px; padding: 11px 14px 28px; overflow: hidden; border: 1px solid rgba(255,255,255,.075); background: rgba(255,255,255,.018); }
 .garage-facts article > span { color: #82969e; font-size: 11px; letter-spacing: .08em; }
-.garage-facts article strong { display: block; margin-top: 8px; color: #e8f0f2; font-size: 19px; }
-.garage-facts article p { margin: 8px 0 0; color: #a9babf; font-size: 14px; line-height: 1.52; }
-.garage-facts article small { position: absolute; left: 15px; bottom: 9px; min-height: 18px; padding: 2px 7px; border: 1px solid rgba(255,255,255,.08); color: #8da0a6; font-size: 10px; letter-spacing: .05em; }
+.garage-facts article strong { display: block; margin-top: 6px; color: #e8f0f2; font-size: 19px; }
+.garage-facts article p { margin: 6px 0 0; color: #a9babf; font-size: 14px; line-height: 1.45; }
+.garage-facts article small { position: absolute; left: 14px; bottom: 7px; min-height: 18px; padding: 2px 7px; border: 1px solid rgba(255,255,255,.08); color: #8da0a6; font-size: 10px; letter-spacing: .05em; }
 .garage-facts article[data-evidence="official-spec"] small { border-color: rgba(89, 217, 184, .25); color: #70d9bc; }
 .garage-facts article[data-evidence="public-observation"] small { border-color: rgba(102, 203, 238, .25); color: #75d2ee; }
 .garage-facts article[data-evidence="educational-inference"] small { border-color: rgba(226, 180, 87, .25); color: #dcbc72; }
 
-.garage-sources { min-height: 46px; display: grid; grid-template-columns: 102px minmax(0, 1fr); align-items: start; gap: 10px; }
-.garage-sources > span { padding-top: 8px; color: #81949b; font-size: 11px; letter-spacing: .08em; }
+.garage-sources { min-height: 38px; display: grid; grid-template-columns: 102px minmax(0, 1fr); align-items: start; gap: 10px; }
+.garage-sources > span { padding-top: 6px; color: #81949b; font-size: 11px; letter-spacing: .08em; }
 .garage-sources > div { display: flex; flex-wrap: wrap; gap: 6px; }
-.garage-sources a { min-height: 34px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(91, 211, 240, .2); color: #7fdcf1; font-size: 11px; line-height: 1.3; text-decoration: none; }
+.garage-sources a { min-height: 30px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(91, 211, 240, .2); color: #7fdcf1; font-size: 11px; line-height: 1.3; text-decoration: none; }
 .garage-sources a:hover { border-color: rgba(91, 211, 240, .48); background: rgba(91, 211, 240, .07); }
 
 .garage-compare { min-height: 0; overflow-y: auto; scrollbar-width: thin; }

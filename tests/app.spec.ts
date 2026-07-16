@@ -227,6 +227,37 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
         if (viewport.width >= 1200 && vehicle === 'grand-prix-2026') {
           await page.locator('button.garage-launch').click()
           const garage = page.locator('.garage-modal')
+          await garage.locator('[data-grand-prix-team="mercedes"]').click()
+          const profileHero = await garage.locator('.garage-profile-hero').evaluate((hero) => {
+            const heroBox = hero.getBoundingClientRect()
+            const carBox = hero.querySelector('.garage-car-hero')!.getBoundingClientRect()
+            const wheels = [...hero.querySelectorAll('.garage-car-art__wheel')].map((wheel) => {
+              const box = wheel.getBoundingClientRect()
+              return { top: box.top, bottom: box.bottom }
+            })
+            const label = hero.querySelector(':scope > div:last-child > span')!
+            const title = hero.querySelector('h3')!
+            const description = hero.querySelector('p')!
+            return {
+              hero: { top: heroBox.top, bottom: heroBox.bottom, height: heroBox.height },
+              car: { top: carBox.top, bottom: carBox.bottom, height: carBox.height },
+              wheels,
+              labelFont: Number.parseFloat(getComputedStyle(label).fontSize),
+              titleFont: Number.parseFloat(getComputedStyle(title).fontSize),
+              descriptionFont: Number.parseFloat(getComputedStyle(description).fontSize),
+            }
+          })
+          expect(profileHero.hero.height).toBeGreaterThanOrEqual(158)
+          expect(profileHero.car.height).toBeGreaterThanOrEqual(136)
+          expect(profileHero.wheels).toHaveLength(2)
+          profileHero.wheels.forEach((wheel) => {
+            expect(wheel.top).toBeGreaterThanOrEqual(profileHero.hero.top + 1)
+            expect(wheel.bottom).toBeLessThanOrEqual(profileHero.hero.bottom - 3)
+          })
+          expect(profileHero.labelFont).toBeGreaterThanOrEqual(12)
+          expect(profileHero.titleFont).toBeGreaterThanOrEqual(32)
+          expect(profileHero.descriptionFont).toBeGreaterThanOrEqual(16)
+          await garage.screenshot({ path: testInfo.outputPath(`grand-prix-profile-${locale}.png`) })
           await garage.getByRole('tab', { name: locale === 'zh' ? '当家车手' : 'Driver line-up' }).click()
           await page.waitForTimeout(320)
           const layout = await garage.locator('.garage-drivers').evaluate((panel) => {
