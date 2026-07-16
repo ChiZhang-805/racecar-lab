@@ -61,7 +61,7 @@ async function expectAccessible(page: Page) {
 
 test('full-screen layout, language isolation and dialog focus work at all target viewports', async ({ page }) => {
   const errors = captureErrors(page)
-  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1366, height: 768 }, { width: 844, height: 390 }, { width: 390, height: 844 }]) {
+  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1366, height: 768 }, { width: 844, height: 390 }, { width: 390, height: 844 }, { width: 360, height: 800 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(viewport)
     await page.goto('/')
     await expect(page.locator('.intro-screen')).toBeVisible()
@@ -130,6 +130,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
         await assertNoHorizontalOverflow(settings)
         await expect(settings.locator('[data-locale]')).toHaveCount(2)
         await expect(settings.locator('[data-vehicle]')).toHaveCount(2)
+        await expect(settings.locator('[data-livery]')).toHaveCount(vehicle === 'grand-prix-2026' ? 4 : 0)
         await expect(settings.locator('.music-track-list button')).toHaveCount(8)
         await settings.locator('.music-track-list button').last().scrollIntoViewIfNeeded()
         await expect(settings.locator('.music-track-list button').last()).toBeVisible()
@@ -274,6 +275,53 @@ test('portrait transient learning panels preserve focus and fit without overlap 
   await expect(finish).toBeFocused()
 
   await assertPageFits(page)
+  expect(errors).toEqual([])
+})
+
+test('320px portrait keeps navigation, lesson, part and scene controls in separate reachable regions', async ({ page }, testInfo: TestInfo) => {
+  const errors = captureErrors(page)
+  await page.addInitScript(() => {
+    localStorage.setItem('racecar-lab-locale', 'en')
+    localStorage.setItem('racecar-lab-vehicle', 'grand-prix-2026')
+  })
+  await page.setViewportSize({ width: 320, height: 568 })
+  await page.goto('/')
+  await assertPageFits(page)
+
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const settings = page.locator('.settings-modal')
+  await expect(settings.locator('[data-livery]')).toHaveCount(4)
+  await settings.locator('[data-livery="red-bull"]').scrollIntoViewIfNeeded()
+  await settings.locator('[data-livery="red-bull"]').click()
+  await expect(page.locator('.scene-canvas')).toHaveAttribute('data-livery', 'red-bull')
+  await settings.locator('.livery-source a').scrollIntoViewIfNeeded()
+  await expect(settings.locator('.livery-source a')).toBeVisible()
+  await assertNoHorizontalOverflow(settings)
+  await settings.locator('.settings-close').click()
+
+  await page.locator('.intro-actions .button--primary').click()
+  const rail = page.locator('.system-rail')
+  const lesson = page.locator('.lesson-panel')
+  const part = page.locator('.part-panel')
+  const dock = page.locator('.scenario-dock')
+  await expect(rail).toBeVisible()
+  await expect(lesson).toBeVisible()
+  await expect(part).toBeVisible()
+  await expect(dock).toBeVisible()
+  await rail.locator('.system-button').last().scrollIntoViewIfNeeded()
+  await expect(rail.locator('.system-button').last()).toBeVisible()
+  await assertNoHorizontalOverflow(dock)
+
+  const boxes = await Promise.all([rail, lesson, part, dock].map(locator => locator.boundingBox()))
+  expect(boxes.every(Boolean)).toBe(true)
+  const intersectionArea = (a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) =>
+    Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x))
+      * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
+  expect(intersectionArea(boxes[0]!, boxes[1]!)).toBeLessThanOrEqual(1)
+  expect(intersectionArea(boxes[1]!, boxes[2]!)).toBeLessThanOrEqual(1)
+  expect(intersectionArea(boxes[2]!, boxes[3]!)).toBeLessThanOrEqual(1)
+  await assertPageFits(page)
+  await page.screenshot({ path: testInfo.outputPath('grand-prix-320x568-lab.png') })
   expect(errors).toEqual([])
 })
 
@@ -587,6 +635,17 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
   await page.screenshot({ path: testInfo.outputPath('grand-prix-intro.png') })
   await page.getByRole('button', { name: 'Settings' }).click()
   await expect(page.locator('[data-vehicle="grand-prix-2026"]')).toHaveAttribute('aria-pressed', 'true')
+  const liveryOptions = page.locator('.settings-modal [data-livery]')
+  await expect(liveryOptions).toHaveCount(4)
+  for (const id of ['ferrari', 'mclaren', 'mercedes', 'red-bull']) {
+    await page.locator(`.settings-modal [data-livery="${id}"]`).click()
+    await expect(page.locator('.scene-canvas')).toHaveAttribute('data-livery', id)
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('racecar-lab-grand-prix-livery'))).toBe(id)
+    await page.getByRole('button', { name: 'Close' }).click()
+    await page.waitForTimeout(180)
+    await page.locator('.scene-canvas').screenshot({ path: testInfo.outputPath(`grand-prix-livery-${id}.png`) })
+    await page.getByRole('button', { name: 'Settings' }).click()
+  }
   const settingsWithoutNativeLocaleNames = await page.locator('.settings-modal').evaluate((element) => {
     const clone = element.cloneNode(true) as HTMLElement
     clone.querySelector('[data-locale="zh"]')?.remove()
@@ -668,6 +727,7 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
   await page.reload()
   await page.getByRole('button', { name: 'Settings' }).click()
   await expect(page.locator('[data-vehicle="grand-prix-2026"]')).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.settings-modal [data-livery="red-bull"]')).toHaveAttribute('aria-pressed', 'true')
   expect(errors).toEqual([])
 })
 

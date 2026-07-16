@@ -3,7 +3,7 @@ import {
   ArrowRight, Check, ChevronRight, CircleDot, Compass, Eye, EyeOff, Gauge, Globe2, House,
   Languages, Layers3, LockKeyhole, Map, Maximize2, Minimize2, Pause, Play, RotateCcw, ScanLine,
   Settings, Sparkles, Wind, X, Zap, BookOpenCheck, CarFront, Music2, Repeat, Repeat1, Shuffle,
-  Volume2,
+  Volume2, Palette, ExternalLink,
 } from 'lucide-react'
 import CarScene from './CarScene'
 import { CATEGORIES, COURSES, COURSE_IDS, PARTS, PART_MAP, type CategoryId, type Course, type CourseId, type PartId, type ScenarioId } from './data'
@@ -12,6 +12,13 @@ import { readJson, readText, removeStored, writeJson, writeText } from './storag
 import { useDialogFocus } from './useDialogFocus'
 import { VEHICLES, VEHICLE_IDS, isVehicleId, type VehicleId } from './vehicles'
 import { MUSIC_MODES, MUSIC_TRACKS, type MusicMode, type MusicTrackId } from './music'
+import {
+  DEFAULT_GRAND_PRIX_LIVERY_ID,
+  GRAND_PRIX_LIVERIES,
+  GRAND_PRIX_LIVERY_IDS,
+  isGrandPrixLiveryId,
+  type GrandPrixLiveryId,
+} from './grandPrixLiveries'
 
 const EngineeringDetail = lazy(() => import('./EngineeringDetail'))
 const KnowledgeCenter = lazy(() => import('./KnowledgeCenter'))
@@ -278,17 +285,19 @@ function ScenarioDock({ locale, scenario, onScenario, explode, onExplode, xray, 
 }
 
 function SettingsModal({
-  locale, vehicleId, musicTrackId, musicMode, musicPlaying, musicError,
-  onLocale, onVehicle, onMusicTrack, onMusicMode, onToggleMusic, onClose, onResetProgress,
+  locale, vehicleId, liveryId, musicTrackId, musicMode, musicPlaying, musicError,
+  onLocale, onVehicle, onLivery, onMusicTrack, onMusicMode, onToggleMusic, onClose, onResetProgress,
 }: {
   locale: Locale
   vehicleId: VehicleId
+  liveryId: GrandPrixLiveryId
   musicTrackId: MusicTrackId
   musicMode: MusicMode
   musicPlaying: boolean
   musicError: boolean
   onLocale: (locale: Locale) => void
   onVehicle: (vehicleId: VehicleId) => void
+  onLivery: (liveryId: GrandPrixLiveryId) => void
   onMusicTrack: (trackId: MusicTrackId) => void
   onMusicMode: () => void
   onToggleMusic: () => void
@@ -316,6 +325,10 @@ function SettingsModal({
   const selectedTrack = MUSIC_TRACKS.find((track) => track.id === musicTrackId) ?? MUSIC_TRACKS[0]!
   const ModeIcon = musicMode === 'repeat-one' ? Repeat1 : musicMode === 'shuffle' ? Shuffle : Repeat
   const modeLabel = musicMode === 'repeat-one' ? c.musicRepeatOne : musicMode === 'shuffle' ? c.musicShuffle : c.musicSequence
+  const selectedLivery = GRAND_PRIX_LIVERIES[liveryId]
+  const liveryUi = locale === 'zh'
+    ? { title: 'F1 涂装系列', note: '非官方、无车队与赞助商标志的教学型外观诠释。', source: '查看官方公开参考' }
+    : { title: 'F1 livery series', note: 'Unofficial, logo-free educational interpretations without team or sponsor marks.', source: 'View official public reference' }
   return (
     <div className="overlay settings-overlay" role="dialog" aria-modal="true" aria-label={c.settingsTitle}>
       <div className="overlay-backdrop" onClick={onClose} />
@@ -328,6 +341,27 @@ function SettingsModal({
         <div className="settings-section"><h3><CarFront size={20} /> {c.vehicle}</h3><div className="language-options vehicle-options">
           {VEHICLE_IDS.map((id) => <button data-vehicle={id} key={id} className={vehicleId === id ? 'is-active' : ''} onClick={() => onVehicle(id)} aria-pressed={vehicleId === id}><CarFront size={22} /><strong>{VEHICLES[id].name[locale]}</strong>{vehicleId === id && <Check size={19} />}</button>)}
         </div></div>
+        {vehicleId === 'grand-prix-2026' && <div className="settings-section settings-section--livery">
+          <h3><Palette size={20} /> {liveryUi.title}</h3>
+          <div className="livery-options">
+            {GRAND_PRIX_LIVERY_IDS.map((id) => {
+              const livery = GRAND_PRIX_LIVERIES[id]
+              return <button
+                data-livery={id}
+                key={id}
+                className={liveryId === id ? 'is-active' : ''}
+                onClick={() => onLivery(id)}
+                aria-pressed={liveryId === id}
+                style={{ '--livery-body': livery.palette.body, '--livery-secondary': livery.palette.secondary, '--livery-accent': livery.palette.accent, '--livery-pinstripe': livery.palette.pinstripe } as React.CSSProperties}
+              >
+                <span className="livery-swatch" aria-hidden="true"><i /><i /><i /><i /></span>
+                <span><strong>{livery.name[locale]}</strong><small>{livery.signature[locale]}</small></span>
+                {liveryId === id && <Check size={18} />}
+              </button>
+            })}
+          </div>
+          <div className="livery-source"><span>{liveryUi.note}</span><a href={selectedLivery.sourceUrl} target="_blank" rel="noopener noreferrer">{liveryUi.source}<ExternalLink size={14} /></a></div>
+        </div>}
         <div className="settings-section settings-section--music">
           <div className="music-header">
             <h3><Music2 size={20} /> {c.music}</h3>
@@ -368,6 +402,10 @@ function App() {
   const [vehicleId, setVehicleId] = useState<VehicleId>(() => {
     const saved = readText('racecar-lab-vehicle')
     return isVehicleId(saved) ? saved : 'student-ev'
+  })
+  const [liveryId, setLiveryId] = useState<GrandPrixLiveryId>(() => {
+    const saved = readText('racecar-lab-grand-prix-livery')
+    return isGrandPrixLiveryId(saved) ? saved : DEFAULT_GRAND_PRIX_LIVERY_ID
   })
   const [musicTrackId, setMusicTrackId] = useState<MusicTrackId>(() => {
     const saved = readText('racecar-lab-music-track')
@@ -415,6 +453,7 @@ function App() {
 
   useEffect(() => { writeJson(progressKey, completed) }, [completed, progressKey])
   useEffect(() => { writeText('racecar-lab-vehicle', vehicleId) }, [vehicleId])
+  useEffect(() => { writeText('racecar-lab-grand-prix-livery', liveryId) }, [liveryId])
   useEffect(() => { writeText('racecar-lab-music-track', musicTrackId) }, [musicTrackId])
   useEffect(() => { writeText('racecar-lab-music-mode', musicMode) }, [musicMode])
   useEffect(() => {
@@ -589,7 +628,7 @@ function App() {
   return (
     <main className={`app-shell ${intro ? 'is-intro' : 'is-lab'} ${entering ? 'is-entering' : ''} ${overlayOpen ? 'has-overlay' : ''}`}>
       <audio ref={audioRef} src={currentMusicTrack.file} preload="metadata" onEnded={advanceMusic} onCanPlay={() => setMusicError(false)} onError={() => { setMusicError(true); setMusicPlaying(false) }} />
-      <CarScene vehicleId={vehicleId} intro={intro && !entering} introPaused={introPaused} selectedId={selectedId} onSelect={selectPart} explode={explode} xray={xray} visibleCategories={visibleCategories} scenario={scenario} resetSignal={resetSignal} ariaLabel={VEHICLES[vehicleId].sceneLabel[locale]} partOptions={PARTS.map((part) => ({ id: part.id, label: getPart(part.id, locale, vehicleId).name, category: part.category }))} />
+      <CarScene vehicleId={vehicleId} liveryId={liveryId} intro={intro && !entering} introPaused={introPaused} selectedId={selectedId} onSelect={selectPart} explode={explode} xray={xray} visibleCategories={visibleCategories} scenario={scenario} resetSignal={resetSignal} ariaLabel={VEHICLES[vehicleId].sceneLabel[locale]} partOptions={PARTS.map((part) => ({ id: part.id, label: getPart(part.id, locale, vehicleId).name, category: part.category }))} />
       {intro ? <IntroScreen locale={locale} paused={introPaused} onEnter={enterLab} onReset={() => setResetSignal((value) => value + 1)} onTogglePause={() => setIntroPaused((value) => !value)} onKnowledge={() => setKnowledgeOpen(true)} onSettings={() => setSettingsOpen(true)} /> : (
         <div className="lab-ui">
           <header className="lab-topbar">
@@ -614,7 +653,7 @@ function App() {
         </div>
       )}
       {knowledgeOpen && <Suspense fallback={<LoadingOverlay locale={locale} />}><KnowledgeCenter vehicleId={vehicleId} locale={locale} profileId={profileId} initialPartId={selectedId} onClose={() => setKnowledgeOpen(false)} /></Suspense>}
-      {settingsOpen && <SettingsModal locale={locale} vehicleId={vehicleId} musicTrackId={musicTrackId} musicMode={musicMode} musicPlaying={musicPlaying} musicError={musicError} onLocale={setLocale} onVehicle={switchVehicle} onMusicTrack={chooseMusicTrack} onMusicMode={cycleMusicMode} onToggleMusic={toggleMusicPlayback} onClose={() => setSettingsOpen(false)} onResetProgress={resetProgress} />}
+      {settingsOpen && <SettingsModal locale={locale} vehicleId={vehicleId} liveryId={liveryId} musicTrackId={musicTrackId} musicMode={musicMode} musicPlaying={musicPlaying} musicError={musicError} onLocale={setLocale} onVehicle={switchVehicle} onLivery={setLiveryId} onMusicTrack={chooseMusicTrack} onMusicMode={cycleMusicMode} onToggleMusic={toggleMusicPlayback} onClose={() => setSettingsOpen(false)} onResetProgress={resetProgress} />}
     </main>
   )
 }

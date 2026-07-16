@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { PARTS } from './data'
 import {
   GRAND_PRIX_REGULATION_BASIS,
+  GRAND_PRIX_SCENE_ENVELOPE,
   GRAND_PRIX_PART_VIEWS,
+  grandPrixSceneUnitsToMm,
   grandPrixFrontWingIncidence,
   grandPrixRearWingIncidence,
   rodTransform,
@@ -22,6 +24,10 @@ describe('3D model geometry integrity', () => {
       rimDiameterInches: 18,
       frontTyreMountingWidthMm: 315,
       rearTyreMountingWidthMm: 401.3,
+      frontRimOverallWidthMm: 334,
+      rearRimOverallWidthMm: 420.3,
+      qualifyingMinimumMassWithoutNominalTyresKg: 726,
+      otherSessionMinimumMassWithoutNominalTyresKg: 724,
       engineDisplacementCc: 1600,
       cylinderCount: 6,
       cylinderBankAngleDeg: 90,
@@ -32,6 +38,17 @@ describe('3D model geometry integrity', () => {
       centralWheelFastenerRequired: true,
       dualWheelRetentionRequired: true,
     })
+  })
+
+  it('keeps the teaching-model bodywork inside its FIA-traceable envelope', () => {
+    expect(grandPrixSceneUnitsToMm(GRAND_PRIX_SCENE_ENVELOPE.frontWingWidthSceneUnits))
+      .toBeLessThanOrEqual(GRAND_PRIX_REGULATION_BASIS.maxBodyworkWidthMmExcludingTyresAndRims)
+    expect(GRAND_PRIX_SCENE_ENVELOPE.frontWingEndplateHalfSpanSceneUnits * 2)
+      .toBeLessThanOrEqual(GRAND_PRIX_SCENE_ENVELOPE.frontWingWidthSceneUnits)
+    expect(grandPrixSceneUnitsToMm(WHEEL_GEOMETRY.grandPrixFront.wheelbase))
+      .toBeCloseTo(GRAND_PRIX_REGULATION_BASIS.maxWheelbaseMm, 6)
+    expect(GRAND_PRIX_SCENE_ENVELOPE.frontExtremityZ).toBeGreaterThan(0)
+    expect(GRAND_PRIX_SCENE_ENVELOPE.rearExtremityZ).toBeLessThan(0)
   })
 
   it('moves only the permitted active-wing flaps between the two states', () => {

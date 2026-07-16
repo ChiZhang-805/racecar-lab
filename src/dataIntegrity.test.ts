@@ -18,6 +18,7 @@ import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngine
 import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
 import { MUSIC_TRACKS } from './music'
 import { VEHICLE_PART_ALIASES } from './vehicles'
+import { GRAND_PRIX_LIVERIES, GRAND_PRIX_LIVERY_IDS, isGrandPrixLiveryId } from './grandPrixLiveries'
 import {
   coolingExperimentsFor,
   coolingFaultCardsFor,
@@ -473,6 +474,28 @@ describe('complete grand prix hybrid curriculum', () => {
     expect(motor.overview.en).not.toContain('April 2026')
     expect(motor.concepts.map((item) => item.zh).join(' ')).not.toContain('350/250')
     expect(motor.concepts.map((item) => item.en).join(' ')).not.toContain('350/250')
+  })
+
+  it('provides four complete, distinguishable and officially sourced logo-free livery interpretations', () => {
+    expect(GRAND_PRIX_LIVERY_IDS).toEqual(['ferrari', 'mclaren', 'mercedes', 'red-bull'])
+    expect(new Set(GRAND_PRIX_LIVERY_IDS.map(id => GRAND_PRIX_LIVERIES[id].palette.body)).size).toBe(4)
+    expect(new Set(GRAND_PRIX_LIVERY_IDS.map(id => GRAND_PRIX_LIVERIES[id].sourceUrl)).size).toBe(4)
+    for (const id of GRAND_PRIX_LIVERY_IDS) {
+      const livery = GRAND_PRIX_LIVERIES[id]
+      expect(livery.id).toBe(id)
+      expect(isGrandPrixLiveryId(id)).toBe(true)
+      expectLocalText(livery.name)
+      expectLocalText(livery.signature)
+      expectLocalText(livery.sourceLabel)
+      expect(livery.sourceUrl).toMatch(/^https:\/\//)
+      expect(Object.values(livery.palette).every(value => typeof value === 'number' || /^#[0-9a-f]{6}$/i.test(value))).toBe(true)
+      expect(livery.palette.roughness).toBeGreaterThan(0)
+      expect(livery.palette.roughness).toBeLessThan(1)
+      expect(livery.palette.metalness).toBeGreaterThanOrEqual(0)
+      expect(livery.palette.metalness).toBeLessThanOrEqual(1)
+    }
+    expect(isGrandPrixLiveryId('unknown')).toBe(false)
+    expect(isGrandPrixLiveryId(null)).toBe(false)
   })
 })
 

@@ -27,6 +27,10 @@ export const GRAND_PRIX_REGULATION_BASIS = {
   rimDiameterInches: 18,
   frontTyreMountingWidthMm: 315,
   rearTyreMountingWidthMm: 401.3,
+  frontRimOverallWidthMm: 334,
+  rearRimOverallWidthMm: 420.3,
+  qualifyingMinimumMassWithoutNominalTyresKg: 726,
+  otherSessionMinimumMassWithoutNominalTyresKg: 724,
   engineDisplacementCc: 1600,
   cylinderCount: 6,
   cylinderBankAngleDeg: 90,
@@ -75,6 +79,21 @@ export const WHEEL_GEOMETRY = {
     wheelbase: 6.18,
   },
 } as const satisfies Record<string, WheelGeometry>
+
+/**
+ * Shared exterior envelope for the code-generated 2026 teaching model. The
+ * scale is anchored to the FIA maximum wheelbase, allowing model dimensions to
+ * be checked in millimetres without presenting the scene as manufacturing CAD.
+ */
+export const GRAND_PRIX_SCENE_ENVELOPE = {
+  millimetresPerSceneUnit: GRAND_PRIX_REGULATION_BASIS.maxWheelbaseMm / WHEEL_GEOMETRY.grandPrixFront.wheelbase,
+  frontWingWidthSceneUnits: 3.44,
+  frontWingEndplateHalfSpanSceneUnits: 1.69,
+  frontExtremityZ: 4.6,
+  rearExtremityZ: -4.6,
+} as const
+
+export const grandPrixSceneUnitsToMm = (sceneUnits: number) => sceneUnits * GRAND_PRIX_SCENE_ENVELOPE.millimetresPerSceneUnit
 
 export function wheelOuterRadius(spec: WheelGeometry) {
   return spec.majorRadius + spec.tubeRadius

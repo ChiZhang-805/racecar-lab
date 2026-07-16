@@ -11,7 +11,7 @@
 <p align="center">
   <a href="http://124.221.220.60/"><img alt="Open the live demo" src="https://img.shields.io/badge/Live_Demo-Open_RaceCar_Lab-E10600?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
   <a href="https://github.com/ChiZhang-805/racecar-lab"><img alt="View the source on GitHub" src="https://img.shields.io/badge/GitHub-View_Source-181717?style=for-the-badge&logo=github&logoColor=white"></a>
-  <a href="#validation"><img alt="View validation commands" src="https://img.shields.io/badge/Checks-71_Unit_%2B_12_Browser-2EA44F?style=for-the-badge&logo=vitest&logoColor=white"></a>
+  <a href="#validation"><img alt="View validation commands" src="https://img.shields.io/badge/Checks-73_Unit_%2B_13_Browser-2EA44F?style=for-the-badge&logo=vitest&logoColor=white"></a>
 </p>
 
 <p align="center">
@@ -33,6 +33,7 @@ RaceCar Lab is a full-screen, browser-based learning experience for Formula Stud
 ## Highlights
 
 - Rotate, zoom, focus, isolate, explode, and inspect two complete 3D race cars.
+- Switch the Grand Prix car among four persistent, logo-free 2026 livery interpretations.
 - Explore 36 dedicated part workbenches with 216 selectable subcomponents.
 - Learn through adjustable simulations, live charts, KaTeX formulas, and worked examples.
 - Practice with 180 bilingual concept, calculation, diagnosis, and design questions.
@@ -73,6 +74,7 @@ npm run verify
 
 - [`src/App.tsx`](src/App.tsx) — application state, navigation, settings, courses, dialogs, and music.
 - [`src/CarScene.tsx`](src/CarScene.tsx) — complete-car geometry, cameras, selection, x-ray, and exploded views.
+- [`docs/2026-grand-prix-model-and-livery-basis.md`](docs/2026-grand-prix-model-and-livery-basis.md) — official public sources, geometry anchors, livery cues, and accuracy boundaries.
 - [`src/ComponentWorkshop.tsx`](src/ComponentWorkshop.tsx) — 36 interactive part workbenches.
 - [`src/EngineeringDetail.tsx`](src/EngineeringDetail.tsx) — engineering lessons, formulas, simulations, and diagnostics.
 - [`src/KnowledgeCenter.tsx`](src/KnowledgeCenter.tsx) — quizzes, filters, scoring, and progress.
@@ -88,6 +90,7 @@ The current public build is available at [http://124.221.220.60/](http://124.221
 ## Important boundaries
 
 - The 3D models are educational, code-generated geometry—not manufacturing or certification CAD.
+- The four team-style liveries are unofficial educational interpretations and intentionally omit logos and sponsor artwork.
 - Simulations explain trends and trade-offs; they do not replace CFD, FEA, rig testing, track correlation, or regulatory approval.
 - Progress is stored locally and does not sync across browsers or devices.
 - Seven audio tracks still require complete first-party source and redistribution records before long-term public use.
