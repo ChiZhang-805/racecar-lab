@@ -141,8 +141,8 @@
 - `git diff --check`：通过。
 - `bash -n deploy/deploy-racecar-lab.sh`：通过。
 - 腾讯云候选 Nginx 配置 `nginx -t`：通过。
-- 腾讯云 release `20260716T084336Z_1a65f16` 已原子部署，Nginx 为 active，公网首页与新生产 JS/CSS 资源均返回 200。
-- 公网 Playwright 关键回归 3/3 通过：完整桌面/竖屏矩阵、320×568 车库与学习区无重叠、四款 Grand Prix 研究车持久化以及 18 个专属总成完整路径。
+- 腾讯云 release `20260716T104108Z_9794e7d` 已原子部署，Nginx 为 active；上一健康版本 `20260716T095634Z_4241607` 保留为回滚点，公网加载新生产资源 `index-CsAZyYid.js` 与 `index-BhjMOAD4.css`。
+- 公网 Playwright 中英文实测通过：四张车队卡高度均为 `669 px`，每张卡上下车手均为 `301.5 px`，底部间距均为 `5 px`；8 张照片全部解码，横向溢出与浏览器错误均为 `0`。
 
 ## 5. 规则来源与边界
 
