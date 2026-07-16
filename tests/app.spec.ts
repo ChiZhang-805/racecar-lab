@@ -228,7 +228,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
           await page.locator('button.garage-launch').click()
           const garage = page.locator('.garage-modal')
           await garage.locator('[data-grand-prix-team="mercedes"]').click()
-          await page.waitForTimeout(400)
+          await page.waitForTimeout(900)
           const profileHero = await garage.locator('.garage-profile-hero').evaluate((hero) => {
             const heroBox = hero.getBoundingClientRect()
             const carBox = hero.querySelector('.garage-car-hero')!.getBoundingClientRect()
@@ -265,7 +265,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
           expect(profileHero.labelFont).toBeGreaterThanOrEqual(12)
           expect(profileHero.titleFont).toBeGreaterThanOrEqual(32)
           expect(profileHero.descriptionFont).toBeGreaterThanOrEqual(16)
-          await garage.screenshot({ path: testInfo.outputPath(`grand-prix-profile-${locale}.png`) })
+          await page.screenshot({ animations: 'disabled', path: testInfo.outputPath(`grand-prix-profile-${locale}.png`) })
           await garage.getByRole('tab', { name: locale === 'zh' ? '当家车手' : 'Driver line-up' }).click()
           await page.waitForTimeout(320)
           const layout = await garage.locator('.garage-drivers').evaluate((panel) => {
