@@ -17,6 +17,7 @@ import { GRAND_PRIX_FORMULA_EXAMPLES } from './grandPrixFormulaExamples'
 import { GRAND_PRIX_LAB_MODELS, grandPrixInitialValues } from './grandPrixEngineeringSim'
 import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
 import { MUSIC_TRACKS } from './music'
+import { VEHICLE_PART_ALIASES } from './vehicles'
 import {
   coolingExperimentsFor,
   coolingFaultCardsFor,
@@ -234,6 +235,34 @@ describe('complete engineering curriculum', () => {
     expect(range('cooling')).toEqual([20, 100])
   })
 
+  it('keeps the crash force-displacement curve energy-consistent', () => {
+    const output = LAB_MODELS.impact.evaluate({ mass: 300, speed: 7, stroke: 260, progressive: 75 })
+    const curveEnergy = output.points.slice(1).reduce((energy, point, index) => {
+      const previous = output.points[index]!
+      return energy + (point.y + previous.y) / 2 * (point.x - previous.x) * 1000
+    }, 0)
+    expect(curveEnergy).toBeCloseTo(output.metrics[0]!.value, 8)
+  })
+
+  it('keeps the full-size crash curve energy-consistent and peak-consistent', () => {
+    const output = GRAND_PRIX_LAB_MODELS.impact.evaluate({ mass: 620, speed: 12, stroke: 620, progressive: 82 })
+    const curveEnergy = output.points.slice(1).reduce((energy, point, index) => {
+      const previous = output.points[index]!
+      return energy + (point.y + previous.y) / 2 * (point.x - previous.x) * 1000
+    }, 0)
+    expect(curveEnergy).toBeCloseTo(output.metrics[0]!.value * 1000, 7)
+    expect(Math.max(...output.points.map(point => point.y))).toBeCloseTo(output.metrics[2]!.value, 8)
+  })
+
+  it('keeps the 2026 hybrid deployment examples inside their declared electrical boundaries', () => {
+    const deploy = GRAND_PRIX_FORMULA_EXAMPLES.battery[0]!
+    expect(deploy.scenario.zh).toContain('10 s')
+    expect(deploy.steps.some(step => step.zh.includes('3.276 MJ < 4 MJ'))).toBe(true)
+    const combinedPower = GRAND_PRIX_FORMULA_EXAMPLES.motor[1]!
+    expect(combinedPower.steps.some(step => step.zh.includes('350×0.94 = 329 kW'))).toBe(true)
+    expect(combinedPower.result.zh).toContain('942 kW')
+  })
+
   it('keeps the eight-course dependency graph and localisation valid', () => {
     expect(COURSE_IDS).toHaveLength(8)
     expect(COURSES.map((course) => course.id)).toEqual(COURSE_IDS)
@@ -324,6 +353,31 @@ describe('complete grand prix hybrid curriculum', () => {
     }
     expect(ids.size).toBe(90)
     expect(answerSlots).toEqual(new Set([0, 1, 2]))
+  })
+
+  it('keeps calculation distractors physically meaningful and diagnoses with validation actions', () => {
+    for (const id of PART_IDS) {
+      const questions = GRAND_PRIX_QUESTION_BANK[id]
+      const calculation = questions[1]
+      const diagnosis = questions[3]
+      const lesson = GRAND_PRIX_ENGINEERING_LESSONS[id]
+
+      expect(calculation.prompt.zh).toContain('量纲与物理')
+      expect(calculation.prompt.en).toContain('dimensionally and physically')
+      expect(calculation.options.some(option => option.zh.includes('错误路径'))).toBe(false)
+      expect(diagnosis.prompt.zh).toContain(lesson.diagnostics[0].symptom.zh)
+      expect(diagnosis.options[diagnosis.answer].zh).toContain(lesson.diagnostics[0].checks[0].zh)
+      expect(diagnosis.options[diagnosis.answer].en).toContain(lesson.diagnostics[0].checks[0].en)
+    }
+  })
+
+  it('documents vehicle-specific meanings for reused compatibility part ids', () => {
+    expect(VEHICLE_PART_ALIASES['student-ev'].halo).toBe('formula-student-roll-hoops-and-cockpit-protection')
+    expect(VEHICLE_PART_ALIASES['grand-prix-2026'].halo).toBe('fia-halo-and-cockpit-safety-structure')
+    expect(VEHICLE_PART_ALIASES['student-ev'].motor).toBe('electric-traction-motor')
+    expect(VEHICLE_PART_ALIASES['grand-prix-2026'].motor).toBe('v6-hybrid-power-unit')
+    expect(VEHICLE_PART_ALIASES['student-ev'].differential).toBe('final-drive-differential')
+    expect(VEHICLE_PART_ALIASES['grand-prix-2026'].differential).toBe('gearbox-differential-and-driveline')
   })
 
   it('renders 54 formulas and provides 54 manually distinct numeric scenarios', () => {
@@ -668,6 +722,22 @@ describe('interactive curriculum for every non-cooling assembly', () => {
     expect(Object.keys(partInteractionRegistry).sort()).toEqual([...interactivePartIds].sort())
   })
 
+  it('does not misapply the Formula Student 80 kW drive-power cap to regeneration', () => {
+    const cases = [
+      ['inverter', 'inverter-regen-overvoltage', 'regenPower'],
+      ['ecu', 'ecu-torque-arbitration', 'rechargeLimit'],
+      ['brakes', 'regen-blend', 'regenLimit'],
+    ] as const
+
+    for (const [partId, experimentId, parameterId] of cases) {
+      const experiment = partInteractionRegistry[partId]!.experimentsFor('student-ev').find(item => item.id === experimentId)
+      expect(experiment, `missing Formula Student regeneration experiment: ${partId}/${experimentId}`).toBeDefined()
+      const parameter = experiment!.parameters.find(item => item.key === parameterId)
+      expect(parameter, `missing Formula Student regeneration parameter: ${partId}/${experimentId}/${parameterId}`).toBeDefined()
+      expect(parameter!.max).toBeGreaterThan(80)
+    }
+  })
+
   it('keeps all 180 nominal experiment states out of danger', () => {
     let count = 0
     for (const vehicleId of vehicleIds) {
@@ -765,6 +835,15 @@ describe('interactive curriculum for every non-cooling assembly', () => {
   })
 
   it('enforces conservation, thermal closed forms and tyre grip limits', () => {
+    const sag = interactionResult('battery', 'grand-prix-2026', 'battery-voltage-sag', { soc: 60, resistance: 48, temperature: 25 })
+    const sagOpenCircuitVoltage = 800 * (.88 + .15 * .6)
+    for (const point of sag.points) {
+      const requestedPower = point.x * 350_000
+      const discriminant = sagOpenCircuitVoltage ** 2 - 4 * .048 * requestedPower
+      const expectedVoltage = (sagOpenCircuitVoltage + Math.sqrt(discriminant)) / 2
+      expect(point.y).toBeCloseTo(expectedVoltage, 8)
+    }
+
     const safeThermal = interactionResult('motor', 'student-ev', 'motor-thermal-transient', { load: 10, cooling: 100 })
     expect(interactionMetric(safeThermal, 'remaining-time')).toBe(600)
     const thermalAt60 = interactionResult('motor', 'student-ev', 'motor-thermal-transient', { load: 60, cooling: 20, duration: 60 })

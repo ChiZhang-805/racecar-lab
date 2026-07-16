@@ -123,12 +123,22 @@ function SystemRail({ locale, visible, onToggle }: { locale: Locale; visible: Ca
 function PartPanel({ locale, vehicleId, partId, onClose, onDetails }: { locale: Locale; vehicleId: VehicleId; partId: PartId; onClose: () => void; onDetails: () => void }) {
   const c = copy[locale]
   const [collapsed, setCollapsed] = useState(false)
+  const minimizeRef = useRef<HTMLButtonElement>(null)
+  const reopenRef = useRef<HTMLButtonElement>(null)
   const part = getPart(partId, locale, vehicleId)
   useEffect(() => setCollapsed(false), [partId, vehicleId])
+  const collapse = () => {
+    setCollapsed(true)
+    requestAnimationFrame(() => reopenRef.current?.focus())
+  }
+  const expand = () => {
+    setCollapsed(false)
+    requestAnimationFrame(() => minimizeRef.current?.focus())
+  }
   if (!part) return null
   if (collapsed) {
     const label = locale === 'zh' ? '展开零件卡片' : 'Expand part card'
-    return <button className="panel-minibutton panel-minibutton--part glass-panel" onClick={() => setCollapsed(false)} aria-label={label} title={label}><Maximize2 size={21} /></button>
+    return <button ref={reopenRef} className="panel-minibutton panel-minibutton--part glass-panel" onClick={expand} aria-label={label} title={label}><Maximize2 size={21} /></button>
   }
   const summary = [part.short, part.purpose, part.analogy, part.engineering[0], part.engineering[1], part.faults[0]].join(locale === 'zh' ? '' : ' ')
   const collapseLabel = locale === 'zh' ? '缩小零件卡片' : 'Minimize part card'
@@ -139,7 +149,7 @@ function PartPanel({ locale, vehicleId, partId, onClose, onDetails }: { locale: 
           <span /> {getCategoryName(part.category, locale)}
         </div>
         <div className="panel-actions">
-          <button className="icon-button panel-minimize" onClick={() => setCollapsed(true)} aria-label={collapseLabel} title={collapseLabel}><Minimize2 size={16} /></button>
+          <button ref={minimizeRef} className="icon-button panel-minimize" onClick={collapse} aria-label={collapseLabel} title={collapseLabel}><Minimize2 size={16} /></button>
           <button className="icon-button" onClick={onClose} aria-label={c.close}><X size={18} /></button>
         </div>
       </div>
@@ -189,12 +199,22 @@ function LessonPanel({ locale, vehicleId, course: baseCourse, visited, onPart, o
   const c = copy[locale]
   const course = getCourse(baseCourse, locale, vehicleId)
   const [collapsed, setCollapsed] = useState(false)
+  const minimizeRef = useRef<HTMLButtonElement>(null)
+  const reopenRef = useRef<HTMLButtonElement>(null)
   useEffect(() => setCollapsed(false), [course.id, vehicleId])
+  const collapse = () => {
+    setCollapsed(true)
+    requestAnimationFrame(() => reopenRef.current?.focus())
+  }
+  const expand = () => {
+    setCollapsed(false)
+    requestAnimationFrame(() => minimizeRef.current?.focus())
+  }
   const requiredVisited = course.parts.filter((part) => visited.includes(part)).length
   const remaining = course.parts.length - requiredVisited
   if (collapsed) {
     const label = locale === 'zh' ? '展开课程卡片' : 'Expand lesson card'
-    return <button className="panel-minibutton panel-minibutton--lesson glass-panel" onClick={() => setCollapsed(false)} aria-label={label} title={label}><BookOpenCheck size={21} /></button>
+    return <button ref={reopenRef} className="panel-minibutton panel-minibutton--lesson glass-panel" onClick={expand} aria-label={label} title={label}><BookOpenCheck size={21} /></button>
   }
   const collapseLabel = locale === 'zh' ? '缩小课程卡片' : 'Minimize lesson card'
   return (
@@ -202,7 +222,7 @@ function LessonPanel({ locale, vehicleId, course: baseCourse, visited, onPart, o
       <div className="lesson-top">
         <span>{c.lesson} {course.number}</span>
         <div className="panel-actions">
-          <button className="icon-button panel-minimize" onClick={() => setCollapsed(true)} aria-label={collapseLabel} title={collapseLabel}><Minimize2 size={16} /></button>
+          <button ref={minimizeRef} className="icon-button panel-minimize" onClick={collapse} aria-label={collapseLabel} title={collapseLabel}><Minimize2 size={16} /></button>
           <button className="icon-button" onClick={onClose} aria-label={c.close}><X size={17} /></button>
         </div>
       </div>
@@ -278,6 +298,21 @@ function SettingsModal({
   const c = copy[locale]
   const [confirmReset, setConfirmReset] = useState(false)
   const dialogRef = useDialogFocus<HTMLElement>()
+  const resetRef = useRef<HTMLButtonElement>(null)
+  const cancelResetRef = useRef<HTMLButtonElement>(null)
+  const requestReset = () => {
+    setConfirmReset(true)
+    requestAnimationFrame(() => cancelResetRef.current?.focus())
+  }
+  const dismissReset = () => {
+    setConfirmReset(false)
+    requestAnimationFrame(() => resetRef.current?.focus())
+  }
+  const confirmProgressReset = () => {
+    onResetProgress()
+    setConfirmReset(false)
+    requestAnimationFrame(() => resetRef.current?.focus())
+  }
   const selectedTrack = MUSIC_TRACKS.find((track) => track.id === musicTrackId) ?? MUSIC_TRACKS[0]!
   const ModeIcon = musicMode === 'repeat-one' ? Repeat1 : musicMode === 'shuffle' ? Shuffle : Repeat
   const modeLabel = musicMode === 'repeat-one' ? c.musicRepeatOne : musicMode === 'shuffle' ? c.musicShuffle : c.musicSequence
@@ -320,8 +355,8 @@ function SettingsModal({
           </div>
         </div>
         <div className="settings-section settings-section--progress">
-          {confirmReset ? <div className="reset-confirm"><span>{c.resetConfirm}?</span><button className="button button--glass" onClick={() => setConfirmReset(false)}>{c.cancel}</button><button className="button button--danger" onClick={() => { onResetProgress(); setConfirmReset(false) }}>{c.resetConfirm}</button></div>
-            : <button className="button button--glass reset-progress" onClick={() => setConfirmReset(true)}><RotateCcw size={16} /> {c.resetProgress}</button>}
+          {confirmReset ? <div className="reset-confirm"><span>{c.resetConfirm}?</span><button ref={cancelResetRef} className="button button--glass" onClick={dismissReset}>{c.cancel}</button><button className="button button--danger" onClick={confirmProgressReset}>{c.resetConfirm}</button></div>
+            : <button ref={resetRef} className="button button--glass reset-progress" onClick={requestReset}><RotateCcw size={16} /> {c.resetProgress}</button>}
         </div>
       </section>
     </div>

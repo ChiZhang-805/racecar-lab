@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { CameraControls, ContactShadows, Grid, RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { PART_MAP, type CategoryId, type PartId, type ScenarioId } from './data'
+import { GRAND_PRIX_PART_VIEWS, grandPrixFrontWingIncidence, grandPrixRearWingIncidence, rodTransform, WHEEL_GEOMETRY } from './modelGeometry'
 import type { VehicleId } from './vehicles'
 
 type SceneState = {
@@ -42,8 +43,9 @@ type StoredMaterialState = {
 }
 
 const HIGHLIGHT_COLOR = new THREE.Color('#25c8ff')
-const STUDENT_WHEEL_CENTER_Y = 0.66
-const GRAND_PRIX_WHEEL_CENTER_Y = 0.68
+const STUDENT_WHEEL_CENTER_Y = WHEEL_GEOMETRY.student.centerY
+const GRAND_PRIX_WHEEL_CENTER_Y = WHEEL_GEOMETRY.grandPrixFront.centerY
+const GRAND_PRIX_HALF_TRACK = WHEEL_GEOMETRY.grandPrixFront.halfTrack
 
 function PartGroup({
   id,
@@ -165,16 +167,7 @@ function Rod({
   radius?: number
   color?: string
 }) {
-  const { midpoint, quaternion, length } = useMemo(() => {
-    const a = new THREE.Vector3(...start)
-    const b = new THREE.Vector3(...end)
-    const direction = b.clone().sub(a)
-    return {
-      midpoint: a.clone().add(b).multiplyScalar(0.5),
-      quaternion: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize()),
-      length: direction.length(),
-    }
-  }, [start, end])
+  const { midpoint, quaternion, length } = useMemo(() => rodTransform(start, end), [start, end])
 
   return (
     <mesh position={midpoint} quaternion={quaternion} castShadow>
@@ -190,23 +183,27 @@ function Wheel({ x, z }: { x: number; z: number }) {
   useFrame((_, delta) => {
     if (!wheel.current) return
     const speed = scenario === 'acceleration' ? 8 : scenario === 'braking' ? 2.5 : 0
-    wheel.current.rotation.x -= delta * speed
-    const cornerOffset = scenario === 'cornering' ? (x > 0 ? -0.07 : 0.07) : 0
-    wheel.current.position.y = THREE.MathUtils.lerp(wheel.current.position.y, STUDENT_WHEEL_CENTER_Y + cornerOffset, 0.08)
+    // The car points along +Z. Positive rotation about the axle gives the
+    // contact patch a -Z surface velocity, which is the correct rolling sense.
+    wheel.current.rotation.x += delta * speed
+    // Keep the rigid tyre tangent to the road. Load transfer is visualised by
+    // force arrows; translating an undeformed wheel would make one tyre sink
+    // through the road and the other float above it.
+    wheel.current.position.y = STUDENT_WHEEL_CENTER_Y
   })
 
   return (
     <group ref={wheel} position={[x, STUDENT_WHEEL_CENTER_Y, z]}>
-      <mesh rotation={[0, Math.PI / 2, 0]} castShadow>
-        <torusGeometry args={[0.46, 0.19, 18, 42]} />
+      <mesh rotation={[0, Math.PI / 2, 0]} scale={[1, 1, WHEEL_GEOMETRY.student.widthScale]} castShadow>
+        <torusGeometry args={[WHEEL_GEOMETRY.student.majorRadius, WHEEL_GEOMETRY.student.tubeRadius, 18, 42]} />
         <meshStandardMaterial color="#090a0b" roughness={0.84} metalness={0.02} />
       </mesh>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.29, 0.29, 0.22, 24]} />
+        <cylinderGeometry args={[0.29, 0.29, WHEEL_GEOMETRY.student.rimWidth, 24]} />
         <meshStandardMaterial color="#29313a" roughness={0.22} metalness={0.92} />
       </mesh>
       <mesh rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.09, 0.09, 0.25, 18]} />
+        <cylinderGeometry args={[0.09, 0.09, WHEEL_GEOMETRY.student.hubWidth, 18]} />
         <meshStandardMaterial color="#43d5f5" emissive="#0c5364" emissiveIntensity={0.35} metalness={0.75} />
       </mesh>
     </group>
@@ -584,6 +581,16 @@ function ForceArrow({
     return new THREE.ArrowHelper(dir, new THREE.Vector3(...origin), length, color, 0.22, 0.13)
   }, [origin, direction, length, color])
 
+  useEffect(() => () => {
+    // ArrowHelper is mounted through <primitive>, so R3F does not own these
+    // allocations. Dispose them whenever a scenario replaces the helper.
+    arrow.line.geometry.dispose()
+    arrow.cone.geometry.dispose()
+    const lineMaterials = Array.isArray(arrow.line.material) ? arrow.line.material : [arrow.line.material]
+    const coneMaterials = Array.isArray(arrow.cone.material) ? arrow.cone.material : [arrow.cone.material]
+    ;[...lineMaterials, ...coneMaterials].forEach((material) => material.dispose())
+  }, [arrow])
+
   useFrame(({ clock }) => {
     if (!ref.current) return
     const pulse = 0.92 + Math.sin(clock.elapsedTime * 4 + delay) * 0.08
@@ -656,7 +663,7 @@ function Airflow() {
 function ScenarioVisuals() {
   const { scenario, vehicleId } = useSceneState()
   const grandPrix = vehicleId === 'grand-prix-2026'
-  const wheelX = grandPrix ? 1.68 : 1.55
+  const wheelX = grandPrix ? GRAND_PRIX_HALF_TRACK : WHEEL_GEOMETRY.student.halfTrack
   const frontZ = grandPrix ? 2.93 : 2.15
   const rearZ = grandPrix ? -3.25 : -2.35
   if (scenario === 'acceleration') {
@@ -704,7 +711,7 @@ function FormulaCar({ intro, paused, resetSignal }: { intro: boolean; paused: bo
       if (!paused) car.current.rotation.y += delta * 0.16
       return
     }
-    car.current.rotation.y = THREE.MathUtils.lerp(car.current.rotation.y, 0, 0.04)
+    car.current.rotation.y = THREE.MathUtils.lerp(car.current.rotation.y, 0, 1 - Math.exp(-delta * 2.45))
   })
   return (
     <group ref={car}>
@@ -737,18 +744,21 @@ function GrandPrixWheel({ x, z, rear = false }: { x: number; z: number; rear?: b
   useFrame((_, delta) => {
     if (!wheel.current) return
     const speed = scenario === 'acceleration' ? 9 : scenario === 'braking' ? 3 : 0
-    wheel.current.rotation.x -= delta * speed
+    wheel.current.rotation.x += delta * speed
+    wheel.current.position.y = GRAND_PRIX_WHEEL_CENTER_Y
   })
-  const width = rear ? 0.42 : 0.34
+  const geometry = rear ? WHEEL_GEOMETRY.grandPrixRear : WHEEL_GEOMETRY.grandPrixFront
+  const width = geometry.rimWidth
   const rimFaceX = x > 0 ? width * 0.58 : -width * 0.58
   return <group ref={wheel} position={[x, GRAND_PRIX_WHEEL_CENTER_Y, z]}>
-    <mesh rotation={[0, Math.PI / 2, 0]} castShadow><torusGeometry args={[.48, .19, 20, 52]} /><meshStandardMaterial color="#070809" roughness={.9} /></mesh>
+    <mesh rotation={[0, Math.PI / 2, 0]} scale={[1, 1, geometry.widthScale]} castShadow><torusGeometry args={[geometry.majorRadius, geometry.tubeRadius, 20, 52]} /><meshStandardMaterial color="#070809" roughness={.9} /></mesh>
     <mesh rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[.31, .31, width, 36]} /><meshStandardMaterial color="#171d21" roughness={.24} metalness={.82} /></mesh>
-    <mesh rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[.11, .11, width + .035, 24]} /><meshStandardMaterial color="#65dcf7" emissive="#0a4552" emissiveIntensity={.42} metalness={.82} /></mesh>
-    {Array.from({ length: 6 }, (_, spoke) => {
-      const angle = (spoke / 6) * Math.PI * 2
-      return <Rod key={spoke} start={[rimFaceX, 0, 0]} end={[rimFaceX, Math.cos(angle) * .28, Math.sin(angle) * .28]} radius={.012} color="#aeb8bc" />
-    })}
+    <mesh rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[.11, .11, geometry.hubWidth, 24]} /><meshStandardMaterial color="#65dcf7" emissive="#0a4552" emissiveIntensity={.42} metalness={.82} /></mesh>
+    {/* 2026 wheels require an annular outboard disc; structural spokes sit behind it. */}
+    <mesh position={[rimFaceX, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+      <cylinderGeometry args={[.325, .325, .045, 48]} />
+      <meshStandardMaterial color="#20292e" roughness={.3} metalness={.72} />
+    </mesh>
     <mesh position={[rimFaceX, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
       <cylinderGeometry args={[.105, .105, .06, 6]} />
       <meshStandardMaterial color="#d7dee1" roughness={.24} metalness={.9} />
@@ -760,7 +770,12 @@ function GPFrontWing() {
   const { scenario } = useSceneState()
   const active = scenario === 'acceleration'
   return <PartGroup id="front-wing" category="aero" explodeVector={[0, .25, 2.5]}>
-    {[0, 1, 2].map((layer) => <mesh key={layer} position={[0, .3 + layer * .11, 4.36 - layer * .15]} rotation={[active ? -.025 : -.09 - layer * .025, 0, 0]} castShadow><boxGeometry args={[3.55 - layer * .25, .055, .46]} /><CarbonMaterial color={layer === 2 ? '#9edff0' : '#11191f'} /></mesh>)}
+    {[0, 1, 2].map((layer) => {
+      // The forwardmost primary profile remains fixed; only downstream flaps
+      // reduce incidence in the straight-line state.
+      const incidence = grandPrixFrontWingIncidence(layer as 0 | 1 | 2, active)
+      return <mesh key={layer} position={[0, .3 + layer * .11, 4.36 - layer * .15]} rotation={[incidence, 0, 0]} castShadow><boxGeometry args={[3.55 - layer * .25, .055, .46]} /><CarbonMaterial color={layer === 2 ? '#9edff0' : '#11191f'} /></mesh>
+    })}
     {[-1.76, 1.76].map(x => <group key={x}><mesh position={[x, .57, 4.28]}><boxGeometry args={[.055, .72, .84]} /><CarbonMaterial /></mesh><mesh position={[x * .98, .34, 3.95]} rotation={[0, 0, x > 0 ? -.16 : .16]}><boxGeometry args={[.32, .045, .72]} /><CarbonMaterial color="#27363e" /></mesh></group>)}
     <mesh position={[0, .45, 4.18]}><boxGeometry args={[.72, .18, .62]} /><meshStandardMaterial color="#eb5d42" roughness={.22} metalness={.48} /></mesh>
   </PartGroup>
@@ -770,8 +785,9 @@ function GPRearWing() {
   const { scenario } = useSceneState()
   const active = scenario === 'acceleration'
   return <PartGroup id="rear-wing" category="aero" explodeVector={[0, .9, -2.1]}>
-    <mesh position={[0, 2.05, -4.15]} rotation={[active ? .01 : .11, 0, 0]} castShadow><boxGeometry args={[2.55, .1, .55]} /><CarbonMaterial color="#151e24" /></mesh>
-    <mesh position={[0, 2.31, -4.08]} rotation={[active ? -.1 : .2, 0, 0]} castShadow><boxGeometry args={[2.42, .075, .38]} /><meshStandardMaterial color="#a9e8f6" roughness={.2} metalness={.42} /></mesh>
+    {/* The main profile is fixed; the trailing flap alone switches state. */}
+    <mesh position={[0, 2.05, -4.15]} rotation={[grandPrixRearWingIncidence('mainplane', active), 0, 0]} castShadow><boxGeometry args={[2.55, .1, .55]} /><CarbonMaterial color="#151e24" /></mesh>
+    <mesh position={[0, 2.31, -4.08]} rotation={[grandPrixRearWingIncidence('flap', active), 0, 0]} castShadow><boxGeometry args={[2.42, .075, .38]} /><meshStandardMaterial color="#a9e8f6" roughness={.2} metalness={.42} /></mesh>
     {[-1.27, 1.27].map(x => <mesh key={x} position={[x, 2.08, -4.12]}><boxGeometry args={[.06, .83, .9]} /><CarbonMaterial /></mesh>)}
     {[-.44, .44].map(x => <Rod key={x} start={[x, 1.18, -3.78]} end={[x, 1.85, -4.04]} radius={.045} color="#89969c" />)}
   </PartGroup>
@@ -808,18 +824,21 @@ function GPMonocoque() {
 function GPHalo() {
   return <PartGroup id="halo" category="structure" explodeVector={[0, 1.4, 0]}>
     <Rod start={[0, 1.48, 1.04]} end={[0, 1.98, .62]} radius={.06} color="#c7cdd1" />
-    <Rod start={[0, 1.98, .62]} end={[-.65, 1.64, -.2]} radius={.06} color="#c7cdd1" /><Rod start={[0, 1.98, .62]} end={[.65, 1.64, -.2]} radius={.06} color="#c7cdd1" />
-    <Rod start={[-.65, 1.64, -.2]} end={[.65, 1.64, -.2]} radius={.06} color="#c7cdd1" />
-    <Rod start={[-.53, 1.55, -.08]} end={[-.43, 1.67, -.72]} radius={.048} /><Rod start={[.53, 1.55, -.08]} end={[.43, 1.67, -.72]} radius={.048} />
+    {/* The hoop branches around the cockpit and terminates at two rear mounts;
+        it is not a transverse bar across the driver opening. */}
+    <Rod start={[0, 1.98, .62]} end={[-.55, 1.82, .15]} radius={.06} color="#c7cdd1" /><Rod start={[0, 1.98, .62]} end={[.55, 1.82, .15]} radius={.06} color="#c7cdd1" />
+    <Rod start={[-.55, 1.82, .15]} end={[-.48, 1.67, -.72]} radius={.06} color="#c7cdd1" /><Rod start={[.55, 1.82, .15]} end={[.48, 1.67, -.72]} radius={.06} color="#c7cdd1" />
+    <mesh position={[-.48, 1.64, -.72]}><cylinderGeometry args={[.09, .09, .1, 18]} /><meshStandardMaterial color="#818d92" roughness={.28} metalness={.84} /></mesh>
+    <mesh position={[.48, 1.64, -.72]}><cylinderGeometry args={[.09, .09, .1, 18]} /><meshStandardMaterial color="#818d92" roughness={.28} metalness={.84} /></mesh>
   </PartGroup>
 }
 
 function GPTires() {
-  return <PartGroup id="tires" category="dynamics" explodeVector={[0, .85, 0]}><GrandPrixWheel x={-1.68} z={2.93} /><GrandPrixWheel x={1.68} z={2.93} /><GrandPrixWheel x={-1.68} z={-3.25} rear /><GrandPrixWheel x={1.68} z={-3.25} rear /></PartGroup>
+  return <PartGroup id="tires" category="dynamics" explodeVector={[0, .85, 0]}><GrandPrixWheel x={-GRAND_PRIX_HALF_TRACK} z={2.93} /><GrandPrixWheel x={GRAND_PRIX_HALF_TRACK} z={2.93} /><GrandPrixWheel x={-GRAND_PRIX_HALF_TRACK} z={-3.25} rear /><GrandPrixWheel x={GRAND_PRIX_HALF_TRACK} z={-3.25} rear /></PartGroup>
 }
 
 function GPBrakes() {
-  const corners: [number, number][] = [[-1.68, 2.93], [1.68, 2.93], [-1.68, -3.25], [1.68, -3.25]]
+  const corners: [number, number][] = [[-GRAND_PRIX_HALF_TRACK, 2.93], [GRAND_PRIX_HALF_TRACK, 2.93], [-GRAND_PRIX_HALF_TRACK, -3.25], [GRAND_PRIX_HALF_TRACK, -3.25]]
   return (
     <PartGroup id="brakes" category="dynamics" explodeVector={[0, .58, 0]}>
       {corners.map(([x, z], index) => (
@@ -846,10 +865,10 @@ function GPFrontSuspension() {
     <PartGroup id="front-suspension" category="dynamics" explodeVector={[0, .72, .75]}>
       {[-1, 1].map(side => (
         <group key={side}>
-          <Rod start={[side * .48, .7, 2.25]} end={[side * 1.58, .6, 2.83]} radius={.035} />
-          <Rod start={[side * .48, .7, 2.25]} end={[side * 1.58, .6, 3.04]} radius={.035} />
-          <Rod start={[side * .42, 1.05, 2.38]} end={[side * 1.58, .77, 2.9]} radius={.032} color="#d14d3c" />
-          <Rod start={[side * .38, .78, 2.52]} end={[side * 1.5, .88, 2.95]} radius={.03} color="#66d8ec" />
+          <Rod start={[side * .48, .7, 2.25]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .6, 2.83]} radius={.035} />
+          <Rod start={[side * .48, .7, 2.25]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .6, 3.04]} radius={.035} />
+          <Rod start={[side * .42, 1.05, 2.38]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .77, 2.9]} radius={.032} color="#d14d3c" />
+          <Rod start={[side * .38, .78, 2.52]} end={[side * (GRAND_PRIX_HALF_TRACK - .12), .88, 2.95]} radius={.03} color="#66d8ec" />
           <mesh position={[side * .24, 1.08, 2.27]} rotation={[0, 0, side * .38]}>
             <boxGeometry args={[.34, .065, .12]} />
             <meshStandardMaterial color="#8c979d" roughness={.3} metalness={.82} />
@@ -866,10 +885,10 @@ function GPRearSuspension() {
     <PartGroup id="rear-suspension" category="dynamics" explodeVector={[0, .75, -.78]}>
       {[-1, 1].map(side => (
         <group key={side}>
-          <Rod start={[side * .54, .66, -2.55]} end={[side * 1.56, .59, -3.15]} radius={.035} />
-          <Rod start={[side * .54, .66, -2.55]} end={[side * 1.56, .59, -3.36]} radius={.035} />
-          <Rod start={[side * .48, 1.02, -2.58]} end={[side * 1.55, .78, -3.24]} radius={.032} color="#d14d3c" />
-          <Rod start={[side * .45, .78, -2.73]} end={[side * 1.49, .9, -3.24]} radius={.03} color="#66d8ec" />
+          <Rod start={[side * .54, .66, -2.55]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .59, -3.15]} radius={.035} />
+          <Rod start={[side * .54, .66, -2.55]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .59, -3.36]} radius={.035} />
+          <Rod start={[side * .48, 1.02, -2.58]} end={[side * (GRAND_PRIX_HALF_TRACK - .08), .78, -3.24]} radius={.032} color="#d14d3c" />
+          <Rod start={[side * .45, .78, -2.73]} end={[side * (GRAND_PRIX_HALF_TRACK - .12), .9, -3.24]} radius={.03} color="#66d8ec" />
           <mesh position={[side * .27, 1.04, -2.46]} rotation={[0, 0, side * -.38]}>
             <boxGeometry args={[.36, .065, .12]} />
             <meshStandardMaterial color="#8c979d" roughness={.3} metalness={.82} />
@@ -885,7 +904,7 @@ function GPSteering() {
   return <PartGroup id="steering" category="dynamics" explodeVector={[0,.9,.55]}>
     <Rod start={[0,1.2,.58]} end={[0,.92,1.65]} radius={.045} color="#aab4b9" />
     <mesh position={[0,1.25,.54]} rotation={[.22,0,0]}><boxGeometry args={[.55,.34,.08]} /><meshStandardMaterial color="#202a30" roughness={.28} metalness={.65} /></mesh>
-    <Rod start={[-1.52,.68,2.95]} end={[1.52,.68,2.95]} radius={.032} color="#8e9ba1" />
+    <Rod start={[-(GRAND_PRIX_HALF_TRACK - .12),.68,2.95]} end={[GRAND_PRIX_HALF_TRACK - .12,.68,2.95]} radius={.032} color="#8e9ba1" />
     {[-.19,.19].map(x => <mesh key={x} position={[x,.67,1.72]} rotation={[.23,0,0]}><boxGeometry args={[.12,.25,.08]} /><meshStandardMaterial color="#aab1b4" metalness={.78} roughness={.3} /></mesh>)}
   </PartGroup>
 }
@@ -920,7 +939,7 @@ function GPTransmission() {
 function GPElectronics() {
   return <>
     <PartGroup id="ecu" category="electronics" explodeVector={[1.2,1.05,0]}><RoundedBox args={[.66,.25,.92]} radius={.08} smoothness={4} position={[-.55,.54,-.82]}><meshStandardMaterial color="#17232b" roughness={.28} metalness={.7} /></RoundedBox>{[-.18,0,.18].map(x=><Rod key={x} start={[-.55+x,.57,-.35]} end={[x,.72,-1.52]} radius={.015} color="#9b7bff" />)}</PartGroup>
-    <PartGroup id="sensors" category="electronics" explodeVector={[-1.2,1.25,0]}>{([[-1.68,.82,2.93],[1.68,.82,2.93],[-1.68,.82,-3.25],[1.68,.82,-3.25],[0,1.9,.6],[0,.42,-3.6]] as [number,number,number][]).map((p,i)=><mesh key={i} position={p}><sphereGeometry args={[.075,16,12]} /><meshStandardMaterial color="#b697ff" emissive="#563a9d" emissiveIntensity={.6} /></mesh>)}</PartGroup>
+    <PartGroup id="sensors" category="electronics" explodeVector={[-1.2,1.25,0]}>{([[-GRAND_PRIX_HALF_TRACK,.82,2.93],[GRAND_PRIX_HALF_TRACK,.82,2.93],[-GRAND_PRIX_HALF_TRACK,.82,-3.25],[GRAND_PRIX_HALF_TRACK,.82,-3.25],[0,1.9,.6],[0,.42,-3.6]] as [number,number,number][]).map((p,i)=><mesh key={i} position={p}><sphereGeometry args={[.075,16,12]} /><meshStandardMaterial color="#b697ff" emissive="#563a9d" emissiveIntensity={.6} /></mesh>)}</PartGroup>
   </>
 }
 
@@ -930,7 +949,7 @@ function GrandPrixCar({ intro, paused, resetSignal }: { intro: boolean; paused: 
   useFrame((_, delta) => {
     if (!car.current) return
     if (intro) { if (!paused) car.current.rotation.y += delta * .13 }
-    else car.current.rotation.y = THREE.MathUtils.lerp(car.current.rotation.y, 0, .04)
+    else car.current.rotation.y = THREE.MathUtils.lerp(car.current.rotation.y, 0, 1 - Math.exp(-delta * 2.45))
   })
   return <group ref={car}>
     <GPFloor /><GPFrontWing /><GPRearWing /><GPNose /><GPMonocoque /><GPHalo /><GPTires /><GPBrakes />
@@ -966,7 +985,8 @@ function CameraRig({ vehicleId, intro, selectedId, resetSignal }: { vehicleId: V
       return
     }
     const part = PART_MAP[selectedId]
-    if (part && controls.current) controls.current.setLookAt(...part.camera, ...part.target, true)
+    const view = vehicleId === 'grand-prix-2026' ? GRAND_PRIX_PART_VIEWS[selectedId] : part
+    if (view && controls.current) controls.current.setLookAt(...view.camera, ...view.target, true)
   }, [vehicleId, intro, selectedId, resetSignal, size.width, size.height])
 
   return (

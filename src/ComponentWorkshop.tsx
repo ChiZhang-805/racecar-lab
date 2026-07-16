@@ -1,20 +1,19 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { ContactShadows, OrbitControls, RoundedBox } from '@react-three/drei'
-import { DoubleSide, Group, Quaternion, Vector3 } from 'three'
+import { DoubleSide, Group, Vector3 } from 'three'
 import { Box, CircleDot, Cog, Layers3, Lightbulb, MapPin, Pause, Play, RotateCcw, Wrench } from 'lucide-react'
 import type { Locale } from './i18n'
 import { localise, type EngineeringLesson } from './engineeringData'
 import { COMPONENT_FACTS } from './componentWorkshopData'
 import type { PartId } from './data'
+import { rodTransform, workshopScaleForExplode, WORKSHOP_EXPLODE_VECTORS, type V3 } from './modelGeometry'
 import type { VehicleId } from './vehicles'
 import { grandPrixWorkshopFacts } from './grandPrixWorkshopFacts'
 
-type V3 = [number, number, number]
 type AssemblyProps = { selected: number | null; explode: number; onSelect: (index: number) => void }
 const ActiveContext = createContext(false)
 const PALETTE = { carbon: '#26353b', carbon2: '#16252b', red: '#c8493d', metal: '#9aa9ae', dark: '#101a1f', cyan: '#52d9f3', amber: '#e9a84c', purple: '#8e72e8', green: '#66d8b9', copper: '#c57843', cell: '#776e63' }
-const EXPLODE: V3[] = [[-2.6, .5, .5], [2.5, .7, .4], [-2.2, 1.8, -.5], [2.1, 1.8, -.6], [-1.2, -1.6, .6], [1.5, -1.5, -.8]]
 
 function Material({ color, opacity = 1, metalness = .35, roughness = .4 }: { color: string; opacity?: number; metalness?: number; roughness?: number }) {
   const active = useContext(ActiveContext)
@@ -26,7 +25,7 @@ function G({ i, selected, explode, onSelect, vector, children }: { i: number; se
   const ref = useRef<Group>(null)
   const [hovered, setHovered] = useState(false)
   const target = useMemo(() => new Vector3(), [])
-  const offset = vector ?? EXPLODE[i] ?? EXPLODE[0]!
+  const offset = vector ?? WORKSHOP_EXPLODE_VECTORS[i] ?? WORKSHOP_EXPLODE_VECTORS[0]!
   useFrame((_, delta) => {
     target.set(offset[0] * explode, offset[1] * explode, offset[2] * explode)
     ref.current?.position.lerp(target, 1 - Math.exp(-8 * delta))
@@ -48,15 +47,12 @@ function S({ p = [0, 0, 0], scale = 1, c = PALETTE.cyan, opacity = 1 }: { p?: V3
   return <mesh position={p} scale={scale}><sphereGeometry args={[.22, 20, 14]} /><Material color={c} opacity={opacity} /></mesh>
 }
 
-function T({ p = [0, 0, 0], r = [0, 0, 0], radius = 1, tube = .18, c = PALETTE.dark, opacity = 1 }: { p?: V3; r?: V3; radius?: number; tube?: number; c?: string; opacity?: number }) {
-  return <mesh position={p} rotation={r}><torusGeometry args={[radius, tube, 16, 48]} /><Material color={c} opacity={opacity} /></mesh>
+function T({ p = [0, 0, 0], r = [0, 0, 0], scale = [1, 1, 1], radius = 1, tube = .18, c = PALETTE.dark, opacity = 1 }: { p?: V3; r?: V3; scale?: V3; radius?: number; tube?: number; c?: string; opacity?: number }) {
+  return <mesh position={p} rotation={r} scale={scale}><torusGeometry args={[radius, tube, 16, 48]} /><Material color={c} opacity={opacity} /></mesh>
 }
 
 function Rod({ a, b, radius = .055, c = PALETTE.metal }: { a: V3; b: V3; radius?: number; c?: string }) {
-  const { midpoint, length, quaternion } = useMemo(() => {
-    const start = new Vector3(...a); const end = new Vector3(...b); const direction = end.clone().sub(start)
-    return { midpoint: start.clone().add(end).multiplyScalar(.5), length: direction.length(), quaternion: new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), direction.normalize()) }
-  }, [a, b])
+  const { midpoint, length, quaternion } = useMemo(() => rodTransform(a, b), [a, b])
   return <mesh position={midpoint} quaternion={quaternion}><cylinderGeometry args={[radius, radius, length, 12]} /><Material color={c} metalness={.65} roughness={.28} /></mesh>
 }
 
@@ -120,7 +116,7 @@ function MonocoqueModel(props: AssemblyProps) { return <>
 
 function HaloModel(props: AssemblyProps) { return <>
   <G i={0} {...props}><Rod a={[-1.15, -.4, -.7]} b={[-.92, 1.35, -.7]} radius={.1} /><Rod a={[1.15, -.4, -.7]} b={[.92, 1.35, -.7]} radius={.1} /><Rod a={[-.92, 1.35, -.7]} b={[.92, 1.35, -.7]} radius={.1} /></G>
-  <G i={1} {...props}><Rod a={[-.78, -.35, 1.05]} b={[-.62, .78, 1.05]} radius={.075} /><Rod a={[.78, -.35, 1.05]} b={[-.62, .78, 1.05]} radius={.075} /><Rod a={[.78, -.35, 1.05]} b={[.62, .78, 1.05]} radius={.075} /></G>
+  <G i={1} {...props}><Rod a={[-.78, -.35, 1.05]} b={[-.62, .78, 1.05]} radius={.075} /><Rod a={[.78, -.35, 1.05]} b={[.62, .78, 1.05]} radius={.075} /><Rod a={[-.62, .78, 1.05]} b={[.62, .78, 1.05]} radius={.075} /></G>
   <G i={2} {...props}><Rod a={[-1.03, .85, -.7]} b={[-1.45, -.45, -1.7]} radius={.07} c={PALETTE.red} /><Rod a={[1.03, .85, -.7]} b={[1.45, -.45, -1.7]} radius={.07} c={PALETTE.red} /></G>
   <G i={3} {...props}><S p={[0, .55, .05]} scale={3.3} c={PALETTE.cyan} opacity={.12} /></G>
   <G i={4} {...props}><B p={[0, -.25, -.05]} s={[1.1, 1.25, 1.55]} r={[-.18, 0, 0]} c={PALETTE.carbon} rounded={.22} /><B p={[0, .35, -.55]} s={[.82, .52, .28]} c={PALETTE.dark} rounded={.12} /></G>
@@ -128,11 +124,11 @@ function HaloModel(props: AssemblyProps) { return <>
   </> }
 
 function TireModel(props: AssemblyProps) { return <>
-  <G i={0} {...props}><T r={[0, Math.PI / 2, 0]} radius={1.28} tube={.42} c={PALETTE.dark} /></G>
-  <G i={1} {...props}><T r={[0, Math.PI / 2, 0]} radius={1.12} tube={.24} c={PALETTE.amber} opacity={.62} /></G>
+  <G i={0} {...props}><T r={[0, Math.PI / 2, 0]} scale={[1, 1, 1.65]} radius={1.28} tube={.42} c={PALETTE.dark} /></G>
+  <G i={1} {...props}><T r={[0, Math.PI / 2, 0]} scale={[1, 1, 1.55]} radius={1.12} tube={.24} c={PALETTE.amber} opacity={.62} /></G>
   <G i={2} {...props}><T p={[-.34, 0, 0]} r={[0, Math.PI / 2, 0]} radius={.78} tube={.085} c={PALETTE.metal} /><T p={[.34, 0, 0]} r={[0, Math.PI / 2, 0]} radius={.78} tube={.085} c={PALETTE.metal} /></G>
   <G i={3} {...props}><T r={[0, Math.PI / 2, 0]} radius={1.0} tube={.48} c={PALETTE.cyan} opacity={.13} /></G>
-  <G i={4} {...props}><C r={[0, 0, Math.PI / 2]} radius={.82} h={.62} c='#5d6870' /><C r={[0, 0, Math.PI / 2]} radius={.3} h={.72} c={PALETTE.dark} /></G>
+  <G i={4} {...props}><C r={[0, 0, Math.PI / 2]} radius={.82} h={1.05} c='#5d6870' /><C r={[0, 0, Math.PI / 2]} radius={.3} h={1.15} c={PALETTE.dark} /></G>
   <G i={5} {...props}><S p={[.42, .95, .62]} scale={.32} c={PALETTE.purple} /><Rod a={[-.42, .78, .76]} b={[-.42, 1.3, .98]} radius={.035} c={PALETTE.cyan} /></G>
   </> }
 
@@ -246,7 +242,7 @@ function GPActiveFrontWing(props: AssemblyProps) { return <>
 
 function GPActiveRearWing(props: AssemblyProps) { return <>
   <G i={0} {...props}><B s={[3.15,.18,.76]} r={[-.1,0,0]} c={PALETTE.carbon} rounded={.06}/></G>
-  <G i={1} {...props}><B p={[-.72,.58,-.4]} s={[1.34,.12,.42]} r={[-.22,0,0]} c={PALETTE.cyan} rounded={.05}/><B p={[.72,.58,-.4]} s={[1.34,.12,.42]} r={[-.22,0,0]} c={PALETTE.cyan} rounded={.05}/></G>
+  <G i={1} {...props}><B p={[0,.58,-.4]} s={[2.82,.12,.42]} r={[-.22,0,0]} c={PALETTE.cyan} rounded={.05}/></G>
   <G i={2} {...props}><B p={[-1.62,.28,-.05]} s={[.09,1.22,1.2]} c={PALETTE.dark}/><B p={[1.62,.28,-.05]} s={[.09,1.22,1.2]} c={PALETTE.dark}/></G>
   <G i={3} {...props}><Rod a={[-.58,-.08,.1]} b={[-.58,-1.3,.5]} radius={.08}/><Rod a={[.58,-.08,.1]} b={[.58,-1.3,.5]} radius={.08}/><B p={[0,-1.3,.5]} s={[1.55,.2,.4]} c={PALETTE.carbon}/></G>
   <G i={4} {...props}><C p={[0,.9,-.48]} r={[0,0,Math.PI/2]} radius={.16} h={.7} c={PALETTE.amber}/><Rod a={[0,.85,-.48]} b={[0,.58,-.35]} radius={.04}/><S p={[0,.9,-.48]} scale={.35} c={PALETTE.purple}/></G>
@@ -264,7 +260,7 @@ function GPSurvivalCell(props: AssemblyProps) { return <>
 
 function GPHaloWorkshop(props: AssemblyProps) { return <>
   <G i={0} {...props}><Rod a={[0,-.55,1.0]} b={[0,1.45,.45]} radius={.13}/></G>
-  <G i={1} {...props}><Rod a={[0,1.45,.45]} b={[-1.0,.45,-.55]} radius={.13}/><Rod a={[0,1.45,.45]} b={[1.0,.45,-.55]} radius={.13}/><Rod a={[-1.0,.45,-.55]} b={[1.0,.45,-.55]} radius={.13}/></G>
+  <G i={1} {...props}><Rod a={[0,1.45,.45]} b={[-.7,1.05,-.05]} radius={.13}/><Rod a={[0,1.45,.45]} b={[.7,1.05,-.05]} radius={.13}/><Rod a={[-.7,1.05,-.05]} b={[-1.0,.45,-.55]} radius={.13}/><Rod a={[.7,1.05,-.05]} b={[1.0,.45,-.55]} radius={.13}/></G>
   <G i={2} {...props}>{[[0,-.55,1.0],[-1,.45,-.55],[1,.45,-.55]].map((p,i)=><C key={i} p={p as V3} radius={.24} h={.28} c={PALETTE.amber}/>)}</G>
   <G i={3} {...props}><Rod a={[-1.05,-.5,-1.1]} b={[-.82,1.35,-1.1]} radius={.11}/><Rod a={[1.05,-.5,-1.1]} b={[.82,1.35,-1.1]} radius={.11}/><Rod a={[-.82,1.35,-1.1]} b={[.82,1.35,-1.1]} radius={.11}/></G>
   <G i={4} {...props}><Rod a={[-.75,-.5,.95]} b={[0,.9,.95]} radius={.085}/><Rod a={[.75,-.5,.95]} b={[0,.9,.95]} radius={.085}/></G>
@@ -317,10 +313,10 @@ function GPNoseWorkshop(props: AssemblyProps) { return <>
   </> }
 
 function GPTireWorkshop(props: AssemblyProps) { return <>
-  <G i={0} {...props}><T p={[0,0,0]} r={[0,Math.PI/2,0]} radius={1.25} tube={.43} c="#15191b"/>{Array.from({ length: 18 }, (_, i) => <B key={i} p={[0, Math.cos(i*Math.PI/9)*1.25, Math.sin(i*Math.PI/9)*1.25]} s={[.68,.05,.18]} r={[i*Math.PI/9,0,0]} c="#2b3134" />)}</G>
-  <G i={1} {...props}><T p={[0,0,0]} r={[0,Math.PI/2,0]} radius={1.05} tube={.25} c={PALETTE.amber} opacity={.38}/><T p={[0,0,0]} r={[0,Math.PI/2,0]} radius={.92} tube={.12} c={PALETTE.metal}/></G>
+  <G i={0} {...props}><T p={[0,0,0]} r={[0,Math.PI/2,0]} scale={[1,1,1.85]} radius={1.25} tube={.43} c="#15191b"/>{Array.from({ length: 18 }, (_, i) => <B key={i} p={[0, Math.cos(i*Math.PI/9)*1.25, Math.sin(i*Math.PI/9)*1.25]} s={[1.55,.05,.18]} r={[i*Math.PI/9,0,0]} c="#2b3134" />)}</G>
+  <G i={1} {...props}><T p={[0,0,0]} r={[0,Math.PI/2,0]} scale={[1,1,1.7]} radius={1.05} tube={.25} c={PALETTE.amber} opacity={.38}/><T p={[0,0,0]} r={[0,Math.PI/2,0]} scale={[1,1,1.45]} radius={.92} tube={.12} c={PALETTE.metal}/></G>
   <G i={2} {...props}><T p={[-.32,0,0]} r={[0,Math.PI/2,0]} radius={.74} tube={.1} c={PALETTE.copper}/><T p={[.32,0,0]} r={[0,Math.PI/2,0]} radius={.74} tube={.1} c={PALETTE.copper}/></G>
-  <G i={3} {...props}><C p={[0,0,0]} r={[0,0,Math.PI/2]} radius={.78} h={.68} c={PALETTE.metal}/><Gear p={[-.36,0,0]} radius={.62} width={.08} teeth={14} c={PALETTE.dark}/></G>
+  <G i={3} {...props}><C p={[0,0,0]} r={[0,0,Math.PI/2]} radius={.78} h={1.25} c={PALETTE.metal}/><C p={[-.66,0,0]} r={[0,0,Math.PI/2]} radius={.82} h={.08} c={PALETTE.dark}/><C p={[-.72,0,0]} r={[0,0,Math.PI/2]} radius={.16} h={.1} c={PALETTE.metal}/></G>
   <G i={4} {...props}><S p={[0,0,0]} scale={2.05} c={PALETTE.cyan} opacity={.08}/><Rod a={[.38,.72,.15]} b={[.55,1.18,.28]} radius={.035} c={PALETTE.green}/></G>
   <G i={5} {...props}>{[-.42,0,.42].map((x,i)=><S key={x} p={[x,1.28,.08]} scale={.27} c={i===1?PALETTE.green:PALETTE.purple}/>)}<B p={[.55,1.15,.35]} s={[.35,.22,.18]} c={PALETTE.dark} rounded={.06}/></G>
   </> }
@@ -362,7 +358,19 @@ function GPInverterWorkshop(props: AssemblyProps) { return <>
   </> }
 
 function GPTransmissionWorkshop(props: AssemblyProps) { return <>
-  <G i={0} {...props}>{[-.65,.65].map((x,shaft)=><group key={x}>{[-1.05,-.52,0,.52,1.05].map((z,i)=><Gear key={z} p={[x,0,z]} r={[0,0,0]} radius={.32+(i+shaft)%3*.1} width={.16} teeth={12+i*2} c={shaft?PALETTE.metal:PALETTE.amber}/>)}</group>)}</G>
+  <G i={0} {...props}>
+    <Rod a={[-.38, 0, -1.42]} b={[-.38, 0, 1.42]} radius={.075} c={PALETTE.amber} />
+    <Rod a={[.38, 0, -1.42]} b={[.38, 0, 1.42]} radius={.075} c={PALETTE.metal} />
+    {Array.from({ length: 8 }, (_, i) => {
+      const z = -1.12 + i * .32
+      const primaryRadius = .25 + i * .025
+      const secondaryRadius = .51 - i * .025
+      return <group key={z}>
+        <Gear p={[-.38, 0, z]} radius={primaryRadius} width={.14} teeth={12 + i} c={PALETTE.amber} />
+        <Gear p={[.38, 0, z]} radius={secondaryRadius} width={.14} teeth={24 - i} c={PALETTE.metal} />
+      </group>
+    })}
+  </G>
   <G i={1} {...props}><C p={[0,1.0,0]} r={[Math.PI/2,0,0]} radius={.24} h={2.3} c={PALETTE.dark}/>{[-.75,0,.75].map(z=><B key={z} p={[0,.82,z]} s={[1.65,.12,.18]} c={PALETTE.red}/>)}</G>
   <G i={2} {...props}><Gear p={[0,0,-1.55]} radius={.82} width={.22} teeth={26} c={PALETTE.metal}/><Gear p={[0,0,-2.05]} radius={.4} width={.22} teeth={14} c={PALETTE.amber}/></G>
   <G i={3} {...props}><C p={[0,0,-2.5]} r={[Math.PI/2,0,0]} radius={.65} h={.75} c={PALETTE.dark}/>{[-.28,0,.28].map(x=><Gear key={x} p={[x,0,-2.5]} radius={.24} width={.1} teeth={10} c={PALETTE.copper}/>)}</G>
@@ -427,7 +435,7 @@ function ModelAssembly({ vehicleId, partId, explode, ...props }: AssemblyProps &
   const baseScale = partId === 'floor' ? .92 : partId === 'steering' ? 1.05 : 1.18
   const targetScale = useMemo(() => new Vector3(baseScale, baseScale, baseScale), [baseScale])
   useFrame((_, delta) => {
-    const scale = baseScale * (1 - explode * .36)
+    const scale = workshopScaleForExplode(baseScale, explode)
     targetScale.setScalar(scale)
     ref.current?.scale.lerp(targetScale, 1 - Math.exp(-7 * delta))
   })

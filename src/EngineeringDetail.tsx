@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { Activity, AlertTriangle, ArrowRight, BookOpen, Calculator, Check, ChevronRight, CircleGauge, ExternalLink, FlaskConical, Gauge, GitBranch, RotateCcw, SearchCheck, ShieldCheck, SlidersHorizontal, Target, ThermometerSun, Wrench, X } from 'lucide-react'
@@ -17,6 +17,7 @@ import { CoolingFaultCards, CoolingObserveLab, CoolingReferenceCards } from './C
 import { coolingFaultCardsFor, coolingReferenceCards } from './coolingInteractions'
 import { PartFaultCards, PartObserveLab, PartReferenceCards } from './PartInteractionPanels'
 import { getPartInteractionPack } from './partInteractionRegistry'
+import { formatUiNumber } from './uiNumber'
 
 type Tab = 'intro' | 'principle' | 'observe' | 'engineering' | 'faults'
 type TripleIndex = 0 | 1 | 2
@@ -134,12 +135,12 @@ function Principle({ locale, vehicleId, partId }: { locale: Locale; vehicleId: V
       <section className="eng-controls">
         <div className="eng-section-title"><span><SlidersHorizontal size={17} />{u.inputs}</span><button onClick={() => setValues(valuesFor(lesson.labKind, vehicleId))} title={u.reset}><RotateCcw size={15} /></button></div>
         <h3>{localise(model.title, locale)}</h3>
-        {model.parameters.map(parameter => { const value = values[parameter.key] ?? parameter.initial; return <label className="eng-slider" key={parameter.key}><span><b>{localise(parameter.label, locale)}</b><output>{value.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')} <small>{parameter.unit}</small></output></span><input type="range" min={parameter.min} max={parameter.max} step={parameter.step} value={value} onChange={event => setValues(current => ({ ...current, [parameter.key]: Number(event.target.value) }))} /></label> })}
+        {model.parameters.map(parameter => { const value = values[parameter.key] ?? parameter.initial; return <label className="eng-slider" key={parameter.key}><span><b>{localise(parameter.label, locale)}</b><output>{formatUiNumber(value, locale)} <small>{parameter.unit}</small></output></span><input type="range" min={parameter.min} max={parameter.max} step={parameter.step} value={value} onChange={event => setValues(current => ({ ...current, [parameter.key]: Number(event.target.value) }))} /></label> })}
         <small className="eng-model-note">{u.modelNote}</small>
       </section>
       <section className="eng-model-output">
         <div className="eng-section-title"><span><CircleGauge size={17} />{u.results}</span></div>
-        <div className="eng-metrics">{output.metrics.map((metric, index) => <article key={index} className={metric.tone ? `is-${metric.tone}` : ''}><span>{localise(metric.label, locale)}</span><strong>{Number.isFinite(metric.value) ? metric.value.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', { maximumFractionDigits: 2 }) : '—'}<small>{metric.unit}</small></strong></article>)}</div>
+          <div className="eng-metrics">{output.metrics.map((metric, index) => <article key={index} className={metric.tone ? `is-${metric.tone}` : ''}><span>{localise(metric.label, locale)}</span><strong>{Number.isFinite(metric.value) ? formatUiNumber(metric.value, locale, { maximumFractionDigits: 2 }) : '—'}<small>{metric.unit}</small></strong></article>)}</div>
         <MiniChart output={output} locale={locale} />
         <p className="eng-insight">{localise(output.insight, locale)}</p>
       </section>
@@ -191,12 +192,12 @@ function FlowDiagram({ locale, labKind, intensity = 55, activeIndex = 1 }: { loc
   )
 }
 
-function GaugeTile({ label, value, unit, tone = 'normal' }: { label: string; value: number; unit: string; tone?: string }) {
+function GaugeTile({ locale, label, value, unit, tone = 'normal' }: { locale: Locale; label: string; value: number; unit: string; tone?: string }) {
   const pct = clamp(Math.abs(value) % 120, 8, 100)
   return (
     <article className={`eng-visual-gauge is-${tone}`} style={{ ['--gauge' as string]: `${pct}%` }}>
       <span>{label}</span>
-      <strong>{Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}<small>{unit}</small></strong>
+      <strong>{Number.isFinite(value) ? formatUiNumber(value, locale, { maximumFractionDigits: 1 }) : '—'}<small>{unit}</small></strong>
       <i />
     </article>
   )
@@ -241,7 +242,7 @@ function ExperimentCard({ locale, vehicleId, labKind, experiment }: { locale: Lo
       </section>
       <section className="eng-visual-data">
         <span className="eng-label"><CircleGauge size={16} />{v.data}</span>
-        <div>{output.metrics.slice(0, 4).map((metric, index) => <GaugeTile key={index} label={localise(metric.label, locale)} value={metric.value} unit={metric.unit} tone={metric.tone} />)}</div>
+        <div>{output.metrics.slice(0, 4).map((metric, index) => <GaugeTile key={index} locale={locale} label={localise(metric.label, locale)} value={metric.value} unit={metric.unit} tone={metric.tone} />)}</div>
       </section>
       <section className={`eng-visual-conclusion ${revealed ? 'is-revealed' : ''}`}>
         <span>{v.conclusion}</span>
@@ -387,6 +388,8 @@ export default function EngineeringDetail({ vehicleId, locale, partId, onClose }
   const u = ui[locale]
   const part = getPart(partId, locale, vehicleId)
   const dialogRef = useDialogFocus<HTMLDivElement>()
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({})
   useEffect(() => setTab('intro'), [partId])
   useEffect(() => {
     const interactionPack = getPartInteractionPack(partId)
@@ -406,13 +409,29 @@ export default function EngineeringDetail({ vehicleId, locale, partId, onClose }
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
     { id: 'intro', label: c.detailIntro, icon: BookOpen }, { id: 'principle', label: c.detailPrinciple, icon: Calculator }, { id: 'observe', label: c.detailObserve, icon: FlaskConical }, { id: 'engineering', label: c.detailEngineering, icon: Wrench }, { id: 'faults', label: c.detailFaults, icon: AlertTriangle },
   ]
+  const selectTab = (nextTab: Tab) => {
+    setTab(nextTab)
+    requestAnimationFrame(() => bodyRef.current?.scrollTo({ top: 0, left: 0 }))
+  }
+  const navigateTabs = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex = index
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % tabs.length
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + tabs.length) % tabs.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = tabs.length - 1
+    else return
+    event.preventDefault()
+    const nextTab = tabs[nextIndex]!.id
+    selectTab(nextTab)
+    requestAnimationFrame(() => tabRefs.current[nextTab]?.focus())
+  }
   return (
     <div className="overlay detail-overlay" role="dialog" aria-modal="true" aria-label={`${part.name} · ${c.deepDive}`}>
       <div className="overlay-backdrop" onClick={onClose} />
       <div className="detail-modal engineering-detail" ref={dialogRef} tabIndex={-1}>
         <header className="detail-header engineering-detail__header"><h2>{part.name}</h2><button className="settings-close" onClick={onClose} aria-label={u.close} title={u.close}><X size={22} /></button></header>
-        <nav className="detail-tabs engineering-tabs">{tabs.map((item) => { const Icon = item.icon; return <button key={item.id} className={tab === item.id ? 'is-active' : ''} onClick={() => setTab(item.id)} aria-current={tab === item.id ? 'page' : undefined}><i><Icon size={18} /></i>{item.label}</button> })}</nav>
-        <div className="detail-body engineering-detail__body">{tab === 'intro' && <Overview vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'principle' && <Principle vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'observe' && <Observe vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'engineering' && <Engineering vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'faults' && <Faults vehicleId={vehicleId} locale={locale} partId={partId} />}</div>
+        <nav className="detail-tabs engineering-tabs" role="tablist" aria-label={part.name}>{tabs.map((item, index) => { const Icon = item.icon; return <button ref={element => { tabRefs.current[item.id] = element }} id={`engineering-tab-${partId}-${item.id}`} role="tab" aria-selected={tab === item.id} aria-controls={`engineering-panel-${partId}`} tabIndex={tab === item.id ? 0 : -1} key={item.id} className={tab === item.id ? 'is-active' : ''} onClick={() => selectTab(item.id)} onKeyDown={event => navigateTabs(event, index)}><i><Icon size={18} /></i>{item.label}</button> })}</nav>
+        <div ref={bodyRef} id={`engineering-panel-${partId}`} className="detail-body engineering-detail__body" role="tabpanel" aria-labelledby={`engineering-tab-${partId}-${tab}`} tabIndex={0}>{tab === 'intro' && <Overview vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'principle' && <Principle vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'observe' && <Observe vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'engineering' && <Engineering vehicleId={vehicleId} locale={locale} partId={partId} />}{tab === 'faults' && <Faults vehicleId={vehicleId} locale={locale} partId={partId} />}</div>
       </div>
     </div>
   )

@@ -1,8 +1,27 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { MUSIC_TRACKS } from '../src/music'
+import { ENGINEERING_LESSONS } from '../src/engineeringData'
+import { GRAND_PRIX_ENGINEERING_LESSONS } from '../src/grandPrixEngineeringData'
+import { initialValues, LAB_MODELS } from '../src/engineeringSim'
+import { grandPrixInitialValues, GRAND_PRIX_LAB_MODELS } from '../src/grandPrixEngineeringSim'
+import { getPartInteractionPack } from '../src/partInteractionRegistry'
+import { initialInteractionValues } from '../src/interactionTypes'
 
 const PART_IDS = ['front-wing', 'rear-wing', 'floor', 'nose', 'monocoque', 'halo', 'tires', 'brakes', 'front-suspension', 'rear-suspension', 'steering', 'battery', 'inverter', 'motor', 'differential', 'cooling', 'ecu', 'sensors'] as const
+
+function expectedPrincipleMetricCount(partId: typeof PART_IDS[number], vehicle: 'student-ev' | 'grand-prix-2026') {
+  const lessons = vehicle === 'grand-prix-2026' ? GRAND_PRIX_ENGINEERING_LESSONS : ENGINEERING_LESSONS
+  const models = vehicle === 'grand-prix-2026' ? GRAND_PRIX_LAB_MODELS : LAB_MODELS
+  const values = vehicle === 'grand-prix-2026' ? grandPrixInitialValues : initialValues
+  const kind = lessons[partId].labKind
+  return models[kind].evaluate(values(kind)).metrics.length
+}
+
+function expectedInteractionMetricCount(partId: Exclude<typeof PART_IDS[number], 'cooling'>, vehicle: 'student-ev' | 'grand-prix-2026', experimentIndex: number) {
+  const experiment = getPartInteractionPack(partId)!.experimentsFor(vehicle)[experimentIndex]!
+  return experiment.evaluate(initialInteractionValues(experiment)).metrics.length
+}
 
 function captureErrors(page: Page) {
   const errors: string[] = []
@@ -85,6 +104,179 @@ test('all configured music files are served as playable MP3 assets', async ({ re
   }
 })
 
+test('desktop and portrait UI matrix keeps every primary panel reachable', async ({ page }, testInfo: TestInfo) => {
+  const errors = captureErrors(page)
+  const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844 }]
+  const locales = ['zh', 'en'] as const
+  const vehicles = ['student-ev', 'grand-prix-2026'] as const
+
+  for (const viewport of viewports) {
+    for (const locale of locales) {
+      for (const vehicle of vehicles) {
+        await page.setViewportSize(viewport)
+        await page.goto('/')
+        await page.evaluate(({ locale: nextLocale, vehicle: nextVehicle }) => {
+          localStorage.setItem('racecar-lab-locale', nextLocale)
+          localStorage.setItem('racecar-lab-vehicle', nextVehicle)
+        }, { locale, vehicle })
+        await page.reload()
+        await expect(page.locator('.intro-screen')).toBeVisible()
+        await assertPageFits(page)
+
+        const settingsTrigger = page.locator('.intro-nav__actions button').last()
+        await settingsTrigger.click()
+        const settings = page.locator('.settings-modal')
+        await expect(settings).toBeVisible()
+        await assertNoHorizontalOverflow(settings)
+        await expect(settings.locator('[data-locale]')).toHaveCount(2)
+        await expect(settings.locator('[data-vehicle]')).toHaveCount(2)
+        await expect(settings.locator('.music-track-list button')).toHaveCount(8)
+        await settings.locator('.music-track-list button').last().scrollIntoViewIfNeeded()
+        await expect(settings.locator('.music-track-list button').last()).toBeVisible()
+        if (viewport.width < 680) {
+          const choiceLabels = settings.locator('.vehicle-options strong, .music-track-list strong')
+          const clippedLabels = await choiceLabels.evaluateAll((elements) => elements.filter((element) => element.scrollWidth > element.clientWidth + 1).map(element => element.textContent))
+          expect(clippedLabels).toEqual([])
+        }
+        await settings.locator('.reset-progress').scrollIntoViewIfNeeded()
+        if (viewport.width < 680) await settings.screenshot({ path: testInfo.outputPath(`settings-${locale}-${vehicle}.png`) })
+        await settings.locator('.reset-progress').click()
+        await expect(settings.locator('.reset-confirm .button--glass')).toBeFocused()
+        await settings.locator('.reset-confirm .button--glass').click()
+        await expect(settings.locator('.reset-progress')).toBeFocused()
+        if (locale === 'en') {
+          const isolatedSettingsText = await settings.evaluate((element) => {
+            const clone = element.cloneNode(true) as HTMLElement
+            clone.querySelector('[data-locale="zh"]')?.remove()
+            return clone.innerText
+          })
+          expect(isolatedSettingsText).not.toMatch(/[\u3400-\u9fff]/)
+        }
+        await settings.locator('.settings-close').click()
+        await expect(settingsTrigger).toBeFocused()
+
+        await enterLab(page)
+        await assertPageFits(page)
+        await expect(page.locator('.system-button')).toHaveCount(5)
+        const railLabels = await page.locator('.system-name strong').evaluateAll((elements) => elements.map((element) => ({
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          clientHeight: element.clientHeight,
+          lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight) || Number.parseFloat(getComputedStyle(element).fontSize) * 1.4,
+        })))
+        for (const label of railLabels) {
+          expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth + 1)
+          expect(label.clientHeight).toBeLessThanOrEqual(label.lineHeight + 2)
+        }
+
+        if (viewport.width < 680) {
+          const courseIconAlignment = await page.locator('.lab-topbar .top-button').first().evaluate((button) => {
+            const buttonBox = button.getBoundingClientRect()
+            const iconBox = button.querySelector('svg')!.getBoundingClientRect()
+            return {
+              x: Math.abs((buttonBox.left + buttonBox.width / 2) - (iconBox.left + iconBox.width / 2)),
+              y: Math.abs((buttonBox.top + buttonBox.height / 2) - (iconBox.top + iconBox.height / 2)),
+            }
+          })
+          expect(courseIconAlignment.x).toBeLessThanOrEqual(1.1)
+          expect(courseIconAlignment.y).toBeLessThanOrEqual(1.6)
+        }
+
+        await page.locator('.lab-topbar .top-button').first().click()
+        const courseMap = page.locator('.course-modal')
+        await expect(courseMap).toBeVisible()
+        await expect(courseMap.locator('.course-node')).toHaveCount(8)
+        await courseMap.locator('.course-node').last().scrollIntoViewIfNeeded()
+        await assertNoHorizontalOverflow(courseMap)
+        if (viewport.width < 680) await courseMap.screenshot({ path: testInfo.outputPath(`course-${locale}-${vehicle}.png`) })
+        await courseMap.locator('.settings-close').click()
+
+        await page.locator('.lab-topbar .top-button').nth(1).click()
+        const knowledge = page.locator('.knowledge-modal')
+        await expect(knowledge).toBeVisible()
+        await expect(knowledge.locator('.knowledge-categories button')).toHaveCount(5)
+        await expect(knowledge.locator('.knowledge-parts button')).toHaveCount(3)
+        await knowledge.locator('.knowledge-categories button').last().scrollIntoViewIfNeeded()
+        await knowledge.locator('.knowledge-parts button').last().scrollIntoViewIfNeeded()
+        await assertNoHorizontalOverflow(knowledge)
+        if (locale === 'en') await expect(knowledge).not.toContainText(/[\u3400-\u9fff]/)
+        if (viewport.width < 680) await knowledge.screenshot({ path: testInfo.outputPath(`knowledge-${locale}-${vehicle}.png`) })
+        await knowledge.locator('.settings-close').click()
+        await assertPageFits(page)
+      }
+    }
+  }
+
+  expect(errors).toEqual([])
+})
+
+test('portrait transient learning panels preserve focus and fit without overlap traps', async ({ page }) => {
+  const errors = captureErrors(page)
+  await page.addInitScript(() => {
+    localStorage.setItem('racecar-lab-locale', 'en')
+    localStorage.setItem('racecar-lab-vehicle', 'student-ev')
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await page.locator('.intro-actions .button--primary').click()
+
+  const lesson = page.locator('.lesson-panel')
+  await expect(lesson).toBeVisible()
+  await lesson.locator('.panel-minimize').click()
+  const lessonMini = page.locator('.panel-minibutton--lesson')
+  await expect(lessonMini).toBeFocused()
+  await lessonMini.click()
+  await expect(page.locator('.lesson-panel .panel-minimize')).toBeFocused()
+
+  const lessonPartButtons = page.locator('.lesson-parts button')
+  await lessonPartButtons.first().evaluate((button: HTMLButtonElement) => button.click())
+  const partPanel = page.locator('.part-panel')
+  await expect(partPanel).toBeVisible()
+  await partPanel.locator('.panel-minimize').click()
+  const partMini = page.locator('.panel-minibutton--part')
+  await expect(partMini).toBeFocused()
+  await partMini.click()
+  await expect(page.locator('.part-panel .panel-minimize')).toBeFocused()
+
+  const deepButton = page.locator('.part-deep-button')
+  await deepButton.click()
+  const detail = page.locator('.engineering-detail')
+  await expect(detail).toBeVisible()
+  await assertNoHorizontalOverflow(detail)
+  const detailTabs = detail.locator('[role="tab"]')
+  await expect(detailTabs).toHaveCount(5)
+  await detailTabs.first().focus()
+  await page.keyboard.press('End')
+  await expect(detailTabs.last()).toBeFocused()
+  await expect(detailTabs.last()).toHaveAttribute('aria-selected', 'true')
+  await page.keyboard.press('Home')
+  await expect(detailTabs.first()).toBeFocused()
+  await detail.locator('.engineering-detail__body').evaluate((element) => { element.scrollTop = 200 })
+  await detailTabs.nth(1).click()
+  await expect.poll(() => detail.locator('.engineering-detail__body').evaluate(element => element.scrollTop)).toBe(0)
+  await detail.locator('.settings-close').click()
+  await expect(deepButton).toBeFocused()
+  await partPanel.locator('.icon-button').last().click()
+
+  const lessonPartCount = await lessonPartButtons.count()
+  for (let index = 0; index < lessonPartCount; index += 1) {
+    await lessonPartButtons.nth(index).evaluate((button: HTMLButtonElement) => button.click())
+  }
+  if (await partPanel.isVisible()) await partPanel.locator('.icon-button').last().click()
+  const finish = page.locator('.lesson-finish')
+  await finish.click()
+  const quiz = page.locator('.quiz-modal')
+  await expect(quiz).toBeVisible()
+  await expect(quiz.locator('.quiz-options [role="radio"]')).toHaveCount(4)
+  await assertNoHorizontalOverflow(quiz)
+  await expect(quiz).not.toContainText(/[\u3400-\u9fff]/)
+  await quiz.locator('.quiz-actions .button--glass').click()
+  await expect(finish).toBeFocused()
+
+  await assertPageFits(page)
+  expect(errors).toEqual([])
+})
+
 test('all 18 detailed 3D component models assemble, explode, select and calculate', async ({ page }, testInfo: TestInfo) => {
   const errors = captureErrors(page)
   await page.addInitScript(() => localStorage.setItem('racecar-lab-locale', 'en'))
@@ -125,7 +317,7 @@ test('all 18 detailed 3D component models assemble, explode, select and calculat
     await detail.locator('.component-workshop__explode input').fill('0')
 
     await detail.locator('.engineering-tabs button').nth(1).click()
-    await expect(detail.locator('.eng-metrics article')).toHaveCount(4)
+    await expect(detail.locator('.eng-metrics article')).toHaveCount(expectedPrincipleMetricCount(id, 'student-ev'))
     await expect(detail.locator('.eng-chart svg')).toBeVisible()
     await expect(detail.locator('.eng-formula-dots button')).toHaveCount(3)
     for (let formulaIndex = 0; formulaIndex < 3; formulaIndex += 1) {
@@ -156,7 +348,7 @@ test('all 18 detailed 3D component models assemble, explode, select and calculat
       await expect(experiments.nth(4)).toHaveAttribute('aria-pressed', 'true')
       await expect(experiments.first()).toHaveAttribute('aria-pressed', 'false')
       await expect(observe.locator('.interaction-lab-stage svg')).toBeVisible()
-      await expect(observe.locator('[data-metric-id]')).toHaveCount(4)
+      await expect(observe.locator('[data-metric-id]')).toHaveCount(expectedInteractionMetricCount(id, 'student-ev', 4))
       const interactionMetricsBefore = await observe.locator('.cooling-lab-results').innerText()
       const interactionSlider = observe.locator('.cooling-lab-inputs input[type="range"]').first()
       const interactionMin = await interactionSlider.getAttribute('min') ?? '0'
@@ -223,6 +415,7 @@ test('cooling detail exposes five experiments and two sets of three working flip
   for (let index = 0; index < expectedModes.length; index += 1) {
     await experiments.nth(index).click()
     await expect(experiments.nth(index)).toHaveClass(/is-active/)
+    await expect(experiments.nth(index)).toHaveAttribute('aria-pressed', 'true')
     await expect(observe.locator('.cooling-lab-stage')).toHaveAttribute('data-diagram-mode', expectedModes[index]!)
     await expect(observe.locator('[data-metric-id]')).toHaveCount(4)
   }
@@ -243,8 +436,10 @@ test('cooling detail exposes five experiments and two sets of three working flip
     await card.locator('.cooling-flip-card__front').click()
     await expect(card).toHaveAttribute('data-flipped', 'true')
     await expect(card.locator('.cooling-flip-card__back')).toHaveAttribute('aria-hidden', 'false')
+    await expect(card.locator('.cooling-flip-card__return')).toBeFocused()
     await card.locator('.cooling-flip-card__return').click()
     await expect(card).toHaveAttribute('data-flipped', 'false')
+    await expect(card.locator('.cooling-flip-card__front')).toBeFocused()
   }
 
   await detail.locator('.engineering-tabs button').nth(4).click()
@@ -257,14 +452,16 @@ test('cooling detail exposes five experiments and two sets of three working flip
     await card.locator('.cooling-flip-card__front').click()
     await expect(card).toHaveAttribute('data-flipped', 'true')
     await expect(card.locator('.cooling-flip-card__back')).toHaveAttribute('aria-hidden', 'false')
+    await expect(card.locator('.cooling-flip-card__return')).toBeFocused()
     await card.locator('.cooling-flip-card__return').click()
     await expect(card).toHaveAttribute('data-flipped', 'false')
+    await expect(card.locator('.cooling-flip-card__front')).toBeFocused()
   }
 
   expect(errors).toEqual([])
 })
 
-test('cooling experiments and flip cards remain reachable without horizontal overflow on portrait mobile', async ({ page }) => {
+test('cooling experiments and flip cards remain reachable without horizontal overflow on portrait mobile', async ({ page }, testInfo: TestInfo) => {
   const errors = captureErrors(page)
   await page.addInitScript(() => {
     localStorage.setItem('racecar-lab-locale', 'en')
@@ -293,6 +490,7 @@ test('cooling experiments and flip cards remain reachable without horizontal ove
   await fifthExperiment.click()
   await expect(fifthExperiment).toHaveClass(/is-active/)
   await expect(observe.locator('.cooling-lab-stage')).toHaveAttribute('data-diagram-mode', 'timeline')
+  await detail.screenshot({ path: testInfo.outputPath('mobile-cooling-observe.png') })
 
   await detail.locator('.engineering-tabs button').nth(3).click()
   const references = detail.locator('[data-resource-card-id]')
@@ -304,6 +502,7 @@ test('cooling experiments and flip cards remain reachable without horizontal ove
   await thirdReference.scrollIntoViewIfNeeded()
   await thirdReference.locator('.cooling-flip-card__front').click()
   await expect(thirdReference).toHaveAttribute('data-flipped', 'true')
+  await thirdReference.screenshot({ path: testInfo.outputPath('mobile-cooling-reference-flipped.png') })
   await thirdReference.locator('.cooling-flip-card__return').click()
 
   await detail.locator('.engineering-tabs button').nth(4).click()
@@ -316,6 +515,7 @@ test('cooling experiments and flip cards remain reachable without horizontal ove
   await thirdFault.scrollIntoViewIfNeeded()
   await thirdFault.locator('.cooling-flip-card__front').click()
   await expect(thirdFault).toHaveAttribute('data-flipped', 'true')
+  await thirdFault.screenshot({ path: testInfo.outputPath('mobile-cooling-fault-flipped.png') })
   await thirdFault.locator('.cooling-flip-card__return').click()
 
   await assertPageFits(page)
@@ -450,7 +650,7 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
     await detail.locator('.component-learning').screenshot({ path: testInfo.outputPath(`grand-prix-${id}.png`) })
 
     await detail.locator('.engineering-tabs button').nth(1).click()
-    await expect(detail.locator('.eng-metrics article')).toHaveCount(4)
+    await expect(detail.locator('.eng-metrics article')).toHaveCount(expectedPrincipleMetricCount(id, 'grand-prix-2026'))
     await expect(detail.locator('.eng-chart svg')).toBeVisible()
     await expect(detail.locator('.eng-formula-dots button')).toHaveCount(3)
     for (let formulaIndex = 0; formulaIndex < 3; formulaIndex += 1) {
@@ -462,6 +662,7 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
       await expect(detail.locator('.eng-formula-card')).not.toContainText(/[\u3400-\u9fff]/)
     }
     await detail.locator('.settings-close').click()
+    await expect(detail).toBeHidden()
   }
 
   await page.reload()

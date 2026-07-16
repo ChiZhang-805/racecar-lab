@@ -1,6 +1,14 @@
 import type { PartId } from './data'
 import type { LocalText } from './engineeringData'
 import {
+  FIA_ERS_K_MECHANICAL_TORQUE_NM,
+  FIA_ES_STATE_OF_CHARGE_SWING_MJ,
+  FIA_LAP_RECHARGE_MAX_MJ,
+  fiaDcToMechanicalPowerKw,
+  fiaNormalDeploymentDcLimitKw,
+  orderedLapEnergyTrace,
+} from './ersRules'
+import {
   interactionClamp as clamp,
   interactionCurve as curve,
   interactionMetric as metric,
@@ -85,7 +93,11 @@ const batteryExperiments = (gp: boolean): InteractionExperiment[] => {
           metric('dc-current', '母线电流', 'DC current', round(current, 1), 'A', toneHigh(current, gp ? 430 : 180, gp ? 560 : 240)),
           metric('joule-loss', '焦耳热', 'Joule heat', round(loss, 2), 'kW', toneHigh(loss, gp ? 20 : 8, gp ? 35 : 14)),
           metric('weakest-cell', '最低单体', 'Weakest cell', round(cellMin, 3), 'V', toneLow(cellMin, limit + .15, limit)),
-        ], curve(x => ocv - (x * powerMax * 1000 / Math.max(ocv, 1)) * r, 0, 1), labels(['开路', 'Open circuit'], ['负载', 'Loaded'], ['弱电芯', 'Weak cell']), [1, terminal / Math.max(ocv, 1), clamp((cellMin - limit) / .9, 0, 1)], insight(powerFeasible ? '低 SOC、低温与内阻会共同放大电压下陷；BMS 应由最低单体先降功率。' : '当前功率请求超过电池等效电路的最大功率点；显示的是电压塌陷边界，控制器必须先降功率。', powerFeasible ? 'Low SOC, low temperature and resistance compound voltage sag; the weakest cell must trigger derating first.' : 'The request exceeds the equivalent-circuit maximum-power point; the display is the voltage-collapse boundary and the controller must derate first.'), { marker: power / powerMax, risk: powerFeasible ? clamp((limit + .25 - cellMin) / .4, 0, 1) : 1 })
+        ], curve(x => {
+          const curvePower = x * powerMax * 1000
+          const curveDiscriminant = ocv * ocv - 4 * r * curvePower
+          return curveDiscriminant >= 0 ? (ocv + Math.sqrt(curveDiscriminant)) / 2 : ocv / 2
+        }, 0, 1), labels(['开路', 'Open circuit'], ['负载', 'Loaded'], ['弱电芯', 'Weak cell']), [1, terminal / Math.max(ocv, 1), clamp((cellMin - limit) / .9, 0, 1)], insight(powerFeasible ? '低 SOC、低温与内阻会共同放大电压下陷；BMS 应由最低单体先降功率。' : '当前功率请求超过电池等效电路的最大功率点；显示的是电压塌陷边界，控制器必须先降功率。', powerFeasible ? 'Low SOC, low temperature and resistance compound voltage sag; the weakest cell must trigger derating first.' : 'The request exceeds the equivalent-circuit maximum-power point; the display is the voltage-collapse boundary and the controller must derate first.'), { marker: power / powerMax, risk: powerFeasible ? clamp((limit + .25 - cellMin) / .4, 0, 1) : 1 })
       },
     },
     {
@@ -179,13 +191,13 @@ const batteryExperiments = (gp: boolean): InteractionExperiment[] => {
       id: 'battery-lap-energy', title: l('单圈能量', 'Lap energy'),
       question: l('部署与回收怎样保持能量窗口？', 'How do deployment and harvest stay inside the energy window?'), mode: 'timeline',
       parameters: [
-        parameter('deploy', '部署占空比', 'Deployment duty', 10, 100, 1, gp ? 25 : 55, '%'),
+        parameter('deploy', '部署占空比', 'Deployment duty', 10, 100, 1, gp ? 15 : 55, '%'),
         parameter('harvest', '回收强度', 'Harvest intensity', 0, 100, 1, gp ? 65 : 55, '%'),
         parameter('brakingFraction', '制动区比例', 'Braking fraction', 10, gp ? 45 : 35, 1, gp ? 22 : 20, '%'),
         parameter('initialSoc', gp ? '4 MJ 窗口起点' : '初始 SOC', gp ? '4 MJ window start' : 'Initial SOC', gp ? 20 : 40, 100, 1, gp ? 100 : 90, '%'),
       ],
       evaluate: values => {
-        const deploy = read(values, 'deploy', gp ? 25 : 55, 10, 100) / 100
+        const deploy = read(values, 'deploy', gp ? 15 : 55, 10, 100) / 100
         const harvest = read(values, 'harvest', gp ? 65 : 55, 0, 100) / 100
         const braking = read(values, 'brakingFraction', gp ? 22 : 20, 10, gp ? 45 : 35) / 100
         const initialSoc = read(values, 'initialSoc', gp ? 100 : 90, gp ? 20 : 40, 100)
@@ -193,24 +205,24 @@ const batteryExperiments = (gp: boolean): InteractionExperiment[] => {
         // regulated 4 MJ max-to-min energy window, not total battery capacity.
         const duration = gp ? 90 : 65
         const deployEnergy = powerMax * deploy * duration * (1 - braking) / 3600
-        const harvestCap = gp ? 8.5 / 3.6 : Number.POSITIVE_INFINITY
+        const harvestCap = gp ? FIA_LAP_RECHARGE_MAX_MJ / 3.6 : Number.POSITIVE_INFINITY
         const potentialHarvestEnergy = powerMax * harvest * duration * braking * .72 / 3600
         const harvestEnergy = Math.min(harvestCap, potentialHarvestEnergy)
-        const net = deployEnergy - harvestEnergy
-        const netMJ = net * 3.6
         const capacityKWh = 6.5
-        const finalState = gp
-          ? clamp(initialSoc - netMJ / 4 * 100, 0, 100)
-          : clamp(initialSoc - net / capacityKWh * 100, 0, 100)
-        const swingMJ = Math.abs(netMJ)
-        const limitMJ = gp ? 4 : capacityKWh * 3.6
-        const timeline = curve(x => initialSoc - (initialSoc - finalState) * x + Math.sin(x * Math.PI * 6) * harvest * 2, 0, 1)
+        const limitMJ = gp ? FIA_ES_STATE_OF_CHARGE_SWING_MJ : capacityKWh * 3.6
+        const initialEnergyMj = initialSoc / 100 * limitMJ
+        const ledger = orderedLapEnergyTrace(initialEnergyMj, deployEnergy * 3.6, harvestEnergy * 3.6, 1 - braking)
+        const finalStateRaw = ledger.finishMj / limitMJ * 100
+        const finalState = clamp(finalStateRaw, 0, 100)
+        const swingMJ = ledger.swingMj
+        const windowBreach = ledger.minimumMj < 0 || ledger.maximumMj > limitMJ
+        const timeline = ledger.points.map(point => ({ x: point.x, y: point.y / limitMJ * 100 }))
         return result([
           metric('deploy-energy', '部署能量', 'Deployment energy', round(deployEnergy, 2), 'kWh'),
-          metric('harvest-energy', '回收能量', 'Harvest energy', round(harvestEnergy, 2), 'kWh', gp && potentialHarvestEnergy >= harvestCap ? 'warn' : 'good'),
-          metric('finish-soc', gp ? '窗口终点' : '终点 SOC', gp ? 'Window finish' : 'Finish SOC', round(finalState, 1), '%', toneLow(finalState, 25, 12)),
+          metric('harvest-energy', '回收能量', 'Harvest energy', round(harvestEnergy, 2), 'kWh', gp && potentialHarvestEnergy > harvestCap ? 'warn' : 'good'),
+          metric('finish-soc', gp ? '窗口终点' : '终点 SOC', gp ? 'Window finish' : 'Finish SOC', round(finalStateRaw, 1), '%', windowBreach ? 'danger' : toneLow(finalState, 25, 12)),
           metric('energy-swing', '能量摆幅', 'Energy swing', round(swingMJ, 2), 'MJ', gp ? toneHigh(swingMJ, 3.6, 4) : 'good'),
-        ], timeline, labels(['部署', 'Deploy'], ['回收', 'Harvest'], gp ? ['4 MJ 窗口', '4 MJ window'] : ['SOC', 'SOC'], ['法规余量', 'Rule margin']), [deploy, harvest, finalState / 100, clamp(1 - swingMJ / limitMJ, 0, 1)], insight(gp ? '这里显示的是法规允许的 4 MJ 最大—最小能量窗口，而不是整套储能系统的总容量；350 kW 功率、4 MJ 窗口与 8.5 MJ/圈回收必须分别计量。' : '80 kW 是 TSAC 出口功率上限；单圈能量目标还受效率、附着和终点 SOC 约束。', gp ? 'This visualises the regulated 4 MJ maximum-to-minimum energy window, not total ES capacity; the 350 kW power limit, 4 MJ window and 8.5 MJ/lap harvest limit must be metered separately.' : 'The 80 kW limit is measured at the TSAC outlet; lap energy also depends on efficiency, grip and finish SOC.'), { risk: gp ? Math.max(clamp(swingMJ / 4, 0, 1), finalState <= 0 ? 1 : 0) : clamp((20 - finalState) / 20, 0, 1) })
+        ], timeline, labels(['部署', 'Deploy'], ['回收', 'Harvest'], gp ? ['4 MJ 窗口', '4 MJ window'] : ['SOC', 'SOC'], ['法规余量', 'Rule margin']), [deploy, harvest, finalState / 100, clamp(1 - swingMJ / limitMJ, 0, 1)], insight(gp ? '曲线按先部署、后制动回收的时序计算最大—最小能量摆幅，而不是用圈末净变化代替。8.5 MJ 是 C5.2.10 的基础单圈回收上限；FIA 可按赛事降至 7 MJ，排位节次还可降至不低于 5 MJ，并可按 B7.2 另加最多 0.5 MJ。' : '80 kW 是 TSAC 出口功率上限；曲线按时序追踪能量，单圈目标还受效率、附着和终点 SOC 约束。', gp ? 'The curve follows deployment then braking recharge to measure the true maximum-to-minimum swing, not merely the lap-end net change. C5.2.10 sets an 8.5 MJ baseline recharge cap; the FIA may reduce it to 7 MJ, or no lower than 5 MJ in qualifying sessions, with up to 0.5 MJ additional recharge under B7.2.' : 'The 80 kW limit is measured at the TSAC outlet; the ordered energy trace also depends on efficiency, grip and finish SOC.'), { risk: gp ? Math.max(clamp(swingMJ / FIA_ES_STATE_OF_CHARGE_SWING_MJ, 0, 1), windowBreach ? 1 : 0) : Math.max(clamp((20 - finalState) / 20, 0, 1), windowBreach ? 1 : 0) })
       },
     },
   ]
@@ -307,14 +319,15 @@ const inverterExperiments = (gp: boolean): InteractionExperiment[] => {
     {
       id: 'inverter-regen-overvoltage', title: l('回收过压', 'Regen overvoltage'), question: l('限充时能量去哪里？', 'Where does energy go when charging is limited?'), mode: 'flow',
       parameters: [
-        parameter('regenPower', '回收功率', 'Regeneration power', 0, gp ? 350 : 80, gp ? 5 : 1, gp ? 180 : 35, 'kW'),
-        parameter('chargeLimit', '电池限充', 'Battery charge limit', 0, gp ? 350 : 80, gp ? 5 : 1, gp ? 160 : 30, 'kW'),
+        parameter('regenPower', gp ? '回收直流功率' : '回收功率（教学）', gp ? 'Recharge DC power' : 'Teaching regen power', 0, gp ? 350 : 120, gp ? 5 : 2, gp ? 180 : 35, 'kW'),
+        parameter('chargeLimit', gp ? '电池限充' : '电池限充（教学）', gp ? 'Battery charge limit' : 'Teaching battery charge limit', 0, gp ? 350 : 120, gp ? 5 : 2, gp ? 160 : 30, 'kW'),
         parameter('capacitance', '母线电容', 'DC-link capacitance', .5, gp ? 8 : 5, .1, gp ? 3 : 2, 'mF'),
         parameter('soc', '荷电状态', 'State of charge', 20, 100, 1, 70, '%'),
       ],
       evaluate: values => {
-        const regen = read(values, 'regenPower', gp ? 180 : 35, 0, gp ? 350 : 80)
-        const chargeLimit = read(values, 'chargeLimit', gp ? 160 : 30, 0, gp ? 350 : 80)
+        const regenScale = gp ? 350 : 120
+        const regen = read(values, 'regenPower', gp ? 180 : 35, 0, regenScale)
+        const chargeLimit = read(values, 'chargeLimit', gp ? 160 : 30, 0, regenScale)
         const capacitance = read(values, 'capacitance', gp ? 3 : 2, .5, gp ? 8 : 5) / 1000
         const soc = read(values, 'soc', 70, 20, 100)
         const socFactor = clamp((100 - soc) / 25, .05, 1)
@@ -329,7 +342,7 @@ const inverterExperiments = (gp: boolean): InteractionExperiment[] => {
           metric('accepted-power', '电池接收', 'Battery accepted', round(accepted, 1), 'kW', 'good'),
           metric('curtailed-power', '削减回收', 'Curtailed regen', round(cut, 1), 'kW', cut > 0 ? 'warn' : 'good'),
           metric('overvoltage-margin', '过压裕度', 'Overvoltage margin', round(margin, 1), 'V', toneLow(margin, voltageMax * .06, 0)),
-        ], curve(x => Math.sqrt(voltageDefault ** 2 + 2 * mismatch * 1000 * dt * x / Math.max(capacitance, 1e-6)), 0, 1), labels(['车轮', 'Wheels'], ['电机', 'Motor'], ['母线', 'DC link'], ['电池', 'Battery']), [regen / (gp ? 350 : 80), regen / (gp ? 350 : 80), clamp(1 - peakVoltage / (voltageMax * 1.1), 0, 1), accepted / Math.max(regen, 1)], insight('电池不能接收的回收功率会先抬高有限母线电容的能量；控制器必须削减负扭矩并协调机械制动。', 'Regen power the battery cannot accept first raises energy in the finite DC-link capacitor; negative torque must be curtailed and blended with mechanical braking.'), { risk: clamp((peakVoltage - voltageMax * .9) / (voltageMax * .1), 0, 1) })
+        ], curve(x => Math.sqrt(voltageDefault ** 2 + 2 * mismatch * 1000 * dt * x / Math.max(capacitance, 1e-6)), 0, 1), labels(['车轮', 'Wheels'], ['电机', 'Motor'], ['母线', 'DC link'], ['电池', 'Battery']), [regen / regenScale, regen / regenScale, clamp(1 - peakVoltage / (voltageMax * 1.1), 0, 1), accepted / Math.max(regen, 1)], insight(gp ? '电池不能接收的回收功率会先抬高有限母线电容的能量；控制器必须削减负扭矩并协调机械制动。' : 'FS EV2.2.1 的 80 kW 只限制 TSAC 出口的正向驱动功率；EV2.2.3 不限制回收功率。此处上限是电池、电机与控制策略的教学假设，并非赛事法规上限。', gp ? 'Regen power the battery cannot accept first raises energy in the finite DC-link capacitor; negative torque must be curtailed and blended with mechanical braking.' : 'The FS EV2.2.1 80 kW cap applies only to positive drive power at the TSAC outlet; EV2.2.3 does not cap regeneration. The limits shown here are teaching assumptions for the pack, motor and controls, not a competition rule.'), { risk: clamp((peakVoltage - voltageMax * .9) / (voltageMax * .1), 0, 1) })
       },
     },
     {
@@ -386,19 +399,21 @@ const motorExperiments = (gp: boolean): InteractionExperiment[] => {
     },
     {
       id: 'motor-torque-speed', title: l('转矩—转速', 'Torque-speed'), question: l('基速后为何进入恒功率区？', 'Why does the motor enter a constant-power region?'), mode: 'curve',
-      parameters: [parameter('speed', '转速', 'Speed', 0, speedMax, 250, gp ? 12000 : 10000, 'rpm'), parameter('dcVoltage', '母线电压', 'DC voltage', gp ? 600 : 250, gp ? 1000 : 600, gp ? 10 : 5, gp ? 800 : 400, 'V'), parameter('currentLimit', '电流上限', 'Current limit', 50, currentMax, 5, gp ? 450 : 200, 'A'), parameter('coolantTemp', '冷却液温度', 'Coolant temperature', 20, gp ? 80 : 70, 1, gp ? 45 : 40, '°C')],
+      parameters: [parameter('speed', '转速', 'Speed', 0, speedMax, 250, gp ? 12000 : 10000, 'rpm'), parameter('dcVoltage', '母线电压', 'DC voltage', gp ? 600 : 250, gp ? 1000 : 600, gp ? 10 : 5, gp ? 800 : 400, 'V'), parameter('currentLimit', '电流上限', 'Current limit', 50, currentMax, 5, gp ? 450 : 200, 'A'), parameter('coolantTemp', '冷却液温度', 'Coolant temperature', 20, gp ? 80 : 70, 1, gp ? 45 : 40, '°C'), ...(gp ? [parameter('vehicleSpeed', '非超车模式车速', 'Non-overtake vehicle speed', 50, 345, 5, 250, 'km/h')] : [])],
       evaluate: values => {
         const speed = read(values, 'speed', gp ? 12000 : 10000, 0, speedMax)
         const voltage = read(values, 'dcVoltage', gp ? 800 : 400, gp ? 600 : 250, gp ? 1000 : 600)
         const current = read(values, 'currentLimit', gp ? 450 : 200, 50, currentMax)
         const coolant = read(values, 'coolantTemp', gp ? 45 : 40, 20, gp ? 80 : 70)
+        const vehicleSpeed = read(values, 'vehicleSpeed', 250, 50, 345)
         const baseSpeed = (gp ? 10500 : 9000) * voltage / (gp ? 800 : 400)
         const thermal = clamp(1 - Math.max(0, coolant - 45) / 90, .55, 1)
         const peakTorque = torqueMax * current / currentMax * thermal
-        const powerLimitKw = gp ? 350 : 80
+        const dcPowerLimitKw = gp ? fiaNormalDeploymentDcLimitKw(vehicleSpeed) : 80
+        const mechanicalPowerLimitKw = gp ? fiaDcToMechanicalPowerKw(dcPowerLimitKw) : dcPowerLimitKw * .94
         const torqueAtSpeed = (rpm: number) => {
           const voltageEnvelope = rpm <= baseSpeed ? peakTorque : peakTorque * baseSpeed / Math.max(rpm, 1)
-          const powerEnvelope = rpm <= 1 ? peakTorque : powerLimitKw * 1000 / (rpm * Math.PI / 30)
+          const powerEnvelope = rpm <= 1 ? peakTorque : mechanicalPowerLimitKw * 1000 / (rpm * Math.PI / 30)
           return Math.min(voltageEnvelope, powerEnvelope)
         }
         const available = torqueAtSpeed(speed)
@@ -406,18 +421,24 @@ const motorExperiments = (gp: boolean): InteractionExperiment[] => {
         const id = speed <= baseSpeed ? 0 : -(speed / baseSpeed - 1) * (gp ? 180 : 70)
         const voltageMargin = clamp(1 - speed / Math.max(baseSpeed * 1.8, 1), 0, 1) * 100
         const envelope = curve(x => torqueAtSpeed(x * speedMax), 0.001, 1)
-        return result([metric('available-torque', '可用转矩', 'Available torque', round(available, 1), 'N·m', 'good'), metric('mechanical-power', '机械功率', 'Mechanical power', round(power, 1), 'kW', gp && power > 350 ? 'warn' : 'good'), metric('field-current', '弱磁电流', 'Field current', round(id, 1), 'A', toneHigh(Math.abs(id), gp ? 160 : 60, gp ? 280 : 110)), metric('voltage-margin', '电压裕度', 'Voltage margin', round(voltageMargin, 1), '%', toneLow(voltageMargin, 25, 10))], envelope, labels(['恒转矩', 'Constant torque'], ['基速', 'Base speed'], ['弱磁', 'Field weakening'], ['恒功率', 'Constant power']), [1, baseSpeed / speedMax, clamp(1 - Math.abs(id) / (gp ? 350 : 150), 0, 1), clamp(power / (gp ? 350 : 80), 0, 1)], insight('基速以下由电流限制，基速以上由电压限制；弱磁扩展转速但增加电流和热。', 'Below base speed current is limiting; above it voltage is limiting. Field weakening extends speed at a thermal cost.'), { marker: speed / speedMax, risk: clamp(Math.abs(id) / (gp ? 320 : 130), 0, 1) })
+        return result([metric('available-torque', '可用转矩', 'Available torque', round(available, 1), 'N·m', 'good'), metric('mechanical-power', '机械轴功率', 'Mechanical shaft power', round(power, 1), 'kW', power > mechanicalPowerLimitKw + .1 ? 'warn' : 'good'), metric('dc-power-limit', '直流功率边界', 'DC power limit', round(dcPowerLimitKw, 1), 'kW', gp && dcPowerLimitKw < 250 ? 'warn' : 'good'), metric('field-current', '弱磁电流', 'Field current', round(id, 1), 'A', toneHigh(Math.abs(id), gp ? 160 : 60, gp ? 280 : 110))], envelope, labels(['恒转矩', 'Constant torque'], ['基速', 'Base speed'], ['弱磁', 'Field weakening'], ['恒功率', 'Constant power']), [1, baseSpeed / speedMax, voltageMargin / 100, clamp(power / Math.max(mechanicalPowerLimitKw, 1), 0, 1)], insight(gp ? '350 kW 是 ERS-K 直流侧绝对边界，不是机械轴功率。这里按 C5.2.21 的 0.97 固定换算，并应用非超车模式随车速下降的部署曲线；500 N·m 曲轴参考扭矩边界仍独立成立。' : '80 kW 是 TSAC 出口电功率边界；图中以 94% 教学效率换算机械功率，基速以上还受电压与弱磁热负荷限制。', gp ? 'The 350 kW value is the absolute ERS-K DC boundary, not shaft power. This model applies the fixed 0.97 conversion in C5.2.21 and the non-overtake speed-dependent deployment curve; the separate 500 N·m crank-referenced torque limit still applies.' : 'The 80 kW value is the electrical boundary at the TSAC outlet; the plot uses a stated 94% teaching efficiency for shaft power, with voltage and field-weakening heat also limiting operation above base speed.'), { marker: speed / speedMax, risk: Math.max(clamp(Math.abs(id) / (gp ? 320 : 130), 0, 1), gp && dcPowerLimitKw <= 0 ? 1 : 0) })
       },
     },
     {
       id: 'motor-efficiency-map', title: l('效率岛', 'Efficiency island'), question: l('同样功率为何温升不同？', 'Why can equal power produce different heat?'), mode: 'distribution',
-      parameters: [parameter('speed', '转速', 'Speed', 1000, speedMax, 250, gp ? 14000 : 9000, 'rpm'), parameter('torque', '转矩', 'Torque', 5, torqueMax, gp ? 5 : 1, gp ? 220 : 45, 'N·m'), parameter('windingTemp', '绕组温度', 'Winding temperature', 25, gp ? 200 : 180, 1, gp ? 105 : 90, '°C'), parameter('weakening', '弱磁比例', 'Field-weakening share', 0, 100, 1, gp ? 20 : 0, '%')],
+      parameters: [parameter('speed', '转速', 'Speed', 1000, speedMax, 250, gp ? 14000 : 9000, 'rpm'), parameter('torque', '请求转矩', 'Requested torque', 5, torqueMax, gp ? 5 : 1, gp ? 220 : 45, 'N·m'), ...(gp ? [parameter('vehicleSpeed', '非超车模式车速', 'Non-overtake vehicle speed', 50, 345, 5, 250, 'km/h')] : []), parameter('windingTemp', '绕组温度', 'Winding temperature', 25, gp ? 200 : 180, 1, gp ? 105 : 90, '°C'), parameter('weakening', '弱磁比例', 'Field-weakening share', 0, 100, 1, gp ? 20 : 0, '%')],
       evaluate: values => {
         const speed = read(values, 'speed', gp ? 14000 : 9000, 1000, speedMax)
-        const torque = read(values, 'torque', gp ? 220 : 45, 5, torqueMax)
+        const requestedTorque = read(values, 'torque', gp ? 220 : 45, 5, torqueMax)
+        const vehicleSpeed = read(values, 'vehicleSpeed', 250, 50, 345)
         const temp = read(values, 'windingTemp', gp ? 105 : 90, 25, gp ? 200 : 180)
         const weakening = read(values, 'weakening', gp ? 20 : 0, 0, 100) / 100
-        const mechanical = torque * speed * Math.PI / 30 / 1000
+        const requestedMechanical = requestedTorque * speed * Math.PI / 30 / 1000
+        const dcPowerLimit = gp ? fiaNormalDeploymentDcLimitKw(vehicleSpeed) : 80
+        const mechanicalPowerLimit = gp ? fiaDcToMechanicalPowerKw(dcPowerLimit) : dcPowerLimit * .94
+        const mechanical = Math.min(requestedMechanical, mechanicalPowerLimit)
+        const torque = mechanical * 1000 / Math.max(speed * Math.PI / 30, 1e-9)
+        const envelopeClipped = requestedMechanical > mechanicalPowerLimit + .1
         const current = torque / torqueMax * currentMax * (1 + .35 * weakening)
         // Equivalent phase-RMS current and hot phase resistance. The reduced
         // model also retains speed-dependent iron/windage and stray-load loss;
@@ -428,7 +449,7 @@ const motorExperiments = (gp: boolean): InteractionExperiment[] => {
         const mechanicalLoss = (gp ? .75 : .15) * speed / 10000 + (gp ? .8 : .2) * (speed / 10000) ** 2 + mechanical * (gp ? .012 : .015)
         const efficiency = clamp(mechanical / Math.max(mechanical + copper + iron + mechanicalLoss, .001) * 100, 0, 100)
         const vals = [normal(copper, 0, gp ? 8 : 2), normal(iron, 0, gp ? 4 : 1.2), normal(mechanicalLoss, 0, gp ? 1.5 : .5), efficiency / 100]
-        return result([metric('motor-efficiency', '电机效率', 'Motor efficiency', round(efficiency, 2), '%', toneLow(efficiency, 90, 82)), metric('copper-loss', '铜损', 'Copper loss', round(copper, 2), 'kW', toneHigh(copper, gp ? 4 : 1, gp ? 7 : 1.8)), metric('iron-loss', '铁/磁损', 'Iron and magnetic loss', round(iron, 2), 'kW', toneHigh(iron, gp ? 2.5 : .7, gp ? 4 : 1.1)), metric('mechanical-output', '机械输出', 'Mechanical output', round(mechanical, 1), 'kW', gp && mechanical > 350 ? 'warn' : 'good')], vals.map((y, x) => ({ x, y })), labels(['铜损', 'Copper'], ['铁损', 'Iron'], ['机械损', 'Mechanical'], ['效率', 'Efficiency']), vals, insight('高转矩主要增加三相铜损，高转速增加铁损、风阻和杂散负载损耗；这是教学等效图，最终效率岛必须用选定电机台架图校准。', 'High torque mainly raises three-phase copper loss, while high speed adds iron, windage and stray-load loss. This is a teaching equivalent; the final efficiency island requires the selected motor dyno map.'), { risk: clamp((90 - efficiency) / 18, 0, 1) })
+        return result([metric('motor-efficiency', '电机效率', 'Motor efficiency', round(efficiency, 2), '%', toneLow(efficiency, 90, 82)), metric('copper-loss', '铜损', 'Copper loss', round(copper, 2), 'kW', toneHigh(copper, gp ? 4 : 1, gp ? 7 : 1.8)), metric('iron-loss', '铁/磁损', 'Iron and magnetic loss', round(iron, 2), 'kW', toneHigh(iron, gp ? 2.5 : .7, gp ? 4 : 1.1)), metric('mechanical-output', '规则包络内机械输出', 'Mechanical output within rule envelope', round(mechanical, 1), 'kW', envelopeClipped ? 'warn' : 'good')], vals.map((y, x) => ({ x, y })), labels(['铜损', 'Copper'], ['铁损', 'Iron'], ['机械损', 'Mechanical'], ['效率', 'Efficiency']), vals, insight(gp ? '请求点先受 500 N·m 曲轴参考扭矩、C5.2.7 直流绝对边界、C5.2.8 非超车部署曲线及 C5.2.21 的 0.97 换算共同裁剪，再估算铜损、铁损与机械损；图形仍是教学等效图，最终效率岛必须用合规台架图校准。' : '请求点先受 TSAC 出口 80 kW 驱动边界和 94% 可见教学效率裁剪，再估算铜损、铁损与机械损；最终效率岛必须用选定电机台架图校准。', gp ? 'The requested point is first clipped by the 500 N·m crank-referenced torque limit, the C5.2.7 DC boundary, the C5.2.8 non-overtake deployment curve and the 0.97 conversion in C5.2.21, then copper, iron and mechanical losses are estimated. This remains a teaching equivalent and requires a compliant dyno map for final calibration.' : 'The requested point is first clipped by the 80 kW TSAC-outlet drive boundary and the visible 94% teaching efficiency, then copper, iron and mechanical losses are estimated. A selected motor dyno map is required for final calibration.'), { risk: Math.max(clamp((90 - efficiency) / 18, 0, 1), envelopeClipped ? .65 : 0) })
       },
     },
     {
@@ -512,17 +533,20 @@ const differentialExperiments = (gp: boolean): InteractionExperiment[] => {
         const outsideLoad = Math.max(0, rearLoad - insideLoad)
         const outsideCap = outsideLoad * mu * radius
         const deltaCap = preload + input * locking
-        const base = input / 2
-        const desiredBias = Math.min(base, deltaCap / 2)
-        let insideTorque = Math.min(Math.max(0, base - desiredBias), insideCap)
-        let outsideTorque = Math.min(base + desiredBias, outsideCap)
-        let remainingTorque = Math.max(0, input - insideTorque - outsideTorque)
-        const outsideRemainder = Math.min(remainingTorque, Math.max(0, outsideCap - outsideTorque))
-        outsideTorque += outsideRemainder
-        remainingTorque -= outsideRemainder
-        insideTorque += Math.min(remainingTorque, Math.max(0, insideCap - insideTorque))
-        const used = insideTorque + outsideTorque
-        const slip = clamp((input - used) / Math.max(input, 1) * 100 + Math.max(0, base - insideCap) / Math.max(base, 1) * 35, 0, 100) * (1 - locking * .65)
+        // Maximise delivered axle torque subject to the individual tyre caps
+        // and the clutch pack's finite torque-difference capacity. This keeps
+        // the zero-preload/zero-locking case physically open: both half-shafts
+        // carry equal torque and the low-grip side caps the whole axle.
+        const insideIsHighSide = insideCap > outsideCap
+        const lowCap = Math.min(insideCap, outsideCap)
+        const highCap = Math.max(insideCap, outsideCap)
+        const used = Math.min(input, lowCap + highCap, 2 * lowCap + deltaCap)
+        const highTorque = Math.min(highCap, used, (used + deltaCap) / 2)
+        const lowTorque = used - highTorque
+        const insideTorque = insideIsHighSide ? highTorque : lowTorque
+        const outsideTorque = insideIsHighSide ? lowTorque : highTorque
+        const halfRequest = input / 2
+        const slip = clamp((input - used) / Math.max(input, 1) * 100 + Math.max(0, halfRequest - insideCap) / Math.max(halfRequest, 1) * 35, 0, 100) * (1 - locking * .65)
         // Preload helps establish locking, but too much also creates low-speed
         // binding. Retain that trade so the preload control is observable.
         const preloadPenalty = preload / (gp ? 300 : 100) * 18
@@ -637,23 +661,38 @@ const ecuExperiments = (gp: boolean): InteractionExperiment[] => [
   },
   {
     id: 'ecu-torque-arbitration', title: l('扭矩仲裁', 'Torque arbitration'), question: l('驾驶员请求为何被多层限制？', 'Why is the driver request limited by several layers?'), mode: 'flow',
-    parameters: [parameter('driver', '驾驶员请求', 'Driver request', -100, 100, 1, gp ? 50 : 60, '%'), parameter('batteryLimit', '电池功率限值', 'Battery power limit', 0, gp ? 350 : 80, gp ? 5 : 1, gp ? 300 : 65, 'kW'), parameter('motorSpeed', '电机转速', 'Motor speed', 1000, gp ? 25000 : 20000, 250, gp ? 12000 : 7000, 'rpm'), parameter('thermalLimit', '电机热限值', 'Motor thermal limit', 0, 100, 1, 90, '%'), parameter('slew', '变化率限值', 'Slew-rate limit', gp ? 200 : 100, gp ? 6000 : 3000, gp ? 100 : 50, gp ? 6000 : 1600, 'N·m/s')],
+    parameters: [parameter('driver', '驾驶员请求', 'Driver request', -100, 100, 1, gp ? 50 : 60, '%'), parameter('dischargeLimit', '放电直流限值', 'Discharge DC limit', 0, gp ? 350 : 80, gp ? 5 : 1, gp ? 300 : 65, 'kW'), parameter('rechargeLimit', gp ? '回收直流限值' : '电池限充教学值', gp ? 'Recharge DC limit' : 'Teaching battery charge limit', 0, gp ? 350 : 120, gp ? 5 : 2, gp ? 250 : 55, 'kW'), ...(gp ? [parameter('vehicleSpeed', '非超车模式车速', 'Non-overtake vehicle speed', 50, 345, 5, 250, 'km/h')] : []), parameter('motorSpeed', '电机转速', 'Motor speed', 1000, gp ? 25000 : 20000, 250, gp ? 12000 : 7000, 'rpm'), parameter('thermalLimit', '电机热限值', 'Motor thermal limit', 0, 100, 1, 90, '%'), parameter('previousTorque', '上一周期转矩', 'Previous-cycle torque', gp ? -500 : -90, gp ? 500 : 90, gp ? 10 : 2, 0, 'N·m'), parameter('slew', '变化率限值', 'Slew-rate limit', gp ? 200 : 100, gp ? 6000 : 3000, gp ? 100 : 50, gp ? 6000 : 1600, 'N·m/s')],
     evaluate: values => {
       const driver = read(values, 'driver', gp ? 50 : 60, -100, 100)
-      const battery = read(values, 'batteryLimit', gp ? 300 : 65, 0, gp ? 350 : 80)
+      const discharge = read(values, 'dischargeLimit', gp ? 300 : 65, 0, gp ? 350 : 80)
+      const vehicleSpeed = read(values, 'vehicleSpeed', 250, 50, 345)
+      const rechargeScale = gp ? 350 : 120
+      const recharge = read(values, 'rechargeLimit', gp ? 250 : 55, 0, rechargeScale)
       const motorSpeed = read(values, 'motorSpeed', gp ? 12000 : 7000, 1000, gp ? 25000 : 20000)
       const thermal = read(values, 'thermalLimit', 90, 0, 100)
+      const previous = read(values, 'previousTorque', 0, gp ? -500 : -90, gp ? 500 : 90)
       const slew = read(values, 'slew', gp ? 6000 : 1600, gp ? 200 : 100, gp ? 6000 : 3000)
-      const maxTorque = gp ? 500 : 90
+      const maxTorque = gp ? FIA_ERS_K_MECHANICAL_TORQUE_NM : 90
       const driverTorque = driver / 100 * maxTorque
       const omega = motorSpeed * Math.PI / 30
-      const powerTorque = Math.min(maxTorque, battery * 1000 / Math.max(omega, 1))
+      const effectiveDischarge = gp ? Math.min(discharge, fiaNormalDeploymentDcLimitKw(vehicleSpeed)) : discharge
+      const driveMechanicalKw = gp ? fiaDcToMechanicalPowerKw(effectiveDischarge) : effectiveDischarge * .94
+      const rechargeMechanicalKw = gp ? Math.abs(fiaDcToMechanicalPowerKw(-recharge)) : recharge / .94
+      const drivePowerTorque = Math.min(maxTorque, driveMechanicalKw * 1000 / Math.max(omega, 1))
+      const rechargePowerTorque = Math.min(maxTorque, rechargeMechanicalKw * 1000 / Math.max(omega, 1))
       const thermalTorque = thermal / 100 * maxTorque
-      const limit = Math.min(Math.abs(driverTorque), powerTorque, thermalTorque)
-      const command = Math.sign(driverTorque) * Math.min(limit, slew * .05)
+      const directionPowerTorque = driverTorque >= 0 ? drivePowerTorque : rechargePowerTorque
+      const requestedAfterHardLimits = Math.sign(driverTorque) * Math.min(Math.abs(driverTorque), directionPowerTorque, thermalTorque)
+      const timeStep = .05
+      const ramped = previous + clamp(requestedAfterHardLimits - previous, -slew * timeStep, slew * timeStep)
+      const command = clamp(ramped, -Math.min(rechargePowerTorque, thermalTorque), Math.min(drivePowerTorque, thermalTorque))
       const cutPower = Math.max(0, Math.abs(driverTorque) - Math.abs(command)) * omega / 1000
-      const dominant = Math.abs(command) >= Math.abs(driverTorque) - .1 ? 1 : Math.abs(command) >= powerTorque - .1 ? .65 : .35
-      return result([metric('final-torque', '最终转矩', 'Final torque', round(command, 1), 'N·m', 'good'), metric('dominant-limit', '主限制器裕度', 'Dominant-limit margin', round(dominant * 100, 0), '%', toneLow(dominant, .6, .4)), metric('torque-slew', '转矩变化率', 'Torque slew', round(Math.abs(command) / .05, 0), 'N·m/s', 'good'), metric('cut-power', '削减功率', 'Curtailed power', round(cutPower, 1), 'kW', cutPower > 0 ? 'warn' : 'good')], curve(x => Math.sign(driverTorque) * Math.min(Math.abs(driverTorque) * x, powerTorque, thermalTorque, slew * x * .05), 0, 1), labels(['驾驶员', 'Driver'], ['规则/电池', 'Rules/battery'], ['热保护', 'Thermal'], ['最终命令', 'Final command']), [Math.abs(driver) / 100, battery / (gp ? 350 : 80), thermal / 100, Math.abs(command) / maxTorque], insight(gp ? '请求经功率、能量、热和安全限幅；分析滑移率不得成为被禁止的牵引力控制。' : '请求经 80 kW、电池、逆变器、电机和独立安全链限制；回收方向需独立处理符号。', gp ? 'Requests pass power, energy, thermal and safety limits; analysed wheel slip must not become prohibited traction control.' : 'Requests pass the 80 kW, battery, inverter, motor and independent safety limits; regen needs sign-correct arbitration.'), { risk: clamp(cutPower / Math.max(battery, 1), 0, 1), direction: Math.sign(driver) })
+      const fulfilment = Math.abs(driverTorque) < 1 ? 1 : clamp(Math.abs(command) / Math.abs(driverTorque), 0, 1)
+      return result([metric('final-torque', '最终转矩', 'Final torque', round(command, 1), 'N·m', 'good'), metric('request-fulfilment', '请求满足度', 'Request fulfilment', round(fulfilment * 100, 0), '%', toneLow(fulfilment, .6, .4)), metric('torque-slew', '50 ms 实际变化率', 'Actual 50 ms slew', round(Math.abs(command - previous) / timeStep, 0), 'N·m/s', 'good'), metric('cut-power', '削减功率', 'Curtailed power', round(cutPower, 1), 'kW', cutPower > 0 ? 'warn' : 'good')], curve(x => {
+        const elapsed = timeStep * x
+        const candidate = previous + clamp(requestedAfterHardLimits - previous, -slew * elapsed, slew * elapsed)
+        return clamp(candidate, -Math.min(rechargePowerTorque, thermalTorque), Math.min(drivePowerTorque, thermalTorque))
+      }, 0, 1), labels(['驾驶员', 'Driver'], ['直流边界', 'DC boundary'], ['热保护', 'Thermal'], ['最终命令', 'Final command']), [Math.abs(driver) / 100, (driverTorque >= 0 ? effectiveDischarge / (gp ? 350 : 80) : recharge / rechargeScale), thermal / 100, Math.abs(command) / maxTorque], insight(gp ? '本教学事件比较上一控制周期与 50 ms 后命令：正向部署先取用户直流限值与 C5.2.8 非超车车速曲线的较小值，回收使用独立直流限值，再按 C5.2.21 的 0.97 或其倒数换算机械边界；500 N·m 硬限值独立生效。' : '本教学事件明确比较上一控制周期与 50 ms 后命令：正向驱动遵守 TSAC 出口 80 kW 上限；负向回收使用独立的电池教学限值，因为 FS EV2.2.3 不把 80 kW 上限施加于再生功率。', gp ? 'This teaching event compares the previous control cycle with the command 50 ms later: deployment first takes the lower of the user DC limit and the C5.2.8 non-overtake speed curve, harvesting uses its separate DC limit, and C5.2.21 converts each direction with 0.97 or its inverse; the 500 N·m hard limit remains independent.' : 'This teaching event compares the previous cycle with the command 50 ms later: positive drive power follows the 80 kW TSAC-outlet cap, while negative regeneration uses an independent teaching battery limit because FS EV2.2.3 does not apply the 80 kW cap to regeneration.'), { risk: clamp(Math.abs(driverTorque - command) / maxTorque, 0, 1), direction: command / maxTorque })
     },
   },
   {
@@ -706,7 +745,8 @@ const sensorExperiments = (gp: boolean): InteractionExperiment[] => [
       const levels = 2 ** bits - 1
       const code = Math.round(clamp(signal / reference, 0, 1) * levels)
       const converted = ((code / levels - .1) / .8) * 2.5
-      const absoluteConverted = ((signal / 5 - .1) / .8) * 2.5
+      const supplyOnlySignal = reference * ratio
+      const absoluteConverted = ((supplyOnlySignal / 5 - .1) / .8) * 2.5
       const quantStep = 2.5 / (.8 * levels)
       const driftError = absoluteConverted - pressure
       const groundError = converted - pressure
@@ -732,17 +772,19 @@ const sensorExperiments = (gp: boolean): InteractionExperiment[] => [
   },
   {
     id: 'sensor-imu-frame', title: l('IMU 坐标', 'IMU frame'), question: l('小安装误差为何污染横向量？', 'Why does a small mounting error corrupt lateral data?'), mode: 'geometry',
-    parameters: [parameter('tilt', '安装倾角', 'Mounting tilt', -5, 5, .1, gp ? .5 : .8, '°'), parameter('yawBias', '横摆零偏', 'Yaw bias', gp ? -2 : -3, gp ? 2 : 3, .1, 0, '°/s'), parameter('longitudinalG', '纵向加速度', 'Longitudinal acceleration', gp ? -5 : -2, gp ? 3 : 2, .1, gp ? -2.5 : -.8, 'g'), parameter('cutoff', '滤波截止', 'Filter cutoff', gp ? 5 : 2, gp ? 100 : 50, 1, gp ? 25 : 15, 'Hz')],
+    parameters: [parameter('tilt', '安装倾角', 'Mounting tilt', -5, 5, .1, gp ? .5 : .8, '°'), parameter('yawBias', '横摆零偏', 'Yaw bias', gp ? -2 : -3, gp ? 2 : 3, .1, 0, '°/s'), parameter('longitudinalG', '纵向加速度', 'Longitudinal acceleration', gp ? -5 : -2, gp ? 3 : 2, .1, gp ? -2.5 : -.8, 'g'), parameter('calibration', '安装与零偏校准质量', 'Mounting and bias calibration quality', 0, 100, 1, gp ? 90 : 82, '%')],
     evaluate: values => {
       const tilt = read(values, 'tilt', gp ? .5 : .8, -5, 5)
       const bias = read(values, 'yawBias', 0, gp ? -2 : -3, gp ? 2 : 3)
       const ax = read(values, 'longitudinalG', gp ? -2.5 : -.8, gp ? -5 : -2, gp ? 3 : 2)
-      const cutoff = read(values, 'cutoff', gp ? 25 : 15, gp ? 5 : 2, gp ? 100 : 50)
+      const calibration = read(values, 'calibration', gp ? 90 : 82, 0, 100) / 100
       const falseAy = ax * Math.sin(tilt * Math.PI / 180)
       const drift10s = bias * 10
       const residual = Math.hypot(falseAy * 100, bias * 2)
-      const corrected = residual * clamp(1 - cutoff / (gp ? 180 : 90), .15, .9)
-      return result([metric('false-lateral', '假横向加速度', 'False lateral acceleration', round(falseAy, 3), 'g', toneHigh(Math.abs(falseAy), .05, .12)), metric('yaw-drift', '10 秒横摆漂移', '10-s yaw drift', round(drift10s, 1), '°', toneHigh(Math.abs(drift10s), 8, 20)), metric('consistency', '一致性残差', 'Consistency residual', round(residual, 1), 'idx', toneHigh(residual, 8, 18)), metric('corrected', '校正后残差', 'Corrected residual', round(corrected, 1), 'idx', toneHigh(corrected, 5, 12))], curve(x => ax * Math.sin((tilt * x) * Math.PI / 180), 0, 1), labels(['车辆 X', 'Vehicle X'], ['车辆 Y', 'Vehicle Y'], ['IMU X', 'IMU X'], ['IMU Y', 'IMU Y']), [clamp(.5 + ax / (gp ? 10 : 4), 0, 1), clamp(1 - Math.abs(falseAy) / .2, 0, 1), clamp(.5 + tilt / 10, 0, 1), clamp(1 - Math.abs(bias) / (gp ? 2 : 3), 0, 1)], insight('强制动会放大小安装误差的轴间泄漏；静态重力校 roll/pitch，yaw 还需几何与动态参考。', 'Hard braking magnifies cross-axis leakage from small mounting errors; gravity calibrates roll/pitch, while yaw needs geometric and dynamic references.'), { direction: tilt / 5, risk: clamp(residual / 20, 0, 1) })
+      const residualTilt = tilt * (1 - calibration)
+      const residualBias = bias * (1 - calibration)
+      const corrected = Math.hypot(ax * Math.sin(residualTilt * Math.PI / 180) * 100, residualBias * 2)
+      return result([metric('false-lateral', '假横向加速度', 'False lateral acceleration', round(falseAy, 3), 'g', toneHigh(Math.abs(falseAy), .05, .12)), metric('yaw-drift', '10 秒横摆漂移', '10-s yaw drift', round(drift10s, 1), '°', toneHigh(Math.abs(drift10s), 8, 20)), metric('consistency', '一致性残差', 'Consistency residual', round(residual, 1), 'idx', toneHigh(residual, 8, 18)), metric('corrected', '校准后残差', 'Post-calibration residual', round(corrected, 1), 'idx', toneHigh(corrected, 5, 12))], curve(x => ax * Math.sin((tilt * x) * Math.PI / 180), 0, 1), labels(['车辆 X', 'Vehicle X'], ['车辆 Y', 'Vehicle Y'], ['IMU X', 'IMU X'], ['IMU Y', 'IMU Y']), [clamp(.5 + ax / (gp ? 10 : 4), 0, 1), clamp(1 - Math.abs(falseAy) / .2, 0, 1), clamp(.5 + tilt / 10, 0, 1), calibration], insight('强制动会放大小安装误差的轴间泄漏；低通滤波不能消除静态安装误差或零偏，必须用重力/转台、几何参考和动态校准显式修正坐标与偏置。', 'Hard braking magnifies cross-axis leakage from small mounting errors. A low-pass filter cannot remove static misalignment or bias; gravity/turntable, geometric references and dynamic calibration must explicitly correct the frame and offsets.'), { direction: tilt / 5, risk: clamp(corrected / 20, 0, 1) })
     },
   },
   {

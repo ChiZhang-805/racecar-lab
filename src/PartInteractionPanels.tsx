@@ -13,6 +13,7 @@ import {
   type PartInteractionPack,
 } from './interactionTypes'
 import type { VehicleId } from './vehicles'
+import { formatUiNumber } from './uiNumber'
 
 const ui = {
   zh: {
@@ -148,7 +149,7 @@ function ExperimentDiagram({ mode, locale, result }: { mode: InteractionDiagramM
 function MetricTile({ locale, metric }: { locale: Locale; metric: InteractionMetric }) {
   return <article className={`cooling-metric is-${metric.tone ?? 'normal'}`} data-metric-id={metric.id}>
     <span>{localise(metric.label, locale)}</span>
-    <strong>{Number.isFinite(metric.value) ? metric.value.toLocaleString(undefined, { maximumFractionDigits: Math.abs(metric.value) < 1 ? 3 : 1 }) : '—'}<small>{metric.unit}</small></strong>
+    <strong>{Number.isFinite(metric.value) ? formatUiNumber(metric.value, locale, { maximumFractionDigits: Math.abs(metric.value) < 1 ? 3 : 1 }) : '—'}<small>{metric.unit}</small></strong>
   </article>
 }
 
@@ -173,7 +174,7 @@ export function PartObserveLab({ locale, vehicleId, partId, pack }: { locale: Lo
       <aside className="cooling-lab-inputs"><div><span><SlidersHorizontal size={16} />{u.parameters}</span><button onClick={() => setValues(initialInteractionValues(experiment))} aria-label={u.reset} title={u.reset}><RotateCcw size={16} /></button></div>
         {experiment.parameters.map(parameter => {
           const value = values[parameter.key] ?? parameter.initial
-          return <label key={parameter.key}><span>{localise(parameter.label, locale)}<output>{value.toLocaleString()} <small>{parameter.unit}</small></output></span><input aria-label={localise(parameter.label, locale)} type="range" min={parameter.min} max={parameter.max} step={parameter.step} value={value} onChange={event => setValues(current => ({ ...current, [parameter.key]: Number(event.target.value) }))} /></label>
+          return <label key={parameter.key}><span>{localise(parameter.label, locale)}<output>{formatUiNumber(value, locale)} <small>{parameter.unit}</small></output></span><input aria-label={localise(parameter.label, locale)} type="range" min={parameter.min} max={parameter.max} step={parameter.step} value={value} onChange={event => setValues(current => ({ ...current, [parameter.key]: Number(event.target.value) }))} /></label>
         })}
       </aside>
       <section className="cooling-lab-results" aria-live="polite"><span><FileChartColumn size={16} />{u.results}</span><div>{result.metrics.map(metric => <MetricTile key={metric.id} locale={locale} metric={metric} />)}</div></section>

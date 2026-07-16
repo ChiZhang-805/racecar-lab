@@ -19,14 +19,14 @@ export const GRAND_PRIX_PARTS: Record<PartId, BilingualPart> = {
     faults: ['Left-right actuator disagreement creates asymmetric load and high-speed yaw.', 'A damaged flap or endplate removes front grip and degrades every downstream device.'], connections: ['Nose and FIS', 'Floor and diffuser', 'Front tires', 'Active rear wing'],
   }),
   'rear-wing': p({
-    name: '主动尾翼', short: '由主翼、活动襟翼、端板和双支柱构成的后轴气动控制装置。', purpose: '它在弯道中建立后轴下压力，在直道切换低阻状态，并与前翼共同维持整车气动平衡。', analogy: '像一只根据赛道位置自动改变姿态、持续按住后轮的手。',
-    observe: ['比较活动襟翼在弯道、高速直道和制动阶段的目标角度。', '从后方检查端板、翼尖泄漏和支柱周围的尾流。', '把尾翼与扩散器出口同时显示，观察两股气流如何耦合。'],
-    engineering: ['尾翼下压力与阻力都随速度平方增长，但接近失速时系数不再线性。', '低阻状态减少直线阻力，恢复高载状态时必须满足规定的控制逻辑和安全条件。', '尾翼载荷通过支架进入变速箱壳体，结构挠度会改变有效攻角。'],
+    name: '主动尾翼', short: '由主翼、活动襟翼、端板和双支柱构成的后轴气动控制装置。', purpose: '它在弯道状态建立后轴下压力；车手在允许激活区请求低阻状态，标准电子控制单元（SECU）协调前后翼在两个规定的固定状态间切换。', analogy: '像一只可在两档姿态间切换、持续按住后轮的手：车手在允许区提出请求，SECU 负责安全执行。',
+    observe: ['比较 SECU 指令的弯道与直道两种固定襟翼状态。', '从后方检查端板、翼尖泄漏和支柱周围的尾流。', '把尾翼与扩散器出口同时显示，观察两股气流如何耦合。'],
+    engineering: ['尾翼下压力与阻力都随速度平方增长，但接近失速时系数不再线性。', '直道低阻状态只能在允许激活区由车手请求并由 SECU 控制；恢复弯道状态也必须满足规定的安全逻辑。', '尾翼载荷通过支架进入变速箱壳体，结构挠度会改变有效攻角。'],
     faults: ['襟翼卡滞会造成直线极速不足或弯道后轴抓地不足。', '支柱裂纹或位置传感器漂移会使控制器无法确认安全状态。'], connections: ['扩散器', '变速箱壳体', '后悬架', '主动前翼'],
   }, {
-    name: 'ACTIVE REAR WING', short: 'A rear-axle aero device made from a mainplane, movable flap, endplates and twin supports.', purpose: 'It produces rear downforce in corners, adopts a low-drag state on straights and coordinates with the front wing to hold aero balance.', analogy: 'It is a hand pressing the rear tires whose posture changes with the phase of the lap.',
-    observe: ['Compare commanded flap states in corners, high-speed running and braking.', 'Inspect tip leakage and the wake around endplates and supports from behind.', 'Display the diffuser exit and rear wing together to study their coupled flow.'],
-    engineering: ['Load and drag grow near the square of speed, but coefficients become nonlinear near separation.', 'The low-drag state reduces straight-line loss; restoration must obey defined safe control conditions.', 'Wing load enters the gearbox casing through the supports, so structural deflection alters effective incidence.'],
+    name: 'ACTIVE REAR WING', short: 'A rear-axle aero device made from a mainplane, movable flap, endplates and twin supports.', purpose: 'It creates rear downforce in Corner Mode; in permitted activation zones the driver requests Straight-Line Mode and the SECU coordinates the front and rear wings between two prescribed fixed states.', analogy: 'It is a hand pressing the rear tires with two available postures: the driver requests the change in an allowed zone and the SECU executes it safely.',
+    observe: ['Compare the two fixed flap states commanded by the SECU for Corner and Straight-Line Modes.', 'Inspect tip leakage and the wake around endplates and supports from behind.', 'Display the diffuser exit and rear wing together to study their coupled flow.'],
+    engineering: ['Load and drag grow near the square of speed, but coefficients become nonlinear near separation.', 'The driver may request the low-drag state only in a permitted activation zone under SECU control; restoration to Corner Mode must also obey defined safety logic.', 'Wing load enters the gearbox casing through the supports, so structural deflection alters effective incidence.'],
     faults: ['A stuck flap either limits top speed or removes rear grip.', 'Support damage or position-sensor drift prevents the controller from proving a safe state.'], connections: ['Diffuser', 'Gearbox casing', 'Rear suspension', 'Active front wing'],
   }),
   floor: p({
@@ -74,12 +74,12 @@ export const GRAND_PRIX_PARTS: Record<PartId, BilingualPart> = {
     faults: ['Damaged mounts or incorrect fastener preload reduce capacity severely.', 'Visual inspection alone cannot clear a post-incident assembly; defined NDT and replacement criteria are required.'], connections: ['Survival cell', 'Headrest and seat', 'Driver helmet', 'Camera and sensors'],
   }),
   tires: p({
-    name: '18英寸轮胎与轮组', short: '把全部纵向、横向和垂向载荷传到地面的四个轮胎、轮辋与固定总成。', purpose: '轮胎通过滑移率与侧偏角产生抓地，并依靠温度、压力和胎体变形维持可用接地印迹。', analogy: '所有先进系统最终都要通过四块不断变形、只有手掌大小量级的接地印迹工作。',
+    name: '18英寸轮胎与轮组', short: '承接赛车与路面之间纵向、横向和垂向载荷的四个轮胎、轮辋与固定总成。', purpose: '轮胎通过滑移率与侧偏角产生抓地，并依靠温度、压力和胎体变形维持可用接地印迹。', analogy: '驱动、制动和转向能力都要通过四块不断变形、只有手掌大小量级的接地印迹作用于路面。',
     observe: ['比较前后轮宽度、胎壁挠曲和轮胎温度分布。', '在转弯模式观察外侧轮载增加与内侧轮卸载。', '在制动与加速之间比较滑移率方向和轮胎力预算。'],
     engineering: ['轮胎力对垂向载荷并非线性，载荷转移通常会降低一根车轴的总可用摩擦系数。', '胎压影响胎体刚度、接地形状、发热和高速尺寸增长。', '温度窗口、表面过热、胎体温度和磨损状态需要从多类传感数据联合判断。'],
     faults: ['冷胎、过热或压力偏差都会让峰值抓地和响应速度下降。', '锁死、打滑、外倾或束角错误会形成平斑和非均匀磨损。'], connections: ['碳碳制动器', '前后悬架', '转向系统', '胎压与温度传感器'],
   }, {
-    name: '18-INCH TIRES & WHEEL ASSEMBLIES', short: 'Four tire, rim and retention assemblies that transmit every longitudinal, lateral and vertical load to the road.', purpose: 'Tires create grip through slip ratio and slip angle while temperature, pressure and carcass deformation maintain the usable contact patch.', analogy: 'Every advanced system works through four deforming contact patches only about hand-sized in scale.',
+    name: '18-INCH TIRES & WHEEL ASSEMBLIES', short: 'Four tire, rim and retention assemblies carrying longitudinal, lateral and vertical loads between the car and road.', purpose: 'Tires create grip through slip ratio and slip angle while temperature, pressure and carcass deformation maintain the usable contact patch.', analogy: 'Propulsion, braking and steering act on the road through four deforming contact patches only about hand-sized in scale.',
     observe: ['Compare front and rear width, sidewall deflection and temperature distribution.', 'Watch outside load rise and inside load fall in cornering mode.', 'Compare slip direction and force budget across braking and acceleration.'],
     engineering: ['Tire force is load-sensitive; load transfer usually lowers the combined friction coefficient of an axle.', 'Pressure changes carcass stiffness, contact shape, heat generation and high-speed growth.', 'Surface temperature, bulk temperature, operating window and wear require multiple sensor channels.'],
     faults: ['Cold, overheated or incorrectly pressurized tires lose peak force and response.', 'Locking, wheelspin, camber or toe errors create flats and uneven wear.'], connections: ['Carbon brakes', 'Front and rear suspension', 'Steering', 'Pressure and temperature sensors'],

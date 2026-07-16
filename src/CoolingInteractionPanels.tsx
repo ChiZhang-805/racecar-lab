@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftRight, Droplets, ExternalLink, Fan, FileChartColumn, Gauge, RotateCcw, SlidersHorizontal, ThermometerSun } from 'lucide-react'
 import { localise } from './engineeringData'
 import type { Locale } from './i18n'
 import type { VehicleId } from './vehicles'
+import { formatUiNumber } from './uiNumber'
 import {
   coolingExperimentsFor,
   coolingFaultCardsFor,
@@ -34,15 +35,42 @@ const text = {
 } as const
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-const chartPoints = (points: { x: number; y: number }[], width = 580, height = 220, pad = 30) => {
+
+export type CoolingChartPoint = { x: number; y: number }
+export type CoolingChartDomain = { minX: number; maxX: number; minY: number; maxY: number }
+
+/** Build one physical axis domain for every series rendered in one chart. */
+export const sharedCoolingChartDomain = (series: CoolingChartPoint[][]): CoolingChartDomain => {
+  const points = series.flat()
+  return {
+    minX: Math.min(0, ...points.map(point => point.x)),
+    maxX: Math.max(1, ...points.map(point => point.x)),
+    minY: Math.min(0, ...points.map(point => point.y)),
+    maxY: Math.max(1, ...points.map(point => point.y)),
+  }
+}
+
+export const projectCoolingChartPoint = (
+  point: CoolingChartPoint,
+  domain: CoolingChartDomain,
+  width = 580,
+  height = 220,
+  pad = 30,
+) => ({
+  x: pad + (point.x - domain.minX) / Math.max(1e-9, domain.maxX - domain.minX) * (width - pad * 2),
+  y: height - pad - (point.y - domain.minY) / Math.max(1e-9, domain.maxY - domain.minY) * (height - pad * 2),
+})
+
+const chartPoints = (
+  points: CoolingChartPoint[],
+  width = 580,
+  height = 220,
+  pad = 30,
+  domain = sharedCoolingChartDomain([points]),
+) => {
   if (!points.length) return ''
-  const minX = Math.min(...points.map(point => point.x))
-  const maxX = Math.max(...points.map(point => point.x))
-  const minY = Math.min(...points.map(point => point.y))
-  const maxY = Math.max(...points.map(point => point.y))
   return points.map(point => {
-    const x = pad + (point.x - minX) / Math.max(1e-9, maxX - minX) * (width - pad * 2)
-    const y = height - pad - (point.y - minY) / Math.max(1e-9, maxY - minY) * (height - pad * 2)
+    const { x, y } = projectCoolingChartPoint(point, domain, width, height, pad)
     return `${x.toFixed(1)},${y.toFixed(1)}`
   }).join(' ')
 }
@@ -73,17 +101,15 @@ function PumpMap({ locale, result }: { locale: Locale; result: CoolingExperiment
   const u = text[locale]
   const pump = result.visual.pumpCurve ?? []
   const system = result.visual.systemCurve ?? []
-  const maxX = Math.max(...pump.map(point => point.x), 1)
-  const maxY = Math.max(...pump.map(point => point.y), ...system.map(point => point.y), 1)
   const wp = result.visual.workingPoint
-  const wpX = wp ? 30 + wp.x / maxX * 520 : 30
-  const wpY = wp ? 190 - wp.y / maxY * 160 : 190
+  const domain = sharedCoolingChartDomain([pump, system, wp ? [wp] : []])
+  const projectedWorkingPoint = wp ? projectCoolingChartPoint(wp, domain, 580, 220, 30) : null
   return (
     <svg viewBox="0 0 580 220" role="img" aria-label={u.diagram}>
       <g className="cooling-chart-grid">{[0, 1, 2, 3, 4].map(index => <line key={index} x1="30" x2="550" y1={30 + index * 40} y2={30 + index * 40} />)}</g>
-      <polyline className="cooling-chart-line is-pump" points={chartPoints(pump, 580, 220)} />
-      <polyline className="cooling-chart-line is-system" points={chartPoints(system, 580, 220)} />
-      {wp && <g className="cooling-working-point"><circle cx={wpX} cy={wpY} r="9" /><circle cx={wpX} cy={wpY} r="3" /></g>}
+      <polyline className="cooling-chart-line is-pump" points={chartPoints(pump, 580, 220, 30, domain)} />
+      <polyline className="cooling-chart-line is-system" points={chartPoints(system, 580, 220, 30, domain)} />
+      {projectedWorkingPoint && <g className="cooling-working-point"><circle cx={projectedWorkingPoint.x} cy={projectedWorkingPoint.y} r="9" /><circle cx={projectedWorkingPoint.x} cy={projectedWorkingPoint.y} r="3" /></g>}
       <g className="cooling-chart-legend"><text x="36" y="18">{u.pumpCurve}</text><text x="176" y="18">{u.systemCurve}</text></g>
     </svg>
   )
@@ -164,7 +190,7 @@ function CoolingMetricTile({ locale, metric }: { locale: Locale; metric: Cooling
   return (
     <article className={`cooling-metric is-${metric.tone ?? 'normal'}`} data-metric-id={metric.id}>
       <span>{localise(metric.label, locale)}</span>
-      <strong>{Number.isFinite(metric.value) ? metric.value.toLocaleString(undefined, { maximumFractionDigits: metric.value < 1 ? 3 : 1 }) : '—'}<small>{metric.unit}</small></strong>
+      <strong>{Number.isFinite(metric.value) ? formatUiNumber(metric.value, locale, { maximumFractionDigits: metric.value < 1 ? 3 : 1 }) : '—'}<small>{metric.unit}</small></strong>
     </article>
   )
 }
@@ -182,7 +208,7 @@ export function CoolingObserveLab({ locale, vehicleId }: { locale: Locale; vehic
     <div className="cooling-observe" data-testid="cooling-observe">
       <aside className="cooling-experiment-list">
         <span><ThermometerSun size={17} />{u.experiments}</span>
-        {experiments.map((item, index) => <button key={item.id} data-experiment-id={item.id} className={selected === index ? 'is-active' : ''} onClick={() => setSelected(index)}><i>{String(index + 1).padStart(2, '0')}</i><strong>{localise(item.title, locale)}</strong></button>)}
+        {experiments.map((item, index) => <button key={item.id} data-experiment-id={item.id} className={selected === index ? 'is-active' : ''} aria-pressed={selected === index} onClick={() => setSelected(index)}><i>{String(index + 1).padStart(2, '0')}</i><strong>{localise(item.title, locale)}</strong></button>)}
       </aside>
       <section className="cooling-lab-console">
         <header><span>{localise(experiment.question, locale)}</span></header>
@@ -193,7 +219,7 @@ export function CoolingObserveLab({ locale, vehicleId }: { locale: Locale; vehic
           <div><span><SlidersHorizontal size={16} />{u.parameters}</span><button onClick={() => setValues(initialCoolingValues(experiment))} aria-label={u.reset} title={u.reset}><RotateCcw size={16} /></button></div>
           {experiment.parameters.map(item => {
             const value = values[item.key] ?? item.initial
-            return <label key={item.key}><span>{localise(item.label, locale)}<output>{value.toLocaleString()} <small>{item.unit}</small></output></span><input aria-label={localise(item.label, locale)} type="range" min={item.min} max={item.max} step={item.step} value={value} onChange={event => setValues(current => ({ ...current, [item.key]: Number(event.target.value) }))} /></label>
+            return <label key={item.key}><span>{localise(item.label, locale)}<output>{formatUiNumber(value, locale)} <small>{item.unit}</small></output></span><input aria-label={localise(item.label, locale)} type="range" min={item.min} max={item.max} step={item.step} value={value} onChange={event => setValues(current => ({ ...current, [item.key]: Number(event.target.value) }))} /></label>
           })}
         </aside>
         <section className="cooling-lab-results" aria-live="polite"><span><FileChartColumn size={16} />{u.results}</span><div>{result.metrics.map(item => <CoolingMetricTile key={item.id} locale={locale} metric={item} />)}</div></section>
@@ -206,15 +232,25 @@ function ReferenceCard({ locale, index }: { locale: Locale; index: number }) {
   const card = coolingReferenceCards[index]!
   const u = text[locale]
   const [flipped, setFlipped] = useState(false)
+  const frontRef = useRef<HTMLButtonElement>(null)
+  const returnRef = useRef<HTMLButtonElement>(null)
+  const showBack = () => {
+    setFlipped(true)
+    requestAnimationFrame(() => returnRef.current?.focus())
+  }
+  const showFront = () => {
+    setFlipped(false)
+    requestAnimationFrame(() => frontRef.current?.focus())
+  }
   return (
     <article className={`cooling-flip-card ${flipped ? 'is-flipped' : ''}`} data-resource-card-id={card.id} data-flipped={flipped}>
       <div className="cooling-flip-card__inner">
-        <button className="cooling-flip-card__face cooling-flip-card__front" onClick={() => setFlipped(true)} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
+        <button ref={frontRef} className="cooling-flip-card__face cooling-flip-card__front" onClick={showBack} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
           <img src={card.image} alt={localise(card.imageAlt, locale)} loading="eager" decoding="async" fetchPriority="high" />
           <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><p>{localise(card.summary, locale)}</p><span><ArrowLeftRight size={16} />{u.flip}</span></div>
         </button>
         <section className="cooling-flip-card__face cooling-flip-card__back" aria-hidden={!flipped}>
-          <button className="cooling-flip-card__return" onClick={() => setFlipped(false)} aria-label={u.back} title={u.back} tabIndex={flipped ? 0 : -1}><ArrowLeftRight size={18} /></button>
+          <button ref={returnRef} className="cooling-flip-card__return" onClick={showFront} aria-label={u.back} title={u.back} tabIndex={flipped ? 0 : -1}><ArrowLeftRight size={18} /></button>
           <h3>{localise(card.title, locale)}</h3>
           <strong>{u.purpose}</strong><p>{localise(card.purpose, locale)}</p>
           <strong>{u.details}</strong><ul>{card.details.map((item, detailIndex) => <li key={detailIndex}>{localise(item, locale)}</li>)}</ul>
@@ -235,15 +271,25 @@ function FaultCard({ locale, vehicleId, index }: { locale: Locale; vehicleId: Ve
   const card = cards[index]!
   const u = text[locale]
   const [flipped, setFlipped] = useState(false)
+  const frontRef = useRef<HTMLButtonElement>(null)
+  const returnRef = useRef<HTMLButtonElement>(null)
+  const showBack = () => {
+    setFlipped(true)
+    requestAnimationFrame(() => returnRef.current?.focus())
+  }
+  const showFront = () => {
+    setFlipped(false)
+    requestAnimationFrame(() => frontRef.current?.focus())
+  }
   return (
     <article className={`cooling-flip-card cooling-fault-card ${flipped ? 'is-flipped' : ''}`} data-fault-card-id={card.id} data-flipped={flipped}>
       <div className="cooling-flip-card__inner">
-        <button className="cooling-flip-card__face cooling-flip-card__front" onClick={() => setFlipped(true)} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
+        <button ref={frontRef} className="cooling-flip-card__face cooling-flip-card__front" onClick={showBack} aria-expanded={flipped} aria-hidden={flipped} tabIndex={flipped ? -1 : 0}>
           <img src={card.image} alt={localise(card.imageAlt, locale)} loading="eager" decoding="async" fetchPriority="high" />
           <div><i>{String(index + 1).padStart(2, '0')}</i><h3>{localise(card.title, locale)}</h3><p>{localise(card.scenario, locale)}</p><span><ArrowLeftRight size={16} />{u.flip}</span></div>
         </button>
         <section className="cooling-flip-card__face cooling-flip-card__back" aria-hidden={!flipped}>
-          <button className="cooling-flip-card__return" onClick={() => setFlipped(false)} aria-label={u.back} title={u.back} tabIndex={flipped ? 0 : -1}><ArrowLeftRight size={18} /></button>
+          <button ref={returnRef} className="cooling-flip-card__return" onClick={showFront} aria-label={u.back} title={u.back} tabIndex={flipped ? 0 : -1}><ArrowLeftRight size={18} /></button>
           <h3>{localise(card.title, locale)}</h3>
           <strong>{u.strategy}</strong><p>{localise(card.strategy, locale)}</p>
           <strong>{u.principle}</strong><p>{localise(card.principle, locale)}</p>

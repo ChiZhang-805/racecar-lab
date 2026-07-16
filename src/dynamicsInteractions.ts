@@ -1,4 +1,5 @@
 import type { VehicleId } from './vehicles'
+import { FIA_ERS_ELECTRICAL_MECHANICAL_CORRECTION, FIA_ERS_K_MECHANICAL_TORQUE_NM } from './ersRules'
 import {
   interactionClamp as clamp,
   interactionCurve as curve,
@@ -377,8 +378,9 @@ const brakeExperimentsFor = (vehicleId: VehicleId): InteractionExperiment[] => {
     parameter('initialRotorTemp', '初始盘温', 'Initial rotor temperature', gp ? 200 : 20, gp ? 700 : 300, 5, gp ? 350 : 80, '°C'),
   ]
   const blendParameters = [
-    parameter('brakePower', '目标制动功率', 'Requested braking power', 0, gp ? 1200 : 100, gp ? 20 : 2, gp ? 500 : 35, 'kW'),
-    parameter('regenLimit', '再生功率上限', 'Regeneration limit', 0, gp ? 350 : 80, gp ? 10 : 2, gp ? 120 : 30, 'kW'),
+    parameter('brakePower', gp ? '曲轴参考制动功率需求' : '目标制动功率', gp ? 'Crank-referenced braking demand' : 'Requested braking power', 0, gp ? 1200 : 100, gp ? 20 : 2, gp ? 500 : 35, 'kW'),
+    parameter('regenLimit', gp ? '再生直流限值' : '电池/车辆限充教学值', gp ? 'Regeneration DC limit' : 'Teaching vehicle/pack regen limit', 0, gp ? 350 : 120, gp ? 10 : 2, gp ? 120 : 30, 'kW'),
+    ...(gp ? [parameter('mguSpeed', 'MGU-K 曲轴参考转速', 'MGU-K crank-referenced speed', 1000, 15000, 250, 9000, 'rpm')] : []),
     parameter('soc', '电池 SOC', 'Battery SOC', 10, 100, 1, gp ? 55 : 60, '%'),
     parameter('handover', '液压接管时间', 'Hydraulic handover time', 0, gp ? 200 : 300, 5, gp ? 50 : 80, 'ms'),
   ]
@@ -531,26 +533,41 @@ const brakeExperimentsFor = (vehicleId: VehicleId): InteractionExperiment[] => {
         const soc = read(values, blendParameters, 'soc')
         const handover = read(values, blendParameters, 'handover')
         const socFactor = clamp((95 - soc) / 35, 0, 1)
-        const speedFactor = .88
-        const regenPower = Math.min(requestedPower, regenLimit * socFactor * speedFactor)
-        const hydraulicPower = Math.max(0, requestedPower - regenPower)
+        // Keep the power boundaries explicit. For the GP model the slider is
+        // the FIA-policed DC-bus recharge limit, while braking demand is on the
+        // crank-referenced mechanical side. C5.2.21 applies 0.97 when energy
+        // flows from MGU-K mechanics to the DC bus; C5.2.11 separately caps
+        // crank-referenced MGU-K torque at 500 N·m. The Student model remains
+        // an explicitly labelled teaching limit and uses a visible pack factor.
+        const mguSpeed = gp ? read(values, blendParameters, 'mguSpeed') : 0
+        const torqueLimitedMechanicalPower = gp
+          ? FIA_ERS_K_MECHANICAL_TORQUE_NM * mguSpeed * 2 * Math.PI / 60 / 1000
+          : Number.POSITIVE_INFINITY
+        const dcLimitedMechanicalPower = gp
+          ? regenLimit * socFactor / FIA_ERS_ELECTRICAL_MECHANICAL_CORRECTION
+          : regenLimit * socFactor
+        const regenMechanicalPower = Math.min(requestedPower, dcLimitedMechanicalPower, torqueLimitedMechanicalPower)
+        const recoveredDcPower = gp
+          ? regenMechanicalPower * FIA_ERS_ELECTRICAL_MECHANICAL_CORRECTION
+          : regenMechanicalPower * .88
+        const hydraulicPower = Math.max(0, requestedPower - regenMechanicalPower)
         const frontHydraulic = hydraulicPower * (gp ? .58 : .62)
         const rearHydraulic = hydraulicPower - frontHydraulic
         const eventDuration = gp ? 2.4 : 4.2
-        const recoveredEnergy = regenPower * eventDuration / 3600 * .88
-        const gap = clamp(handover / (gp ? 200 : 300) * (regenPower / Math.max(1, requestedPower)))
+        const recoveredEnergy = recoveredDcPower * eventDuration / 3600
+        const gap = clamp(handover / (gp ? 200 : 300) * (regenMechanicalPower / Math.max(1, requestedPower)))
         return result([
-          metric('regen-power', '再生功率', 'Regenerative power', regenPower, 'kW'),
+          metric('regen-power', gp ? 'MGU-K 机械制动功率' : '再生机械制动功率', gp ? 'MGU-K mechanical braking power' : 'Regenerative mechanical braking power', regenMechanicalPower, 'kW'),
           metric('front-hydraulic', '前液压功率', 'Front hydraulic power', frontHydraulic, 'kW'),
           metric('rear-hydraulic', '后液压功率', 'Rear hydraulic power', rearHydraulic, 'kW'),
-          metric('recovered-energy', '本次回收能量', 'Recovered energy', recoveredEnergy, 'kWh'),
+          metric('recovered-energy', gp ? '本次直流母线回收能量' : '本次电池回收能量估算', gp ? 'DC-bus energy recovered' : 'Estimated pack energy recovered', recoveredEnergy, 'kWh'),
         ], curve(time => {
           const ramp = 1 - Math.exp(-time * 1000 / Math.max(1, handover + 20))
-          return regenPower + hydraulicPower * ramp
+          return regenMechanicalPower + hydraulicPower * ramp
         }, 0, eventDuration, 41),
-        l('高 SOC 或低转速会收窄再生能力；液压回路必须填补差额，且不能依赖再生完成安全制动。', 'High SOC or low speed narrows regenerative capability; hydraulics must fill the gap and safety braking cannot depend on regeneration.'),
+        gp ? l('高 SOC 或低转速会收窄再生能力；液压回路必须填补差额，且不能依赖再生完成安全制动。', 'High SOC or low speed narrows regenerative capability; hydraulics must fill the gap and safety braking cannot depend on regeneration.') : l('高 SOC 或低转速会收窄再生能力；此滑块是电池、电机与控制的教学限值，而不是 80 kW 驱动规则。液压回路仍必须完成独立安全制动。', 'High SOC or low speed narrows regenerative capability. This slider is a teaching limit for the pack, motor and controls, not the 80 kW drive-power rule; hydraulics must still provide independent safety braking.'),
         [l('制动需求', 'Brake request'), l('再生', 'Regeneration'), l('前液压', 'Front hydraulic'), l('后液压', 'Rear hydraulic'), l('接管缺口', 'Handover gap')],
-        [1, regenPower / Math.max(1, requestedPower), frontHydraulic / Math.max(1, requestedPower), rearHydraulic / Math.max(1, requestedPower), gap],
+        [1, regenMechanicalPower / Math.max(1, requestedPower), frontHydraulic / Math.max(1, requestedPower), rearHydraulic / Math.max(1, requestedPower), gap],
         { marker: normalise(soc, 10, 100), risk: gap })
       },
     },

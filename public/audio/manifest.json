@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "auditedOn": "2026-07-16",
+  "tracks": [
+    {
+      "filename": "good_b_music-cinematic-fairy-tale-story-main-8697.mp3",
+      "sha256": "563a4aaeaa64fbf6445f5ce1600407b520f117c1a7a5921f8f1269373c7281e7",
+      "durationSeconds": 127.164,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "verified-page-current-license-not-archived",
+      "creator": "Good_B_Music",
+      "sourceItemUrl": "https://pixabay.com/music/main-title-cinematic-fairy-tale-story-main-8697/",
+      "licenseSummaryUrl": "https://pixabay.com/service/license-summary/",
+      "sourceVerifiedOn": "2026-07-16"
+    },
+    {
+      "filename": "lemonmusicstudio-tomorrow-114848.mp3",
+      "sha256": "6763a7e8f5337b8570cfe8588a6d0203974acb3ea99e3548a320263e979aef05",
+      "durationSeconds": 144.091,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "source-record-required"
+    },
+    {
+      "filename": "paulyudin-happy-happy-music-477929.mp3",
+      "sha256": "a2734ea606908f000d5d836befeae6409b776e086bfb3b4bec942a35483f9295",
+      "durationSeconds": 120.033,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "source-record-required"
+    },
+    {
+      "filename": "nastelbom-travel-437814.mp3",
+      "sha256": "6c154551f3f56ffbb3af44ceb0051f97e6a8aff8e0de5c4bde4df6f31feef627",
+      "durationSeconds": 138.945,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "source-record-required"
+    },
+    {
+      "filename": "magiksolo-hotel-wood-124516.mp3",
+      "sha256": "ecfff54e65bf5cf4ed67f9aa86f02a4aa9030b050356be79748f116bf671a5b0",
+      "durationSeconds": 140.696,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "source-record-required"
+    },
+    {
+      "filename": "lafrey_music-cozy-routine-537367.mp3",
+      "sha256": "dbcb94a115a98604f9d6f51178b0e259b612e38fd262896eef50f0533d2f3d54",
+      "durationSeconds": 116.95,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "source-record-required"
+    },
+    {
+      "filename": "high_kick-rise-and-shine-110981.mp3",
+      "sha256": "4f238693bd1dbf62001ab4c2de96b199a377c2dc456abdb8c7edb1178164833c",
+      "durationSeconds": 88.033,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "source-record-required"
+    },
+    {
+      "filename": "soundsurfer-luxury-cars-276737.mp3",
+      "sha256": "da171435aa18342d7112d4e27690d601e066ba999c086f5e0b5604ee43582770",
+      "durationSeconds": 258.038,
+      "bitrateKbps": 256,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "binarySuppliedBy": "repository-owner",
+      "rightsStatus": "source-record-required"
+    }
+  ]
+}
