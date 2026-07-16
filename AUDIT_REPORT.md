@@ -146,14 +146,15 @@
 
 ## 4. 最终验证结果
 
-- `npm test`：9 个测试文件，73/73 通过。
+- `npm test`：9 个测试文件，74/74 通过。
 - `npm run build`：TypeScript 与 Vite 生产构建通过。
 - `npm run test:browser`：13/13 Chromium 场景通过，包含 36 套零件模型、216 子组件、四款车队研究车型、两类教学车、双语、320 px 竖屏和 WCAG 检查。
 - `npm audit --omit=dev` 与 `npm audit`：0 个已知漏洞。
 - `git diff --check`：通过。
 - `bash -n deploy/deploy-racecar-lab.sh`：通过。
 - 腾讯云候选 Nginx 配置 `nginx -t`：通过。
-- 腾讯云 release `20260716T104108Z_9794e7d` 已原子部署，Nginx 为 active；上一健康版本 `20260716T095634Z_4241607` 保留为回滚点，公网加载新生产资源 `index-CsAZyYid.js` 与 `index-BhjMOAD4.css`。
+- 腾讯云 release `20260716T114839Z_54c3476` 已原子部署，Nginx 为 active；上一健康版本 `20260716T104108Z_9794e7d` 保留为回滚点，公网加载新生产资源 `index-K_MOamDq.js` 与 `index-BhjMOAD4.css`。
+- 公网英文 1440×900 与中文 390×844 共执行 8 次四车切换：8/8 返回 200，每车 10 区漆面签名，页面宽度分别严格保持 1440 与 390，浏览器错误均为 0。
 - 公网 Playwright 中英文实测通过：四张车队卡高度均为 `669 px`，每张卡上下车手均为 `301.5 px`，底部间距均为 `5 px`；8 张照片全部解码，横向溢出与浏览器错误均为 `0`。
 
 ## 5. 规则来源与边界
