@@ -232,6 +232,7 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
           const profileHero = await garage.locator('.garage-profile-hero').evaluate((hero) => {
             const heroBox = hero.getBoundingClientRect()
             const carBox = hero.querySelector('.garage-car-hero')!.getBoundingClientRect()
+            const profile = hero.closest('.garage-profile')!
             const wheels = [...hero.querySelectorAll('.garage-car-art__wheel')].map((wheel) => {
               const box = wheel.getBoundingClientRect()
               return { top: box.top, bottom: box.bottom }
@@ -246,15 +247,21 @@ test('desktop and portrait UI matrix keeps every primary panel reachable', async
               labelFont: Number.parseFloat(getComputedStyle(label).fontSize),
               titleFont: Number.parseFloat(getComputedStyle(title).fontSize),
               descriptionFont: Number.parseFloat(getComputedStyle(description).fontSize),
+              questionHeight: profile.querySelector('.garage-question')!.getBoundingClientRect().height,
+              factHeights: [...profile.querySelectorAll('.garage-facts article')].map((fact) => fact.getBoundingClientRect().height),
+              sourcesHeight: profile.querySelector('.garage-sources')!.getBoundingClientRect().height,
             }
           })
-          expect(profileHero.hero.height).toBeGreaterThanOrEqual(158)
-          expect(profileHero.car.height).toBeGreaterThanOrEqual(136)
+          expect(profileHero.hero.height).toBeGreaterThanOrEqual(208)
+          expect(profileHero.car.height).toBeGreaterThanOrEqual(184)
           expect(profileHero.wheels).toHaveLength(2)
           profileHero.wheels.forEach((wheel) => {
             expect(wheel.top).toBeGreaterThanOrEqual(profileHero.hero.top + 1)
-            expect(wheel.bottom).toBeLessThanOrEqual(profileHero.hero.bottom - 3)
+            expect(wheel.bottom).toBeLessThanOrEqual(profileHero.hero.bottom - 12)
           })
+          expect(profileHero.questionHeight).toBeLessThanOrEqual(56)
+          expect(Math.max(...profileHero.factHeights)).toBeLessThanOrEqual(locale === 'zh' ? 158 : 168)
+          expect(profileHero.sourcesHeight).toBeLessThanOrEqual(34)
           expect(profileHero.labelFont).toBeGreaterThanOrEqual(12)
           expect(profileHero.titleFont).toBeGreaterThanOrEqual(32)
           expect(profileHero.descriptionFont).toBeGreaterThanOrEqual(16)
