@@ -799,6 +799,16 @@ test('grand prix vehicle persists, isolates content and exposes all 18 dedicated
       await expect(garage.locator('.garage-compare-lead')).toHaveCount(0)
       await expect(garage.locator('[data-car-art-team]')).toHaveCount(4)
       expect(await garage.locator('[data-car-art-team]').first().locator('path, circle, ellipse').count()).toBeGreaterThan(16)
+      const carArtLayering = await garage.locator('[data-car-art-team]').evaluateAll(cars => cars.map(car => {
+        const surfaceLines = car.querySelector('.garage-car-art__surface-lines')!
+        const wheels = [...car.querySelectorAll('.garage-car-art__wheel')]
+        return {
+          rearMounts: car.querySelectorAll('.garage-car-art__rear-mount').length,
+          rearSupports: car.querySelectorAll('.garage-car-art__rear-wing-support').length,
+          wheelsCoverSurfaceLines: wheels.every(wheel => Boolean(surfaceLines.compareDocumentPosition(wheel) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        }
+      }))
+      expect(carArtLayering).toEqual(Array.from({ length: 4 }, () => ({ rearMounts: 1, rearSupports: 1, wheelsCoverSurfaceLines: true })))
       const compareSizes = await garage.locator('.garage-compare-grid dt, .garage-compare-grid dd').evaluateAll(elements => elements.map(element => Number.parseFloat(getComputedStyle(element).fontSize)))
       expect(Math.min(...compareSizes)).toBeGreaterThanOrEqual(11)
       expect(Math.max(...compareSizes)).toBeGreaterThanOrEqual(15)

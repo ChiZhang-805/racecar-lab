@@ -45,9 +45,10 @@ function TeamCarGraphic({ id }: { id: GrandPrixTeamId }) {
       <path d={`M${cockpitX - 11} 34C${cockpitX - 8} 22 ${cockpitX + 8} 22 ${cockpitX + 12} 34`} />
       <path d={`M${cockpitX} 24  ${cockpitX + 2} 38`} />
     </g>
+    <path className="garage-car-art__rear-mount" d="M18 44 28 42 39 47 39 52 29 55 18 50Z" />
     <g className="garage-car-art__rear-wing">
       <path d="M11 21 33 21 30 27 9 27Z" />
-      <path d="M15 27 18 48M29 27 33 43" />
+      <path className="garage-car-art__rear-wing-support" d="M15 27 18 44 24 48M29 27 32 39 37 46" />
       <path d="M7 31 31 31" />
     </g>
     <g className="garage-car-art__front-wing">
@@ -55,14 +56,16 @@ function TeamCarGraphic({ id }: { id: GrandPrixTeamId }) {
       <path d={`M154 ${frontWingY - 4} 176 ${frontWingY - 9}`} />
       <path d={`M168 ${frontWingY - 9} 174 ${frontWingY + 5}`} />
     </g>
+    <g className="garage-car-art__surface-lines">
+      <path className="garage-car-art__accent" d={`M49 44C74 47 99 45 118 47L165 ${noseY + 4}`} />
+      <path className="garage-car-art__pinstripe" d={`M55 ${sidepodTop + 4} 87 42 112 44`} />
+    </g>
     <g className="garage-car-art__wheel garage-car-art__wheel--rear">
       <circle cx="42" cy="54" r="15" /><circle cx="42" cy="54" r="9" /><circle cx="42" cy="54" r="3" />
     </g>
     <g className="garage-car-art__wheel garage-car-art__wheel--front">
       <circle cx="138" cy="54" r="15" /><circle cx="138" cy="54" r="9" /><circle cx="138" cy="54" r="3" />
     </g>
-    <path className="garage-car-art__accent" d={`M49 44C74 47 99 45 118 47L165 ${noseY + 4}`} />
-    <path className="garage-car-art__pinstripe" d={`M55 ${sidepodTop + 4} 87 42 112 44`} />
   </svg>
 }
 

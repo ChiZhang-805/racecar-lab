@@ -2922,7 +2922,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="-1"]:focu
 .garage-car-art__intake { fill: #070b0e; stroke: var(--team-accent); stroke-width: .8; }
 .garage-car-art__cockpit { fill: #050709; stroke: #8d9da3; stroke-width: .8; }
 .garage-car-art__halo { fill: none; stroke: var(--team-pinstripe); stroke-width: 2; stroke-linecap: round; }
+.garage-car-art__rear-mount { fill: color-mix(in srgb, var(--team-secondary) 32%, #080d10); stroke: color-mix(in srgb, var(--team-secondary) 55%, #6b777c); stroke-width: .8; stroke-linejoin: round; }
 .garage-car-art__rear-wing, .garage-car-art__front-wing { fill: var(--team-body); stroke: color-mix(in srgb, var(--team-body) 54%, white 46%); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.garage-car-art__rear-wing-support { fill: none; }
 .garage-car-art__suspension { fill: none; stroke: #8d9aa0; stroke-width: 1.15; stroke-linecap: round; }
 .garage-car-art__wheel circle:first-child { fill: #06080a; stroke: #5d686d; stroke-width: 1; }
 .garage-car-art__wheel circle:nth-child(2) { fill: #222a2e; stroke: var(--team-accent); stroke-width: 1.4; }
