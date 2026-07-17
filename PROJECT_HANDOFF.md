@@ -6,14 +6,14 @@
 
 - GitHub：<https://github.com/ChiZhang-805/racecar-lab>
 - 线上地址：<http://124.221.220.60/>
-- 当前线上应用提交：`26a24d8`（`feat: balance desktop copy and refine 2026 liveries`）
-- 当前线上 release：`20260716T202205Z_26a24d8`
-- 上一回滚 release：`20260716T140047Z_c8a8891`
-- 当前线上版本最终验证：Vitest `74/74`、Playwright `17/17`（21.8 分钟）、TypeScript 与 Vite 生产构建通过，`npm audit` 为 0 个漏洞；尾翼/图层候选修复另行通过 Playwright `17/17`（22.1 分钟）
-- 公网回归：完整 Playwright `17/17`（27.2 分钟）；覆盖两车型、中英文、36 套 3D 工作台、四款研究车、桌面/横屏/320–390 px 竖屏、WCAG、静态资源与全站桌面说明段落比例。新资源为 `index-BNcjkClh.js` 与 `index-JMj1nWqk.css`
-- 本轮完整备份：`C:\Users\zju20\Documents\Codex\2026-07-16\yue\outputs\racecar-lab-maintenance-audit-2026-07-17`
+- 当前线上应用提交：`2ddde9d`（`fix: correct garage car wing and wheel layering`）
+- 当前线上 release：`20260717T020736Z_2ddde9d`
+- 上一回滚 release：`20260716T202205Z_26a24d8`
+- 最终本地验证：Vitest `74/74`、Playwright `17/17`（22.1 分钟）、TypeScript 与 Vite 生产构建通过，依赖未变化且最近 `npm audit` 为 0 个漏洞
+- 公网回归：四车与 18 总成专项 Playwright `1/1`（4.7 分钟）；四车均具备尾翼安装结构和正确车轮遮挡顺序。新资源为 `index-pF5OYnKs.js` 与 `index-DL1seQkc.css`
+- 本轮完整备份：`C:\Users\zju20\Documents\Codex\2026-07-16\yue\outputs\racecar-lab-garage-car-layering-2026-07-17`
 
-本文件之后如果仅有测试、交接或备份类提交，线上应用仍对应 `26a24d8`；不要把未改变生产构建的提交误报为已重新部署的页面版本。
+本文件之后如果仅有测试、交接或备份类提交，线上应用仍对应 `2ddde9d`；不要把未改变生产构建的提交误报为已重新部署的页面版本。
 
 ## 1. 项目定位
 
@@ -136,6 +136,8 @@ npm run verify
 车型研究头图二次加高上传 `1,729,460` 字节增量包，SHA-256 为 `73b86b83f36714a3b92947a49c4dbe4575e8b5636272fbc9e97ddce87c87cf30`；服务器从上一健康 release 重组的完整发布归档为 `55,906,945` 字节，SHA-256 为 `1adbb962b282f8724cf186b224ee1504cb63a823fdc0e2428156397ebcc337ec`。部署脚本生成 release `20260716T140047Z_c8a8891`，保留 `20260716T130635Z_04b47bf` 为上一回滚点，Nginx 状态为 active；公网资源为 `index-C0SMuN1y.js` 与 `index-DDcrh3LB.css`。
 
 全站段落与涂装维护上传 `1,731,427` 字节增量包，SHA-256 为 `9a9c6dd629f00a30833fa79f0d0b58c2d562ea9b90069e33b6117f2bed71af9e`；服务器从上一健康 release 重组的完整发布归档为 `55,909,323` 字节，SHA-256 为 `d1393b84a94528027878401350dc27ec917c0f658684fa468a47dcc9603a7586`。部署脚本生成 release `20260716T202205Z_26a24d8`，保留 `20260716T140047Z_c8a8891` 为上一回滚点，Nginx 状态为 active；公网资源为 `index-BNcjkClh.js` 与 `index-JMj1nWqk.css`。公网完整 Playwright 回归为 `17/17`。
+
+车库侧视赛车尾翼/图层修复上传 `1,731,900` 字节增量包，SHA-256 为 `29559e9058d76ce991c8ebfa4a8381bcc0e203be90b1fb34338934412f35efff`；服务器重组的完整发布归档为 `55,909,337` 字节，SHA-256 为 `e1eb5052d6de7d4d43255b7f84922d1a20b2a523ec544ed3cb3225762cb09d64`。部署脚本生成 release `20260717T020736Z_2ddde9d`，保留 `20260716T202205Z_26a24d8` 为上一回滚点，Nginx 状态为 active；公网资源为 `index-pF5OYnKs.js` 与 `index-DL1seQkc.css`。公网四车/18 总成专项 Playwright 回归为 `1/1`。
 
 ## 7. GitHub 与发布规则
 
