@@ -1,12 +1,6 @@
 <h1 align="center">RaceCar Lab</h1>
 
-<p align="center">
-  <a href="http://124.221.220.60/"><img alt="Open the live demo" src="https://img.shields.io/badge/Live_Demo-Open_RaceCar_Lab-E10600?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
-  <a href="https://github.com/ChiZhang-805/racecar-lab"><img alt="View the source on GitHub" src="https://img.shields.io/badge/GitHub-View_Source-181717?style=for-the-badge&logo=github&logoColor=white"></a>
-  <a href="#validation"><img alt="View validation commands" src="https://img.shields.io/badge/Checks-74_Unit_%2B_17_Browser-2EA44F?style=for-the-badge&logo=vitest&logoColor=white"></a>
-</p>
-
-## At a glance
+## Overview
 
 | Vehicles | Core parts | components | Subcomponents | Experiments | Formulas | Questions |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
