@@ -2,8 +2,8 @@
 
 ## Overview
 
-| Vehicles | Core parts | components | Subcomponents | Experiments | Formulas | Questions |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Vehicles | Core parts | Components | Subcomponents | Experiments | Formulas | Questions |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | 2 | 36 | 36 | 216 | 90 | 108 | 180 |
 
 RaceCar Lab is a full-screen, browser-based learning experience for Formula Student and modern hybrid single-seater engineering. It combines interactive 3D models with practical explanations, live calculations, diagnostic scenarios, and structured courses.
