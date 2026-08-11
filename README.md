@@ -8,7 +8,7 @@
 
 ## At a glance
 
-| Learning vehicles | Core parts | 3D workbenches | Subcomponents | Experiments | Formulas | Questions |
+| Vehicles | Core parts | components | Subcomponents | Experiments | Formulas | Questions |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 2 | 36 | 36 | 216 | 90 | 108 | 180 |
 
