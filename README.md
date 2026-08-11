@@ -16,9 +16,9 @@
 
 ## At a glance
 
-| Learning vehicles | Grand Prix study cars | Current drivers | Core parts | 3D workbenches | Subcomponents | Experiments | Formulas | Questions |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2 | 4 | 8 | 36 | 36 | 216 | 90 | 108 | 180 |
+| Learning vehicles | Core parts | 3D workbenches | Subcomponents | Experiments | Formulas | Questions |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | 36 | 36 | 216 | 90 | 108 | 180 |
 
 RaceCar Lab is a full-screen, browser-based learning experience for Formula Student and modern hybrid single-seater engineering. It combines interactive 3D models with practical explanations, live calculations, diagnostic scenarios, and structured courses.
 
